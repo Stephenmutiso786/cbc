@@ -1,0 +1,13 @@
+vendor/
+node_modules/
+public/build/
+.env
+storage/logs/
+storage/app/public/
+storage/framework/sessions/
+storage/framework/views/
+storage/framework/cache/
+bootstrap/cache/
+*.log
+.mysql-home/
+.mysql-run/
