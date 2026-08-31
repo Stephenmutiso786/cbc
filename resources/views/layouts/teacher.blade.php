@@ -31,7 +31,12 @@
         <header class="bg-white h-14 flex items-center px-6 shadow-sm">
             <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? 'Teacher Portal' }}</h1>
         </header>
-        <main class="flex-1 overflow-y-auto p-6">{{ $slot }}</main>
+        <main class="flex-1 overflow-y-auto p-6">
+            @yield('content')
+            @isset($slot)
+                {{ $slot }}
+            @endisset
+        </main>
     </div>
 </div>
 @livewireScripts
