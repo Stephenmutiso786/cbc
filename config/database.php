@@ -1,5 +1,14 @@
 <?php
 
+$mysqlCa = env('MYSQL_ATTR_SSL_CA');
+if (is_string($mysqlCa) && str_starts_with(trim($mysqlCa), '-----BEGIN CERTIFICATE-----')) {
+    $mysqlCa = str_replace(['\\r\\n', '\\n', '\\r'], ["\r\n", "\n", "\r"], trim($mysqlCa));
+    $mysqlCaPath = '/tmp/aiven-ca.pem';
+    file_put_contents($mysqlCaPath, $mysqlCa);
+    chmod($mysqlCaPath, 0644);
+    $mysqlCa = $mysqlCaPath;
+}
+
 return [
     'default' => env('DB_CONNECTION', 'mysql'),
     'connections' => [
@@ -23,7 +32,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                PDO::MYSQL_ATTR_SSL_CA => $mysqlCa,
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => filter_var(
                     env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT', 'true'),
                     FILTER_VALIDATE_BOOLEAN,
