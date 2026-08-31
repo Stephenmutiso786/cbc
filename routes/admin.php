@@ -8,6 +8,7 @@ use App\Livewire\Inventory\InventoryList;
 use App\Livewire\Notes\LearningNotesList;
 use App\Livewire\Admin\AcademicSetup;
 use App\Livewire\Admin\StaffManager;
+use App\Livewire\Admin\SubjectManager;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 
@@ -30,5 +31,6 @@ Route::get('/timetable', fn() => view('admin.timetable.index'))->name('timetable
 Route::get('/reports', fn() => view('admin.reports.index'))->name('reports.index');
 Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.index');
 Route::get('/classes', AcademicSetup::class)->name('classes.index');
+Route::get('/subjects', SubjectManager::class)->name('subjects.index');
 Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->name('kemis.index');
