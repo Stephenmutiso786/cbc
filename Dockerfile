@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock ./
+COPY app/Support/polyfills.php app/Support/polyfills.php
 RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
 
 FROM node:20-bookworm-slim AS assets
