@@ -5,14 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} - {{ $title ?? 'Administration' }}</title>
+    @include('layouts.partials.pwa')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
 <body class="bg-gray-100 font-sans antialiased">
 <div class="min-h-screen">
-    <aside class="fixed inset-y-0 left-0 z-40 w-64 bg-green-800 text-white">
+    <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
+    <aside data-sidebar class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center bg-green-900 px-5">
             <span class="truncate font-bold">{{ config('school.name') }}</span>
+            <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
         </div>
         <nav class="space-y-1 px-3 py-4 text-sm">
             @foreach([
@@ -34,12 +37,13 @@
             </form>
         </div>
     </aside>
-    <div class="pl-64">
-        <header class="flex h-16 items-center justify-between bg-white px-6 shadow-sm">
+    <div class="md:pl-64">
+        <header class="flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-6">
+            <button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
             <h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
             <span class="text-sm text-gray-500">{{ config('school.academic_year') }}</span>
         </header>
-        <main class="p-6">
+        <main class="p-4 md:p-6">
             @yield('content')
             @isset($slot){{ $slot }}@endisset
         </main>

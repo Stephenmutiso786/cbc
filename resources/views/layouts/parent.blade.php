@@ -4,6 +4,7 @@
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} — Parent Portal</title>
+    @include('layouts.partials.pwa')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
@@ -13,7 +14,7 @@
         <h1 class="text-xl font-bold text-green-900">{{ config('school.name') }}</h1>
         <form method="POST" action="{{ route('logout') }}">@csrf<button class="text-sm text-red-600">Logout</button></form>
     </div>
-    <nav class="flex gap-2 mb-6">
+    <nav class="mb-6 flex flex-wrap gap-2">
         @foreach([['parent.dashboard','Dashboard'],['parent.progress.index','Progress'],['parent.fees.index','Fees'],['parent.notes.index','Notes']] as [$r,$l])
         <a href="{{ route($r) }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700">{{ $l }}</a>
         @endforeach

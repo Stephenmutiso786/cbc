@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} — Teacher Portal</title>
+    @include('layouts.partials.pwa')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
 <body class="font-sans antialiased bg-gray-100">
-    <main class="p-6">
+    <main class="p-4 md:p-6">
         {{ $slot }}
     </main>
     @livewireScripts
