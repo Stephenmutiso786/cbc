@@ -17,7 +17,7 @@
         </div>
         <div>
             <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Learning Area</label>
-            <select wire:model.live="learningAreaId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <select wire:model.live="learningAreaId" wire:change="loadLearners" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 <option value="">Select area...</option>
                 @foreach($learningAreas as $area)
                     <option value="{{ $area->id }}">{{ $area->name }}</option>

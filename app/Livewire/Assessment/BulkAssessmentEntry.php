@@ -9,6 +9,7 @@ use App\Models\LearningArea;
 use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Models\Strand;
+use App\Models\TeacherSubjectAllocation;
 use Livewire\Component;
 
 class BulkAssessmentEntry extends Component
@@ -30,6 +31,11 @@ class BulkAssessmentEntry extends Component
     public function loadLearners(): void
     {
         if (!$this->classId) return;
+        if (!$this->canUseSelection()) {
+            $this->addError('classId', 'You are not allocated to this class and learning area.');
+            $this->assessmentData = [];
+            return;
+        }
 
         $learners = Learner::where('class_id', $this->classId)->where('is_active', true)
             ->orderBy('last_name')->get();
@@ -37,6 +43,11 @@ class BulkAssessmentEntry extends Component
         $this->assessmentData = $learners->mapWithKeys(fn($l) => [
             $l->id => ['rubric_level' => '', 'remarks' => '', 'name' => $l->full_name]
         ])->toArray();
+    }
+
+    public function updatedLearningAreaId(): void
+    {
+        if ($this->classId) $this->loadLearners();
     }
 
     public function saveAssessments(): void
@@ -47,6 +58,7 @@ class BulkAssessmentEntry extends Component
             'term'           => 'required',
             'academicYear'   => 'required',
         ]);
+        abort_unless($this->canUseSelection(), 403, 'You are not allocated to this class and learning area.');
 
         $teacherId = auth()->user()->staffMember?->id;
         $saved = 0;
@@ -79,14 +91,29 @@ class BulkAssessmentEntry extends Component
 
     public function render()
     {
+        $fullAdmin = auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        $staffId = auth()->user()->staffMember?->id;
+        $allocations = TeacherSubjectAllocation::where('teacher_id', $staffId)->where('is_active', true)
+            ->where('academic_year', (string) $this->academicYear);
         return view('livewire.assessment.bulk-assessment-entry', [
-            'classes'       => SchoolClass::orderBy('grade_level')->get(),
-            'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
+            'classes'       => $fullAdmin ? SchoolClass::orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocations)->pluck('class_id'))->orderBy('grade_level')->get(),
+            'learningAreas' => $fullAdmin ? LearningArea::where('is_active', true)->orderBy('name')->get() : LearningArea::whereIn('id', (clone $allocations)->pluck('learning_area_id'))->where('is_active', true)->orderBy('name')->get(),
             'strands'       => $this->learningAreaId
                 ? Strand::where('learning_area_id', $this->learningAreaId)->orderBy('order')->get()
                 : collect(),
             'rubricLevels'  => RubricLevel::cases(),
             'terms'         => TermEnum::cases(),
         ])->layout('layouts.teacher');
+    }
+
+    private function canUseSelection(): bool
+    {
+        if (auth()->user()->hasAnyRole(['admin', 'super-admin'])) return true;
+        return TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+            ->where('class_id', $this->classId)
+            ->where('learning_area_id', $this->learningAreaId)
+            ->where('term', (int) $this->term)
+            ->where('academic_year', (string) $this->academicYear)
+            ->where('is_active', true)->exists();
     }
 }

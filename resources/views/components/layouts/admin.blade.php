@@ -22,6 +22,7 @@
                 <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Learners</a>
                 <a href="{{ route('admin.staff.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Staff</a>
                 <a href="{{ route('finance.payments.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Fees</a>
+                <a href="{{ route('admin.classes.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Classes</a>
                 <a href="{{ route('admin.assessment.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Assessments</a>
                 <a href="{{ route('admin.timetable.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Timetable</a>
                 <a href="{{ route('admin.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Reports</a>

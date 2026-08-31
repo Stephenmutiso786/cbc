@@ -8,6 +8,7 @@ use App\Models\LearningArea;
 use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
+use App\Models\TeacherSubjectAllocation;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -22,6 +23,7 @@ class ExamManager extends Component
     public bool   $showCreateModal = false;
     public string $examName       = '';
     public string $examGrade      = '';
+    public string $examClassId    = '';
     public ?int   $examAreaId     = null;
     public string $examType       = 'end_term';
     public string $examTerm       = '';
@@ -35,6 +37,7 @@ class ExamManager extends Component
     protected $rules = [
         'examName'  => 'required|string|max:200',
         'examGrade' => 'required',
+        'examClassId' => 'required|exists:school_classes,id',
         'examAreaId'=> 'required|exists:learning_areas,id',
         'examType'  => 'required',
         'examTerm'  => 'required',
@@ -52,10 +55,17 @@ class ExamManager extends Component
     {
         $this->validate();
         $teacher = StaffMember::where('user_id', auth()->id())->first();
+        if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', $teacher?->id)
+            ->where('class_id', $this->examClassId)->where('learning_area_id', $this->examAreaId)->where('academic_year', config('school.academic_year'))
+            ->where('term', (int) $this->examTerm)->where('is_active', true)->exists()) {
+            $this->addError('examAreaId', 'You are not allocated to this learning area for this term.');
+            return;
+        }
 
         Exam::create([
             'name'            => $this->examName,
             'grade_level'     => $this->examGrade,
+            'class_id'        => $this->examClassId,
             'learning_area_id'=> $this->examAreaId,
             'academic_year'   => config('school.academic_year'),
             'term'            => $this->examTerm,
@@ -69,7 +79,7 @@ class ExamManager extends Component
 
         $this->dispatch('notify', type: 'success', message: 'Exam created successfully.');
         $this->showCreateModal = false;
-        $this->reset(['examName','examGrade','examAreaId','examTerm','examDate']);
+        $this->reset(['examName','examGrade','examClassId','examAreaId','examTerm','examDate']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
     }
@@ -78,7 +88,13 @@ class ExamManager extends Component
     {
         $this->selectedExam = $examId;
         $exam = Exam::findOrFail($examId);
-        $learners = Learner::where('grade_level', $exam->grade_level)->where('is_active', true)->get();
+        if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+            ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)->where('academic_year', $exam->academic_year)
+            ->where('term', (int) $exam->term)->where('is_active', true)->exists()) {
+            abort(403, 'You are not allocated to this exam subject.');
+        }
+        $learners = Learner::when($exam->class_id, fn ($query) => $query->where('class_id', $exam->class_id))
+            ->where('grade_level', $exam->grade_level)->where('is_active', true)->get();
 
         $existing = ExamResult::where('exam_id', $examId)->pluck('marks_obtained', 'learner_id');
 
@@ -92,6 +108,12 @@ class ExamManager extends Component
     public function saveMarks(): void
     {
         $exam    = Exam::findOrFail($this->selectedExam);
+        if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+            ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)
+            ->where('academic_year', $exam->academic_year)->where('term', (int) $exam->term)
+            ->where('is_active', true)->exists()) {
+            abort(403, 'You are not allocated to this exam class and subject.');
+        }
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         $saved   = 0;
 
@@ -128,15 +150,25 @@ class ExamManager extends Component
         };
     }
 
+    private function isFullAdmin(): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+    }
+
     public function render()
     {
-        $exams = Exam::with(['learningArea'])
+        $fullAdmin = $this->isFullAdmin();
+        $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+            ->where('academic_year', config('school.academic_year'))->where('is_active', true);
+        $exams = Exam::with(['learningArea', 'schoolClass'])
             ->where('academic_year', config('school.academic_year'))
+            ->when(!$fullAdmin, fn ($query) => $query->whereIn('class_id', (clone $allocation)->pluck('class_id'))->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id')))
             ->latest()->paginate(20);
 
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
-            'learningAreas' => LearningArea::where('is_active', true)->get(),
+            'learningAreas' => $fullAdmin ? LearningArea::where('is_active', true)->get() : LearningArea::whereIn('id', (clone $allocation)->pluck('learning_area_id'))->where('is_active', true)->get(),
+            'classes' => $fullAdmin ? SchoolClass::orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocation)->pluck('class_id'))->orderBy('grade_level')->get(),
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
         ])->layout('layouts.admin');
