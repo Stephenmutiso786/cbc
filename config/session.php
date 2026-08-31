@@ -15,7 +15,7 @@ return [
     'cookie'          => env('SESSION_COOKIE', Str::slug(env('APP_NAME', 'laravel'), '_').'_session'),
     'path'            => env('SESSION_PATH', '/'),
     'domain'          => env('SESSION_DOMAIN'),
-    'secure'          => env('SESSION_SECURE_COOKIE'),
+    'secure'          => (bool) env('SESSION_SECURE_COOKIE', false),
     'http_only'       => (bool) env('SESSION_HTTP_ONLY', true),
     'same_site'       => env('SESSION_SAME_SITE', 'lax'),
     'partitioned'     => (bool) env('SESSION_PARTITIONED_COOKIE', false),

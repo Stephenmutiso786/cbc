@@ -12,7 +12,7 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-        value: "true"
+        value: "false"
       - key: APP_URL
         sync: false
       - key: ASSET_URL
@@ -31,6 +31,8 @@ services:
         value: cookie
       - key: SESSION_LIFETIME
         value: "120"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
       - key: QUEUE_CONNECTION
         value: sync
       - key: DB_CONNECTION
@@ -38,7 +40,7 @@ services:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: "3306"
+        value: "21229"
       - key: DB_DATABASE
         sync: false
       - key: DB_USERNAME
