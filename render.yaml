@@ -26,9 +26,9 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: CACHE_STORE
-        value: file
+        value: array
       - key: SESSION_DRIVER
-        value: file
+        value: cookie
       - key: SESSION_LIFETIME
         value: "120"
       - key: QUEUE_CONNECTION
