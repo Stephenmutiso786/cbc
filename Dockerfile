@@ -1,5 +1,18 @@
-FROM composer:2.7 AS vendor
+FROM php:8.2-cli-bookworm AS vendor
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        unzip \
+        libpng-dev \
+        libonig-dev \
+        libxml2-dev \
+        libzip-dev \
+        libexif-dev \
+    && docker-php-ext-install pdo_mysql mbstring xml zip gd exif \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
 
@@ -20,10 +33,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libonig-dev \
         libxml2-dev \
         libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring xml zip gd \
+        libexif-dev \
+    && docker-php-ext-install pdo_mysql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
