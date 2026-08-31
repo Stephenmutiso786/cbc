@@ -2,7 +2,8 @@
 @section('header', 'Timetable')
 @section('content')
 <div class="card p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-2">Timetable</h2>
-    <p class="text-sm text-gray-500">Timetable workspace placeholder with a valid route and layout.</p>
+    @php($slots = \App\Models\TimetableSlot::with(['schoolClass','learningArea','teacher'])->where('academic_year', config('school.academic_year'))->orderByRaw("FIELD(day_of_week, 'monday','tuesday','wednesday','thursday','friday')")->orderBy('start_time')->paginate(30))
+    <h2 class="text-xl font-bold text-gray-800 mb-1">Timetable</h2><p class="text-sm text-gray-500 mb-5">{{ $slots->total() }} scheduled lessons for {{ config('school.academic_year') }}.</p>
+    <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs uppercase">Day</th><th class="px-4 py-3 text-left text-xs uppercase">Time</th><th class="px-4 py-3 text-left text-xs uppercase">Class</th><th class="px-4 py-3 text-left text-xs uppercase">Learning area</th><th class="px-4 py-3 text-left text-xs uppercase">Teacher</th><th class="px-4 py-3 text-left text-xs uppercase">Venue</th></tr></thead><tbody class="divide-y divide-gray-100">@forelse($slots as $slot)<tr><td class="px-4 py-3 text-sm capitalize">{{ $slot->day_of_week }}</td><td class="px-4 py-3 text-sm">{{ substr($slot->start_time,0,5) }} - {{ substr($slot->end_time,0,5) }}</td><td class="px-4 py-3 text-sm">{{ $slot->schoolClass?->name ?: 'Unassigned' }}</td><td class="px-4 py-3 text-sm">{{ $slot->learningArea?->name ?: 'Unassigned' }}</td><td class="px-4 py-3 text-sm">{{ $slot->teacher?->full_name ?: 'Unassigned' }}</td><td class="px-4 py-3 text-sm">{{ $slot->venue ?: '-' }}</td></tr>@empty<tr><td colspan="6" class="px-4 py-10 text-center text-gray-400">No timetable slots have been created.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $slots->links() }}</div>
 </div>
 @endsection

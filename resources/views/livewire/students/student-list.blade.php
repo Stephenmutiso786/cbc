@@ -98,3 +98,39 @@
         </div>
     </div>
 </div>
+
+@if($showForm)
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-900">{{ $editingId ? 'Edit Learner' : 'Enrol Learner' }}</h3>
+            <button wire:click="$set('showForm', false)" class="text-gray-400 hover:text-gray-700">X</button>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            @foreach([
+                ['admission_number','Admission number','text'], ['first_name','First name','text'],
+                ['middle_name','Middle name','text'], ['last_name','Last name','text'],
+                ['date_of_birth','Date of birth','date'], ['admission_date','Admission date','date'],
+            ] as [$field, $label, $type])
+            <label class="text-sm text-gray-700">{{ $label }}
+                <input wire:model="form.{{ $field }}" type="{{ $type }}" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+                @error('form.'.$field)<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+            </label>
+            @endforeach
+            <label class="text-sm text-gray-700">Gender
+                <select wire:model="form.gender" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="male">Male</option><option value="female">Female</option></select>
+            </label>
+            <label class="text-sm text-gray-700">Grade
+                <select wire:model="form.grade_level" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select grade</option>@foreach(config('school.grade_levels') as $grades) @foreach($grades as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach @endforeach</select>
+            </label>
+            <label class="text-sm text-gray-700">Class
+                <select wire:model="form.class_id" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select class</option>@foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->name }}</option>@endforeach</select>
+            </label>
+            <label class="text-sm text-gray-700">Boarding status
+                <select wire:model="form.boarding_status" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="day">Day</option><option value="boarding">Boarding</option></select>
+            </label>
+        </div>
+        <div class="mt-6 flex justify-end gap-3"><button wire:click="$set('showForm', false)" class="rounded-lg border px-4 py-2 text-sm">Cancel</button><button wire:click="save" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white">Save learner</button></div>
+    </div>
+</div>
+@endif
