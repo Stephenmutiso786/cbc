@@ -1,5 +1,5 @@
 @extends('layouts.finance')
 @section('header', 'Inventory')
 @section('content')
-<div class="card p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Inventory</h2><p class="text-sm text-gray-500">Inventory workspace placeholder.</p></div>
+<div class="card p-6">@php($items = \App\Models\InventoryItem::with('category')->orderBy('name')->paginate(25))<h2 class="text-xl font-bold text-gray-800 mb-5">Inventory summary</h2><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead><tr><th class="px-3 py-2 text-left text-xs uppercase">Item</th><th class="px-3 py-2 text-left text-xs uppercase">Category</th><th class="px-3 py-2 text-right text-xs uppercase">In stock</th><th class="px-3 py-2 text-right text-xs uppercase">Issued</th></tr></thead><tbody class="divide-y">@forelse($items as $item)<tr><td class="px-3 py-2 text-sm">{{ $item->name }}</td><td class="px-3 py-2 text-sm">{{ $item->category?->name }}</td><td class="px-3 py-2 text-right text-sm">{{ $item->quantity_in_stock }}</td><td class="px-3 py-2 text-right text-sm">{{ $item->quantity_issued }}</td></tr>@empty<tr><td colspan="4" class="px-3 py-8 text-center text-gray-400">No inventory items found.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $items->links() }}</div></div>
 @endsection

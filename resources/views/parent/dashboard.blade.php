@@ -1,5 +1,5 @@
 @extends('layouts.parent')
 @section('header', 'Parent Dashboard')
 @section('content')
-<div class="card p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Parent Dashboard</h2><p class="text-sm text-gray-500">Parent dashboard placeholder.</p></div>
+<div class="card p-6">@php($guardian = auth()->user()->guardian)<h2 class="text-xl font-bold text-gray-800 mb-1">Parent Dashboard</h2><p class="mb-6 text-sm text-gray-500">Welcome, {{ $guardian?->full_name ?: auth()->user()->name }}.</p><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><div class="rounded-xl bg-green-50 p-5"><p class="text-sm text-gray-500">My learners</p><p class="mt-2 text-2xl font-bold">{{ $guardian?->learners()->count() ?? 0 }}</p></div><div class="rounded-xl bg-yellow-50 p-5"><p class="text-sm text-gray-500">Outstanding fees</p><p class="mt-2 text-2xl font-bold">KES {{ number_format($guardian?->learners()->withSum('feeInvoices','balance')->get()->sum('fee_invoices_sum_balance') ?? 0, 2) }}</p></div><div class="rounded-xl bg-blue-50 p-5"><p class="text-sm text-gray-500">Published notes</p><p class="mt-2 text-2xl font-bold">{{ \App\Models\LearningNote::published()->count() }}</p></div></div></div>
 @endsection

@@ -4,6 +4,9 @@ namespace App\Livewire\Inventory;
 
 use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
+use App\Models\Learner;
+use App\Models\StaffMember;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -39,31 +42,42 @@ class InventoryList extends Component
 
     public function issueItem(): void
     {
-        $item = InventoryItem::findOrFail($this->selectedItemId);
+        $this->validate([
+            'selectedItemId' => 'required|exists:inventory_items,id',
+            'issueQty' => 'required|integer|min:1',
+            'issueType' => 'required|in:learner,staff',
+            'issueTo' => 'required|integer',
+        ]);
 
-        if ($this->issueQty > $item->quantity_in_stock) {
-            $this->addError('issueQty', 'Insufficient stock. Available: ' . $item->quantity_in_stock);
+        try {
+            $itemName = DB::transaction(function () {
+            $item = InventoryItem::lockForUpdate()->findOrFail($this->selectedItemId);
+            if ($this->issueQty > $item->quantity_in_stock) {
+                throw new \RuntimeException('Insufficient stock. Available: ' . $item->quantity_in_stock);
+            }
+            $recipientColumn = $this->issueType === 'learner' ? 'learner_id' : 'staff_id';
+            $recipientTable = $this->issueType === 'learner' ? 'learners' : 'staff_members';
+            if (! DB::table($recipientTable)->where('id', $this->issueTo)->exists()) {
+                throw new \RuntimeException('The selected recipient does not exist.');
+            }
+            $newBalance = $item->quantity_in_stock - $this->issueQty;
+            InventoryTransaction::create([
+                'item_id' => $item->id, 'type' => 'issued', 'quantity' => $this->issueQty,
+                'balance_after' => $newBalance, $recipientColumn => $this->issueTo,
+                'processed_by' => auth()->user()->staffMember?->id,
+                'academic_year' => config('school.academic_year'),
+                'remarks' => $this->issueRemarks, 'transaction_date' => today(),
+            ]);
+            $item->update(['quantity_in_stock' => $newBalance, 'quantity_issued' => $item->quantity_issued + $this->issueQty]);
+            return $item->name;
+            });
+        } catch (\Throwable $e) {
+            $this->addError('issueQty', $e->getMessage());
             return;
         }
 
-        InventoryTransaction::create([
-            'item_id'          => $item->id,
-            'type'             => 'issued',
-            'quantity'         => $this->issueQty,
-            'balance_after'    => $item->quantity_in_stock - $this->issueQty,
-            'learner_id'       => $this->issueType === 'learner' ? $this->issueTo : null,
-            'staff_id'         => $this->issueType === 'staff' ? $this->issueTo : null,
-            'processed_by'     => auth()->user()->staffMember?->id,
-            'academic_year'    => config('school.academic_year'),
-            'remarks'          => $this->issueRemarks,
-            'transaction_date' => today(),
-        ]);
-
-        $item->decrement('quantity_in_stock', $this->issueQty);
-        $item->increment('quantity_issued', $this->issueQty);
-
         $this->closeIssueModal();
-        session()->flash('success', "{$this->issueQty} {$item->unit}(s) of '{$item->name}' issued successfully.");
+        session()->flash('success', "{$this->issueQty} item(s) of '{$itemName}' issued successfully.");
     }
 
     public function render()
@@ -77,7 +91,11 @@ class InventoryList extends Component
             ->orderBy('name')
             ->paginate($this->perPage);
 
-        return view('livewire.inventory.inventory-list', ['items' => $items])
+        return view('livewire.inventory.inventory-list', [
+            'items' => $items,
+            'learners' => Learner::active()->orderBy('last_name')->get(),
+            'staffMembers' => StaffMember::active()->orderBy('last_name')->get(),
+        ])
             ->layout('layouts.admin');
     }
 }

@@ -1,5 +1,5 @@
 @extends('layouts.teacher')
 @section('header', 'Timetable')
 @section('content')
-<div class="card p-6"><h2 class="text-xl font-bold text-gray-800 mb-2">Timetable</h2><p class="text-sm text-gray-500">Teacher timetable workspace placeholder.</p></div>
+<div class="card p-6">@php($slots = auth()->user()->staffMember?->timetableSlots()->with(['schoolClass','learningArea'])->orderBy('start_time')->get() ?? collect())<h2 class="text-xl font-bold text-gray-800 mb-5">My timetable</h2><div class="overflow-x-auto"><table class="min-w-full divide-y"><thead><tr><th class="px-3 py-2 text-left text-xs uppercase">Day</th><th class="px-3 py-2 text-left text-xs uppercase">Time</th><th class="px-3 py-2 text-left text-xs uppercase">Class</th><th class="px-3 py-2 text-left text-xs uppercase">Area</th></tr></thead><tbody class="divide-y">@forelse($slots as $slot)<tr><td class="px-3 py-2 text-sm capitalize">{{ $slot->day_of_week }}</td><td class="px-3 py-2 text-sm">{{ substr($slot->start_time,0,5) }} - {{ substr($slot->end_time,0,5) }}</td><td class="px-3 py-2 text-sm">{{ $slot->schoolClass?->name }}</td><td class="px-3 py-2 text-sm">{{ $slot->learningArea?->name }}</td></tr>@empty<tr><td colspan="4" class="px-3 py-8 text-center text-gray-400">No lessons assigned.</td></tr>@endforelse</tbody></table></div></div>
 @endsection

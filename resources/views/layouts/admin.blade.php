@@ -1,79 +1,50 @@
-{{-- System Users - Only visible to super-admin --}}
-@role('super-admin')
-<div class="border-t border-gray-100 px-4 py-2">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">System Users</p>
-    @foreach(\App\Models\User::with('roles')->latest()->take(6)->get() as $user)
-    <div class="flex items-center gap-2 py-1.5">
-        <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
-            {{ strtoupper(substr($user->name, 0, 1)) }}
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('school.name') }} - {{ $title ?? 'Administration' }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    @livewireStyles
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+<div class="min-h-screen">
+    <aside class="fixed inset-y-0 left-0 z-40 w-64 bg-green-800 text-white">
+        <div class="flex h-16 items-center bg-green-900 px-5">
+            <span class="truncate font-bold">{{ config('school.name') }}</span>
         </div>
-        <div class="flex-1 min-w-0">
-            <p class="text-xs font-medium text-gray-800 truncate">{{ $user->name }}</p>
-            <p class="text-xs text-gray-400 capitalize truncate">{{ $user->getRoleNames()->first() ?? 'User' }}</p>
+        <nav class="space-y-1 px-3 py-4 text-sm">
+            @foreach([
+                ['admin.dashboard', 'Dashboard'], ['admin.students.index', 'Learners'],
+                ['admin.staff.index', 'Staff'], ['finance.payments.index', 'Fees'],
+                ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'],
+                ['admin.notes.index', 'Learning Notes'], ['admin.inventory.index', 'Inventory'],
+                ['admin.timetable.index', 'Timetable'], ['admin.reports.index', 'Reports'],
+                ['admin.settings.index', 'Settings'],
+            ] as [$route, $label])
+                <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+            @endforeach
+        </nav>
+        <div class="absolute inset-x-0 bottom-0 border-t border-green-700 px-4 py-3">
+            <p class="truncate text-xs text-green-200">{{ auth()->user()->name }}</p>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="mt-1 text-xs text-green-300 hover:text-white">Sign out</button>
+            </form>
         </div>
-        @if($user->id === auth()->id())
-        <span class="text-xs text-green-600 font-semibold shrink-0">You</span>
-        @else
-        <span class="w-2 h-2 rounded-full bg-gray-300 shrink-0"></span>
-        @endif
-    </div>
-    @endforeach
-    <a href="#" class="block mt-2 text-xs text-green-700 font-medium hover:underline">Manage all users →</a>
-</div>
-@endrole
-
-{{-- Principal sees only staff summary --}}
-@role('principal|deputy-principal')
-<div class="border-t border-gray-100 px-4 py-2">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Staff Overview</p>
-    @foreach(\App\Models\User::with('roles')->whereHas('roles', fn($q) => $q->whereIn('name', ['teacher','class-teacher','hod','bursar']))->latest()->take(4)->get() as $user)
-    <div class="flex items-center gap-2 py-1.5">
-        <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
-            {{ strtoupper(substr($user->name, 0, 1)) }}
-        </div>
-        <div class="flex-1 min-w-0">
-            <p class="text-xs font-medium text-gray-800 truncate">{{ $user->name }}</p>
-            <p class="text-xs text-gray-400 capitalize truncate">{{ $user->getRoleNames()->first() ?? 'Staff' }}</p>
-        </div>
-    </div>
-    @endforeach
-</div>
-@endrole
-
-{{-- Teacher sees only their own info --}}
-@role('teacher|class-teacher|hod')
-<div class="border-t border-gray-100 px-4 py-3">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">My Info</p>
-    <div class="space-y-1.5">
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-400">Role</span>
-            <span class="font-medium text-gray-700 capitalize">{{ auth()->user()->getRoleNames()->first() }}</span>
-        </div>
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-400">Email</span>
-            <span class="font-medium text-gray-700 truncate ml-2">{{ auth()->user()->email }}</span>
-        </div>
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-400">Term</span>
-            <span class="font-medium text-gray-700">Term {{ config('school.current_term') }}</span>
-        </div>
+    </aside>
+    <div class="pl-64">
+        <header class="flex h-16 items-center justify-between bg-white px-6 shadow-sm">
+            <h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
+            <span class="text-sm text-gray-500">{{ config('school.academic_year') }}</span>
+        </header>
+        <main class="p-6">
+            @yield('content')
+            @isset($slot){{ $slot }}@endisset
+        </main>
     </div>
 </div>
-@endrole
-
-{{-- Bursar sees finance summary --}}
-@role('bursar')
-<div class="border-t border-gray-100 px-4 py-3">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Finance Summary</p>
-    <div class="space-y-1.5">
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-400">Term</span>
-            <span class="font-medium text-gray-700">Term {{ config('school.current_term') }}</span>
-        </div>
-        <div class="flex justify-between text-xs">
-            <span class="text-gray-400">Year</span>
-            <span class="font-medium text-gray-700">{{ config('school.current_academic_year') }}</span>
-        </div>
-    </div>
-</div>
-@endrole
+@livewireScripts
+</body>
+</html>

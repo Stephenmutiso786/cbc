@@ -10,16 +10,6 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', fn() => redirect()->route('login'));
-Route::get('/_diag/login', function () {
-    try {
-        return response(view('auth.login')->render(), 200)
-            ->header('Content-Type', 'text/plain');
-    } catch (\Throwable $e) {
-        return response($e->getMessage()."\n\n".$e->getTraceAsString(), 500)
-            ->header('Content-Type', 'text/plain');
-    }
-});
-
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);

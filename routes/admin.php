@@ -3,12 +3,18 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Students\StudentList;
 use App\Livewire\Assessment\BulkAssessmentEntry;
 use App\Livewire\Notifications\SendNotification;
+use App\Livewire\Exams\ExamManager;
+use App\Livewire\Inventory\InventoryList;
+use App\Livewire\Notes\LearningNotesList;
 use App\Models\FeeInvoice;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
 Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
+Route::get('/exams', ExamManager::class)->name('exams.index');
+Route::get('/inventory', InventoryList::class)->name('inventory.index');
+Route::get('/notes', LearningNotesList::class)->name('notes.index');
 Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
     $payment = $invoice->payments()->latest('paid_at')->first();
 
