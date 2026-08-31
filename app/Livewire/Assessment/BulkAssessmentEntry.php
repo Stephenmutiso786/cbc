@@ -83,7 +83,7 @@ class BulkAssessmentEntry extends Component
             'classes'       => SchoolClass::orderBy('grade_level')->get(),
             'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
             'strands'       => $this->learningAreaId
-                ? Strand::where('learning_area_id', $this->learningAreaId)->orderBy('sort_order')->get()
+                ? Strand::where('learning_area_id', $this->learningAreaId)->orderBy('order')->get()
                 : collect(),
             'rubricLevels'  => RubricLevel::cases(),
             'terms'         => TermEnum::cases(),

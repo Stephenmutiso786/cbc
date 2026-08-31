@@ -8,6 +8,7 @@ return [
     'phone'         => env('SCHOOL_PHONE', ''),
     'email'         => env('SCHOOL_EMAIL', ''),
     'academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
+    'current_academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_term'  => (int) env('CURRENT_TERM', 1),
 
     'grade_levels' => [
