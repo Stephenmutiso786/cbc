@@ -6,6 +6,8 @@ chmod -R a+rwX bootstrap/cache storage public/storage 2>/dev/null || true
 
 if [ -z "${APP_KEY:-}" ]; then
     export APP_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+elif [ "${APP_KEY#base64:}" = "$APP_KEY" ]; then
+    export APP_KEY="base64:${APP_KEY}"
 fi
 
 php artisan optimize:clear >/dev/null 2>&1 || true
