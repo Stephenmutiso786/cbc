@@ -42,6 +42,12 @@ class ExamManager extends Component
         'passMark'  => 'required|numeric|min:0',
     ];
 
+    public function mount(): void
+    {
+        $this->examTerm = (string) config('school.current_term');
+        $this->examDate = now()->format('Y-m-d');
+    }
+
     public function createExam(): void
     {
         $this->validate();
@@ -64,6 +70,8 @@ class ExamManager extends Component
         $this->dispatch('notify', type: 'success', message: 'Exam created successfully.');
         $this->showCreateModal = false;
         $this->reset(['examName','examGrade','examAreaId','examTerm','examDate']);
+        $this->examTerm = (string) config('school.current_term');
+        $this->examDate = now()->format('Y-m-d');
     }
 
     public function loadMarkEntry(int $examId): void

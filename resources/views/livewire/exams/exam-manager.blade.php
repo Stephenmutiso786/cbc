@@ -44,4 +44,26 @@
         </table>
         <div class="px-4 py-3 border-t bg-gray-50">{{ $exams->links() }}</div>
     </div>
+
+    @if($showCreateModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            <div class="mb-5 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900">Create exam</h3>
+                <button type="button" wire:click="$set('showCreateModal', false)" class="rounded p-2 text-gray-500 hover:bg-gray-100" aria-label="Close">&times;</button>
+            </div>
+            <form wire:submit="createExam" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam name</span><input wire:model="examName" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm" placeholder="e.g. Term 1 Mathematics Exam">@error('examName')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Grade</span><select wire:model="examGrade" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select grade</option>@foreach(array_merge(...array_values(config('school.grade_levels'))) as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach</select>@error('examGrade')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Learning area</span><select wire:model="examAreaId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select learning area</option>@foreach($learningAreas as $area)<option value="{{ $area->id }}">{{ $area->name }}</option>@endforeach</select>@error('examAreaId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam type</span><select wire:model="examType" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="end_term">End term</option><option value="mid_term">Mid term</option><option value="continuous">Continuous assessment</option></select></label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Term</span><select wire:model="examTerm" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">@foreach([1,2,3] as $term)<option value="{{ $term }}">Term {{ $term }}</option>@endforeach</select>@error('examTerm')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam date</span><input wire:model="examDate" type="date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total marks</span><input wire:model="totalMarks" type="number" min="1" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
+                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pass mark</span><input wire:model="passMark" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
+                <div class="flex justify-end gap-3 md:col-span-2"><button type="button" wire:click="$set('showCreateModal', false)" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-700">Cancel</button><button type="submit" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50">Create exam</button></div>
+            </form>
+        </div>
+    </div>
+    @endif
 </div>
