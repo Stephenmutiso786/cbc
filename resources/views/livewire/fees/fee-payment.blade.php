@@ -1,7 +1,7 @@
 <div>
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">Fee Payments</h2>
-        <button wire:click="$set('showMpesaModal', true)" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
+        <button wire:click="openPaymentModal" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
             + Record Payment
         </button>
     </div>
@@ -78,3 +78,19 @@
         @endif
     </div>
 </div>
+@if($showMpesaModal)
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-lg font-bold text-gray-900">Record fee payment</h3>
+        <div class="space-y-4">
+            <label class="block text-sm text-gray-700">Invoice<select wire:model="selectedInvoiceId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select invoice</option>@foreach($unpaidInvoices as $invoice)<option value="{{ $invoice->id }}">{{ $invoice->invoice_number }} - {{ $invoice->learner?->full_name }} (KES {{ number_format($invoice->balance, 2) }})</option>@endforeach</select></label>
+            <label class="block text-sm text-gray-700">Amount<input wire:model="paymentAmount" type="number" min="0.01" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"></label>
+            <label class="block text-sm text-gray-700">Method<select wire:model="paymentMethod" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank">Bank</option><option value="bursary">Bursary</option><option value="waiver">Waiver</option></select></label>
+            <label class="block text-sm text-gray-700">Reference<input wire:model="paymentReference" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"></label>
+            @error('selectedInvoiceId')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+            @error('paymentAmount')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+        <div class="mt-6 flex justify-end gap-3"><button wire:click="$set('showMpesaModal', false)" class="rounded-lg border px-4 py-2 text-sm">Cancel</button><button wire:click="recordPayment" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white">Save payment</button></div>
+    </div>
+</div>
+@endif

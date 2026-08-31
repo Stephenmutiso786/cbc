@@ -100,8 +100,19 @@
                     <select wire:model="issueType" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                         <option value="learner">Learner</option>
                         <option value="staff">Staff</option>
-                        <option value="class">Class</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Recipient</label>
+                    <select wire:model="issueTo" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">Select recipient</option>
+                        @if($issueType === 'learner')
+                            @foreach($learners as $learner)<option value="{{ $learner->id }}">{{ $learner->full_name }}</option>@endforeach
+                        @else
+                            @foreach($staffMembers as $member)<option value="{{ $member->id }}">{{ $member->full_name }}</option>@endforeach
+                        @endif
+                    </select>
+                    @error('issueTo')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>

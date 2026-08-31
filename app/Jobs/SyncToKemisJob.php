@@ -20,7 +20,7 @@ class SyncToKemisJob implements ShouldQueue
 
     public function __construct(
         public readonly string $syncType,
-        public readonly int    $initiatedBy,
+        public readonly ?int   $initiatedBy,
     ) {}
 
     public function handle(KemisService $kemis): void
