@@ -8,7 +8,10 @@ return [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
+            // Aiven's public MySQL service uses its assigned public port, not 3306.
+            'port' => (str_ends_with((string) env('DB_HOST', ''), '.aivencloud.com') && env('DB_PORT', '3306') === '3306')
+                ? '21229'
+                : env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
