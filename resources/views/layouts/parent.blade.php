@@ -18,7 +18,10 @@
         <a href="{{ route($r) }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700">{{ $l }}</a>
         @endforeach
     </nav>
-    {{ $slot }}
+    @yield('content')
+    @isset($slot)
+        {{ $slot }}
+    @endisset
 </div>
 @livewireScripts
 </body>

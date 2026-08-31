@@ -110,6 +110,9 @@
             </header>
             <main class="p-6">
                 @yield('content')
+                @isset($slot)
+                    {{ $slot }}
+                @endisset
             </main>
         </div>
     </div>
