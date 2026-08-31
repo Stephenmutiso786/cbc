@@ -42,7 +42,7 @@
     </div>
 
     {{-- Assessment table --}}
-    @if(count($assessmentData))
+    @if(count($assessmentData ?? []))
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
