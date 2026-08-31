@@ -19,14 +19,6 @@ Route::get('/_diag/login', function () {
             ->header('Content-Type', 'text/plain');
     }
 });
-Route::get('/_diag/db', function () {
-    try {
-        \DB::connection()->getPdo();
-        return response()->json(['ok' => true]);
-    } catch (\Throwable $e) {
-        return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
-    }
-});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
