@@ -45,7 +45,8 @@ COPY --from=assets /app/public/build ./public/build
 RUN mkdir -p bootstrap/cache storage/app/public storage/framework/{cache,sessions,views} storage/logs public/storage \
     && chmod -R a+rwX bootstrap/cache storage public/storage
 
-RUN ln -sfn ../storage/app/public public/storage || true
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 10000
-CMD ["sh", "-c", "php artisan serve --host 0.0.0.0 --port ${PORT:-10000}"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
