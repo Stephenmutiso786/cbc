@@ -42,10 +42,10 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 
-RUN mkdir -p bootstrap/cache storage/framework/{cache,sessions,views} storage/logs \
-    && chmod -R 775 bootstrap/cache storage
+RUN mkdir -p bootstrap/cache storage/app/public storage/framework/{cache,sessions,views} storage/logs public/storage \
+    && chmod -R a+rwX bootstrap/cache storage public/storage
 
-RUN php artisan storage:link || true
+RUN ln -sfn ../storage/app/public public/storage || true
 
 EXPOSE 10000
 CMD ["sh", "-c", "php artisan serve --host 0.0.0.0 --port ${PORT:-10000}"]
