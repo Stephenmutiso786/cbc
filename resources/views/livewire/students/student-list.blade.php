@@ -2,9 +2,14 @@
     {{-- Header bar --}}
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">Learners Register</h2>
+        <div class="flex flex-wrap gap-2">
+        <button wire:click="openImport" class="rounded-lg border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50">
+            Import learners
+        </button>
         <button wire:click="create" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
             + Enrol Learner
         </button>
+        </div>
     </div>
 
     {{-- Filters --}}
@@ -98,6 +103,34 @@
         </div>
     </div>
 </div>
+
+@if($showImport)
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+        <div class="mb-5 flex items-center justify-between"><h3 class="text-lg font-bold text-gray-900">Bulk import learners</h3><button wire:click="$set('showImport', false)" class="text-gray-400 hover:text-gray-700" aria-label="Close">&times;</button></div>
+        <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,gender,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label class="block text-sm text-gray-700">Default grade
+                <select wire:model="importGrade" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select grade</option>@foreach(config('school.grade_levels') as $grades) @foreach($grades as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach @endforeach</select>
+            </label>
+            <label class="block text-sm text-gray-700">Default class
+                <select wire:model="importClassId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select class</option>@foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->name }}</option>@endforeach</select>
+            </label>
+            <label class="block text-sm text-gray-700 md:col-span-2">Paste names
+                <textarea wire:model="pasteNames" rows="7" placeholder="Mary Wanjiku&#10;John Kamau&#10;Amina Hassan" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></textarea>
+                @error('pasteNames')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+            </label>
+            <label class="block text-sm text-gray-700 md:col-span-2">Or upload CSV
+                <input wire:model="csvFile" type="file" accept=".csv,.txt" class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                @error('csvFile')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+            </label>
+        </div>
+        @if($importedCount)<p class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ $importedCount }} learner(s) imported.</p>@endif
+        @if($importErrors)<div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"><p class="font-semibold">Rows needing correction:</p><ul class="mt-1 list-disc pl-5">@foreach($importErrors as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        <div class="mt-6 flex justify-end gap-3"><button wire:click="$set('showImport', false)" class="rounded-lg border px-4 py-2 text-sm">Close</button><button wire:click="importLearners" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">Import learners</button></div>
+    </div>
+</div>
+@endif
 
 @if($showForm)
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
