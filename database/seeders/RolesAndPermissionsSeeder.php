@@ -34,6 +34,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         $rolePermissions = [
+            'admin'            => $permissions,
             'super-admin'      => $permissions,
             'principal'        => array_diff($permissions, ['manage system settings','manage roles']),
             'deputy-principal' => ['view students','view assessments','view timetable','manage timetable',
