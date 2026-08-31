@@ -42,9 +42,6 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 
-RUN composer dump-autoload --no-interaction --optimize --no-scripts \
-    && php artisan package:discover --ansi
-
 RUN php artisan storage:link || true
 
 EXPOSE 10000
