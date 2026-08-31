@@ -21,6 +21,7 @@
             @foreach([
                 ['admin.dashboard', 'Dashboard'], ['admin.students.index', 'Learners'],
                 ['admin.staff.index', 'Staff'], ['finance.payments.index', 'Fees'],
+                ['admin.classes.index', 'Classes'],
                 ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'],
                 ['admin.notes.index', 'Learning Notes'], ['admin.inventory.index', 'Inventory'],
                 ['admin.timetable.index', 'Timetable'], ['admin.reports.index', 'Reports'],

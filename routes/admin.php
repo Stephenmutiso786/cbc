@@ -6,6 +6,8 @@ use App\Livewire\Notifications\SendNotification;
 use App\Livewire\Exams\ExamManager;
 use App\Livewire\Inventory\InventoryList;
 use App\Livewire\Notes\LearningNotesList;
+use App\Livewire\Admin\AcademicSetup;
+use App\Livewire\Admin\StaffManager;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 
@@ -23,9 +25,10 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
 
     return view('pdf.fee-receipt', compact('payment'));
 })->name('fees.receipt');
-Route::get('/staff', fn() => view('admin.staff.index'))->name('staff.index');
+Route::get('/staff', StaffManager::class)->name('staff.index');
 Route::get('/timetable', fn() => view('admin.timetable.index'))->name('timetable.index');
 Route::get('/reports', fn() => view('admin.reports.index'))->name('reports.index');
 Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.index');
+Route::get('/classes', AcademicSetup::class)->name('classes.index');
 Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->name('kemis.index');
