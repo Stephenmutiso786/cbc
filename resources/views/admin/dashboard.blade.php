@@ -3,13 +3,31 @@
 @section('content')
 
 @php
-    $totalLearners = \App\Models\Learner::count();
-    $totalStaff = \App\Models\StaffMember::count();
-    $feesCollected = \App\Models\FeePayment::whereHas('invoice', fn($q) => $q->whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year')))->sum('amount');
-    $feeArrears = \App\Models\FeeInvoice::whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year'))->sum('balance');
-    $totalClasses = \App\Models\SchoolClass::whereAcademicYear(config('school.current_academic_year'))->count();
-    $recentPayments = \App\Models\FeePayment::with('invoice.learner')->latest()->take(5)->get();
-    $recentLearners = \App\Models\Learner::latest()->take(5)->get();
+    use Illuminate\Support\Facades\Schema;
+
+    $learnerTable = (new \App\Models\Learner())->getTable();
+    $staffTable = (new \App\Models\StaffMember())->getTable();
+    $feePaymentTable = (new \App\Models\FeePayment())->getTable();
+    $feeInvoiceTable = (new \App\Models\FeeInvoice())->getTable();
+    $schoolClassTable = (new \App\Models\SchoolClass())->getTable();
+
+    $hasLearners = Schema::hasTable($learnerTable);
+    $hasStaff = Schema::hasTable($staffTable);
+    $hasFeePayments = Schema::hasTable($feePaymentTable);
+    $hasFeeInvoices = Schema::hasTable($feeInvoiceTable);
+    $hasClasses = Schema::hasTable($schoolClassTable);
+
+    $totalLearners = $hasLearners ? \App\Models\Learner::count() : 0;
+    $totalStaff = $hasStaff ? \App\Models\StaffMember::count() : 0;
+    $feesCollected = $hasFeePayments && $hasFeeInvoices
+        ? \App\Models\FeePayment::whereHas('invoice', fn($q) => $q->whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year')))->sum('amount')
+        : 0;
+    $feeArrears = $hasFeeInvoices
+        ? \App\Models\FeeInvoice::whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year'))->sum('balance')
+        : 0;
+    $totalClasses = $hasClasses ? \App\Models\SchoolClass::whereAcademicYear(config('school.current_academic_year'))->count() : 0;
+    $recentPayments = $hasFeePayments ? \App\Models\FeePayment::with('invoice.learner')->latest()->take(5)->get() : collect();
+    $recentLearners = $hasLearners ? \App\Models\Learner::latest()->take(5)->get() : collect();
 @endphp
 
 {{-- Top Stats Row --}}
