@@ -7,6 +7,7 @@ use App\Livewire\Exams\ExamManager;
 use App\Livewire\Inventory\InventoryList;
 use App\Livewire\Notes\LearningNotesList;
 use App\Models\FeeInvoice;
+use App\Http\Controllers\AdminSettingsController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
@@ -26,4 +27,5 @@ Route::get('/staff', fn() => view('admin.staff.index'))->name('staff.index');
 Route::get('/timetable', fn() => view('admin.timetable.index'))->name('timetable.index');
 Route::get('/reports', fn() => view('admin.reports.index'))->name('reports.index');
 Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.index');
+Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->name('kemis.index');

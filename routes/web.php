@@ -30,25 +30,25 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin / Principal / Deputy / HOD
-    Route::middleware(['role:super-admin|principal|deputy-principal|hod'])
+    Route::middleware(['role:admin|super-admin|principal|deputy-principal|hod'])
         ->prefix('admin')
         ->name('admin.')
         ->group(base_path('routes/admin.php'));
 
     // Teacher / Class Teacher / HOD
-    Route::middleware(['role:teacher|class-teacher|hod|principal|deputy-principal'])
+    Route::middleware(['role:admin|super-admin|teacher|class-teacher|hod|principal|deputy-principal'])
         ->prefix('teacher')
         ->name('teacher.')
         ->group(base_path('routes/teacher.php'));
 
     // Parent / Guardian
-    Route::middleware(['role:parent'])
+    Route::middleware(['role:admin|super-admin|parent'])
         ->prefix('parent')
         ->name('parent.')
         ->group(base_path('routes/parent.php'));
 
     // Finance / Bursar
-    Route::middleware(['role:bursar|super-admin|principal'])
+    Route::middleware(['role:admin|super-admin|bursar|principal'])
         ->prefix('finance')
         ->name('finance.')
         ->group(base_path('routes/finance.php'));
