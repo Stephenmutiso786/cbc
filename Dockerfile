@@ -42,6 +42,9 @@ COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 
+RUN mkdir -p bootstrap/cache storage/framework/{cache,sessions,views} storage/logs \
+    && chmod -R 775 bootstrap/cache storage
+
 RUN php artisan storage:link || true
 
 EXPOSE 10000
