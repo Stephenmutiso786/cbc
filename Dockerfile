@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock ./
 COPY app/Support/polyfills.php app/Support/polyfills.php
-RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-scripts
 
 FROM node:20-bookworm-slim AS assets
 WORKDIR /app
@@ -41,6 +41,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
+
+RUN composer dump-autoload --no-interaction --optimize --no-scripts \
+    && php artisan package:discover --ansi
 
 RUN php artisan storage:link || true
 
