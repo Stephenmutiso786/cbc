@@ -24,7 +24,7 @@
             <h2 class="text-gray-800 text-xl font-semibold mb-1">Welcome back</h2>
             <p class="text-gray-500 text-sm mb-6">Sign in to your account</p>
 
-            @if ($errors->any())
+            @if (isset($errors) && $errors->any())
             <div class="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
                 {{ $errors->first() }}
             </div>
