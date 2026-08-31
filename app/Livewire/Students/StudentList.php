@@ -4,12 +4,15 @@ namespace App\Livewire\Students;
 
 use App\Models\Learner;
 use App\Models\SchoolClass;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class StudentList extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public string $search       = '';
     public string $gradeFilter  = '';
@@ -19,6 +22,13 @@ class StudentList extends Component
     public int    $perPage      = 25;
 
     public bool $showForm = false;
+    public bool $showImport = false;
+    public $csvFile;
+    public string $pasteNames = '';
+    public string $importGrade = '';
+    public string $importClassId = '';
+    public array $importErrors = [];
+    public int $importedCount = 0;
     public ?int $editingId = null;
     public array $form = [
         'admission_number' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '',
@@ -44,6 +54,133 @@ class StudentList extends Component
             'academic_year' => (string) config('school.academic_year'),
         ]);
         $this->showForm = true;
+    }
+
+    public function openImport(): void
+    {
+        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount']);
+        $this->importGrade = '';
+        $this->importClassId = '';
+        $this->showImport = true;
+    }
+
+    public function importLearners(): void
+    {
+        $this->validate([
+            'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:10240'],
+            'importGrade' => ['required_without:csvFile', 'nullable', 'string'],
+            'importClassId' => ['required', 'integer', 'exists:school_classes,id'],
+        ]);
+
+        if (!$this->csvFile && trim($this->pasteNames) === '') {
+            $this->addError('pasteNames', 'Paste learner names or choose a CSV file.');
+            return;
+        }
+
+        $rows = $this->csvFile ? $this->readCsvRows() : $this->readPastedRows();
+        $this->importErrors = [];
+        $this->importedCount = 0;
+
+        foreach ($rows as $index => $row) {
+            $line = $index + 1;
+            $row['class_id'] = $row['class_id'] ?: $this->importClassId;
+            $row['grade_level'] = $row['grade_level'] ?: $this->importGrade;
+            $row['admission_date'] = $row['admission_date'] ?: now()->format('Y-m-d');
+            $row['date_of_birth'] = $row['date_of_birth'] ?: now()->subYears(6)->format('Y-m-d');
+            $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
+            $row['gender'] = strtolower($row['gender'] ?: 'male');
+            $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
+            $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber();
+
+            $validator = Validator::make($row, [
+                'admission_number' => ['required', 'string', 'max:255', 'unique:learners,admission_number'],
+                'first_name' => ['required', 'string', 'max:255'],
+                'middle_name' => ['nullable', 'string', 'max:255'],
+                'last_name' => ['required', 'string', 'max:255'],
+                'date_of_birth' => ['required', 'date'],
+                'gender' => ['required', 'in:male,female'],
+                'grade_level' => ['required', 'string', 'max:255'],
+                'class_id' => ['required', 'integer', 'exists:school_classes,id'],
+                'admission_date' => ['required', 'date'],
+                'boarding_status' => ['required', 'in:day,boarding'],
+                'academic_year' => ['required', 'string', 'max:9'],
+            ]);
+
+            if ($validator->fails()) {
+                $this->importErrors[] = 'Row ' . $line . ': ' . implode(' ', $validator->errors()->all());
+                continue;
+            }
+
+            try {
+                DB::transaction(fn () => Learner::create([
+                    'admission_number' => $row['admission_number'],
+                    'first_name' => $row['first_name'],
+                    'middle_name' => $row['middle_name'] ?: null,
+                    'last_name' => $row['last_name'],
+                    'date_of_birth' => $row['date_of_birth'],
+                    'gender' => $row['gender'],
+                    'grade_level' => $row['grade_level'],
+                    'class_id' => $row['class_id'],
+                    'admission_date' => $row['admission_date'],
+                    'boarding_status' => $row['boarding_status'],
+                    'academic_year' => $row['academic_year'],
+                    'is_active' => true,
+                ]));
+                $this->importedCount++;
+            } catch (\Throwable $e) {
+                $this->importErrors[] = 'Row ' . $line . ': could not be saved (' . $e->getMessage() . ').';
+            }
+        }
+
+        if ($this->importedCount) {
+            $this->resetPage();
+            session()->flash('success', "{$this->importedCount} learner(s) imported successfully.");
+        }
+        if (!$this->importErrors) {
+            $this->showImport = false;
+        }
+    }
+
+    private function readPastedRows(): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', trim($this->pasteNames)))
+            ->filter(fn ($line) => trim($line) !== '')
+            ->map(function ($line) {
+                $parts = preg_split('/[\t,]+|\\s+/', trim($line));
+                return [
+                    'first_name' => $parts[0] ?? '',
+                    'middle_name' => count($parts) > 2 ? implode(' ', array_slice($parts, 1, -1)) : '',
+                    'last_name' => count($parts) > 1 ? end($parts) : '',
+                    'admission_number' => '',
+                    'date_of_birth' => '', 'gender' => '', 'grade_level' => '',
+                    'class_id' => '', 'admission_date' => '', 'boarding_status' => '', 'academic_year' => '',
+                ];
+            })->values()->all();
+    }
+
+    private function readCsvRows(): array
+    {
+        $handle = fopen($this->csvFile->getRealPath(), 'r');
+        $headers = array_map(fn ($header) => strtolower(trim((string) $header)), fgetcsv($handle) ?: []);
+        $rows = [];
+        while (($values = fgetcsv($handle)) !== false) {
+            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
+            $row = array_fill_keys(['admission_number','first_name','middle_name','last_name','date_of_birth','gender','grade_level','class_id','admission_date','boarding_status','academic_year'], '');
+            foreach ($headers as $position => $header) {
+                if (array_key_exists($header, $row)) $row[$header] = trim((string) ($values[$position] ?? ''));
+            }
+            $rows[] = $row;
+        }
+        fclose($handle);
+        return $rows;
+    }
+
+    private function newAdmissionNumber(): string
+    {
+        do {
+            $number = 'IMP-' . now()->format('Ymd') . '-' . random_int(1000, 9999);
+        } while (Learner::withTrashed()->where('admission_number', $number)->exists());
+        return $number;
     }
 
     public function edit(int $id): void
