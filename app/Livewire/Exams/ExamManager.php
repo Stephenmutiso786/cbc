@@ -12,6 +12,8 @@ use App\Models\TeacherSubjectAllocation;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use App\Jobs\SendExamResultsSmsJob;
+use App\Models\SchoolNotification;
 
 class ExamManager extends Component
 {
@@ -215,6 +217,37 @@ class ExamManager extends Component
         ]);
         $this->tab = 'exams';
         session()->flash('success', 'Results locked. Further mark changes are disabled.');
+    }
+
+    public function sendResults(int $examId): void
+    {
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'principal']), 403);
+
+        $exam = Exam::with(['results.learner.guardians'])->findOrFail($examId);
+        abort_unless(in_array($exam->status, ['published', 'completed'], true), 422, 'Only published or completed exams can send results.');
+        abort_if($exam->results_sms_status === 'queued', 422, 'Results are already being sent.');
+        abort_if($exam->results_sms_status === 'sent', 422, 'Results have already been sent for this exam.');
+
+        $recipients = $exam->results->flatMap(fn ($result) => $result->learner?->guardians ?? collect())->whereNotNull('phone_number');
+        abort_if($recipients->isEmpty(), 422, 'No result guardians have phone numbers.');
+
+        $staff = StaffMember::where('user_id', auth()->id())->first();
+        abort_unless($staff, 422, 'This account is not linked to a staff profile.');
+
+        $notification = SchoolNotification::create([
+            'sender_id' => $staff->id,
+            'title' => 'Exam results: ' . $exam->name,
+            'message' => 'Individual learner results sent by SMS.',
+            'type' => 'exam',
+            'channel' => 'sms',
+            'total_recipients' => $recipients->count(),
+            'status' => 'queued',
+            'scheduled_at' => now(),
+        ]);
+
+        $exam->update(['results_sms_status' => 'queued', 'results_sms_queued_at' => now()]);
+        SendExamResultsSmsJob::dispatch($exam->id, $notification->id);
+        session()->flash('success', "Exam results queued for {$recipients->count()} guardian phone number(s).");
     }
 
     private function calculateGrade(float $marks, float $total): string

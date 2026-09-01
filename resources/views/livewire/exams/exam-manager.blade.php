@@ -36,6 +36,11 @@
                     </td>
                     <td class="px-4 py-3 flex flex-wrap gap-2">
                         @if(!$exam->isLocked())<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@else<span class="text-xs font-medium text-gray-500">Locked</span>@endif
+                        @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'principal']) && in_array($exam->status, ['published', 'completed']) && $exam->results->count() > 0)
+                            @if($exam->results_sms_status === 'sent')<span class="text-xs font-medium text-green-700">Results sent</span>
+                            @elseif($exam->results_sms_status === 'queued')<span class="text-xs font-medium text-amber-700">Sending results...</span>
+                            @else<button wire:click="sendResults({{ $exam->id }})" wire:confirm="Send each learner's result to their guardian by SMS?" class="text-purple-700 hover:text-purple-900 text-xs font-medium">Send results</button>@endif
+                        @endif
                         @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<button wire:click="editExam({{ $exam->id }})" class="text-green-600 hover:text-green-800 text-xs font-medium">Edit</button><button wire:click="deleteExam({{ $exam->id }})" wire:confirm="Delete this exam and all its results? This cannot be undone." class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>@endif
                     </td>
                 </tr>
