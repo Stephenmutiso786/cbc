@@ -7,6 +7,7 @@
 body{font-family:DejaVu Sans,sans-serif;font-size:11px;color:#1a1a1a;}
 .header{background:#1a5c2a;color:white;padding:14px 24px;}
 .header h1{font-size:16px;font-weight:bold;}
+.logo{width:44px;height:44px;object-fit:contain;background:#fff;padding:3px;border-radius:4px;vertical-align:middle;margin-right:10px;}
 .header p{font-size:9px;opacity:0.85;margin-top:2px;}
 .receipt-title{text-align:center;padding:10px;font-size:14px;font-weight:bold;color:#166534;border-bottom:2px solid #16a34a;background:#f0fdf4;}
 .receipt-no{text-align:right;padding:8px 24px;font-size:10px;color:#6b7280;border-bottom:1px solid #e5e7eb;}
@@ -25,6 +26,7 @@ td{border:1px solid #e5e7eb;padding:8px 16px;font-size:10px;}
 </head>
 <body>
 <div class="header">
+    @if(config('school.logo_data'))<img class="logo" src="{{ config('school.logo_data') }}" alt="School logo">@endif
     <h1>{{ config('school.name') }}</h1>
     <p>{{ config('school.address') }} | {{ config('school.phone') }} | {{ config('school.email') }}</p>
 </div>

@@ -20,6 +20,7 @@ class AdminSettingsController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'mpesa_env' => ['required', 'in:sandbox,production'],
             'mpesa_consumer_key' => ['nullable', 'string', 'max:500'],
             'mpesa_consumer_secret' => ['nullable', 'string', 'max:500'],
@@ -38,6 +39,12 @@ class AdminSettingsController extends Controller
             'kemis_api_key' => ['nullable', 'string', 'max:500'],
             'kemis_school_code' => ['nullable', 'string', 'max:100'],
         ]);
+
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            $data['logo_data'] = 'data:' . $logo->getMimeType() . ';base64,' . base64_encode(file_get_contents($logo->getRealPath()));
+        }
+        unset($data['logo']);
 
         $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'firebase_server_key', 'kemis_api_key'];
         foreach ($data as $key => $value) {

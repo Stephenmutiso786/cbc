@@ -7,6 +7,7 @@ return [
     'address'       => env('SCHOOL_ADDRESS', ''),
     'phone'         => env('SCHOOL_PHONE', ''),
     'email'         => env('SCHOOL_EMAIL', ''),
+    'logo_data'     => env('SCHOOL_LOGO_DATA'),
     'academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_term'  => (int) env('CURRENT_TERM', 1),
