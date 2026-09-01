@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SchoolClassesSeeder::class,
             DefaultGradingScalesSeeder::class,
             AdminUserSeeder::class,
+            ScreenshotTeachersSeeder::class,
         ]);
     }
 }
