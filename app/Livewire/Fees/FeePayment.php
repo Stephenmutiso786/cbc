@@ -25,6 +25,11 @@ class FeePayment extends Component
 
     protected $queryString = ['search', 'termFilter', 'statusFilter'];
 
+    public function mount(): void
+    {
+        $this->termFilter = (string) config('school.current_term');
+    }
+
     public function updatingSearch(): void { $this->resetPage(); }
 
     public function payMpesa(int $invoiceId): void

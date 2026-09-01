@@ -41,6 +41,13 @@ class LearningNotesList extends Component
         'externalUrl'   => 'nullable|url',
     ];
 
+    public function mount(): void
+    {
+        $currentTerm = (string) config('school.current_term');
+        $this->termFilter = $currentTerm;
+        $this->term = $currentTerm;
+    }
+
     public function upload(): void
     {
         $this->validate();
