@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             SchoolClassesSeeder::class,
             DefaultGradingScalesSeeder::class,
+            DefaultClassSubjectsSeeder::class,
             AdminUserSeeder::class,
             ScreenshotTeachersSeeder::class,
         ]);
