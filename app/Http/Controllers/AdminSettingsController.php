@@ -21,6 +21,8 @@ class AdminSettingsController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'maintenance_mode' => ['required', 'boolean'],
+            'maintenance_message' => ['nullable', 'string', 'max:500'],
             'mpesa_env' => ['required', 'in:sandbox,production'],
             'mpesa_consumer_key' => ['nullable', 'string', 'max:500'],
             'mpesa_consumer_secret' => ['nullable', 'string', 'max:500'],
