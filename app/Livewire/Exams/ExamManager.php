@@ -540,6 +540,8 @@ class ExamManager extends Component
             $exam->setAttribute('subjects_total', $subjects->count());
             $exam->setAttribute('subjects_submitted', $subjects->whereIn('marks_status', ['submitted', 'approved'])->count());
             $exam->setAttribute('subjects_approved', $subjects->where('marks_status', 'approved')->count());
+            $exam->setAttribute('subjects_awaiting_review', $subjects->where('marks_status', 'submitted')->count());
+            $exam->setAttribute('all_subjects_approved', $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
             $exam->setAttribute('has_editable_subjects', $subjects->contains(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true) && ! $subject->isLocked()));
             $exam->setAttribute('missing_subjects', $subjects->filter(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true))->map(fn ($subject) => $subject->learningArea?->name)->filter()->values()->all());
         });
