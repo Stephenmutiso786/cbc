@@ -82,7 +82,7 @@ class StudentList extends Component
     {
         $this->validate([
             'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:10240'],
-            'importGrade' => ['required_without:csvFile', 'nullable', 'string'],
+            'importGrade' => ['nullable', 'string'],
             'importClassId' => ['required', 'integer', 'exists:school_classes,id'],
         ]);
 
@@ -100,8 +100,12 @@ class StudentList extends Component
             $row['class_id'] = $row['class_id'] ?: $this->importClassId;
             $class = SchoolClass::forConfiguredGrades()->find($row['class_id']);
             $row['grade_level'] = (string) $class?->grade_level;
+            if ($this->importGrade && $class && $this->importGrade !== $row['grade_level']) {
+                $this->importErrors[] = 'Row ' . $line . ': selected grade does not match the selected class.';
+                continue;
+            }
             $row['admission_date'] = $row['admission_date'] ?: now()->format('Y-m-d');
-            $row['date_of_birth'] = $row['date_of_birth'] ?: now()->subYears(6)->format('Y-m-d');
+            $row['date_of_birth'] = $row['date_of_birth'] ?: null;
             $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
             $row['gender'] = strtolower($row['gender'] ?: 'male');
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
@@ -112,7 +116,7 @@ class StudentList extends Component
                 'first_name' => ['required', 'string', 'max:255'],
                 'middle_name' => ['nullable', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
-                'date_of_birth' => ['required', 'date'],
+                'date_of_birth' => ['nullable', 'date'],
                 'gender' => ['required', 'in:male,female'],
                 'grade_level' => ['required', 'string', 'max:255'],
                 'class_id' => ['required', 'integer', 'exists:school_classes,id'],
@@ -132,7 +136,7 @@ class StudentList extends Component
                     'first_name' => $row['first_name'],
                     'middle_name' => $row['middle_name'] ?: null,
                     'last_name' => $row['last_name'],
-                    'date_of_birth' => $row['date_of_birth'],
+                    'date_of_birth' => $row['date_of_birth'] ?: null,
                     'gender' => $row['gender'],
                     'grade_level' => $row['grade_level'],
                     'class_id' => $row['class_id'],
@@ -176,7 +180,7 @@ class StudentList extends Component
     private function readCsvRows(): array
     {
         $handle = fopen($this->csvFile->getRealPath(), 'r');
-        $headers = array_map(fn ($header) => strtolower(trim((string) $header)), fgetcsv($handle) ?: []);
+        $headers = array_map(fn ($header) => preg_replace('/^\xEF\xBB\xBF/', '', strtolower(trim((string) $header))), fgetcsv($handle) ?: []);
         $rows = [];
         while (($values = fgetcsv($handle)) !== false) {
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;

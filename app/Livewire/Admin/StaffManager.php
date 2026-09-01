@@ -22,6 +22,7 @@ class StaffManager extends Component
     public array $form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => '', 'role' => 'teacher', 'password' => ''];
     public array $importErrors = [];
     public int $importedCount = 0;
+    public array $importCredentials = [];
 
     public function create(): void
     {
@@ -32,7 +33,7 @@ class StaffManager extends Component
 
     public function openImport(): void
     {
-        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount']);
+        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount', 'importCredentials']);
         $this->showImport = true;
     }
 
@@ -88,15 +89,15 @@ class StaffManager extends Component
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 1;
             $row['role'] = $row['role'] ?: 'teacher';
-            $row['password'] = $row['password'] ?: 'ChangeMe@123';
+            $row['password'] = $row['password'] ?: $this->newTemporaryPassword();
             $row['staff_number'] = $row['staff_number'] ?: $this->newStaffNumber();
             $row['email'] = $row['email'] ?: $this->newEmail($row['first_name'], $row['last_name']);
-            $row['phone_number'] = $row['phone_number'] ?: 'Not provided';
+            $row['phone_number'] = $row['phone_number'] ?: null;
             $row['gender'] = $row['gender'] ?: 'male';
             $row['employment_type'] = $row['employment_type'] ?: 'permanent';
             $row['staff_type'] = $row['staff_type'] ?: 'teaching';
             $row['date_joined'] = $row['date_joined'] ?: now()->format('Y-m-d');
-            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'required|string|max:50', 'gender' => 'required|in:male,female', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
+            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'gender' => 'required|in:male,female', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
             try {
                 DB::transaction(function () use ($row) {
@@ -105,11 +106,17 @@ class StaffManager extends Component
                     StaffMember::create(array_merge($row, ['user_id' => $user->id, 'is_active' => true]));
                 });
                 $this->importedCount++;
+                $this->importCredentials[] = ['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => $row['password']];
             } catch (\Throwable $exception) {
                 $this->importErrors[] = 'Row ' . $rowNumber . ': could not be saved (' . $exception->getMessage() . ').';
             }
         }
-        if ($this->importedCount) session()->flash('success', "{$this->importedCount} staff account(s) imported.");
+        if ($this->importedCount) {
+            $credentials = collect($this->importCredentials)
+                ->map(fn ($item) => "{$item['name']}: {$item['email']} / {$item['password']}")
+                ->implode(' | ');
+            session()->flash('success', "{$this->importedCount} staff account(s) imported. Login credentials: {$credentials}");
+        }
         if (!$this->importErrors) $this->showImport = false;
     }
 
@@ -126,7 +133,7 @@ class StaffManager extends Component
     private function readCsvRows(): array
     {
         $handle = fopen($this->csvFile->getRealPath(), 'r');
-        $headers = array_map(fn ($value) => strtolower(trim((string) $value)), fgetcsv($handle) ?: []);
+        $headers = array_map(fn ($value) => preg_replace('/^\xEF\xBB\xBF/', '', strtolower(trim((string) $value))), fgetcsv($handle) ?: []);
         $rows = [];
         while (($values = fgetcsv($handle)) !== false) {
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
@@ -152,8 +159,15 @@ class StaffManager extends Component
 
     private function newEmail(string $firstName, string $lastName): string
     {
-        $base = strtolower(preg_replace('/[^a-z0-9]+/i', '.', trim($firstName . '.' . $lastName))) . '.' . random_int(1000, 9999) . '@staff.local';
+        do {
+            $base = strtolower(preg_replace('/[^a-z0-9]+/i', '.', trim($firstName . '.' . $lastName))) . '.' . random_int(1000, 9999) . '@staff.local';
+        } while (User::where('email', $base)->exists());
         return $base;
+    }
+
+    private function newTemporaryPassword(): string
+    {
+        return 'Kyandulu@' . random_int(100000, 999999);
     }
 
     public function render()
