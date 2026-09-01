@@ -34,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
                     str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
                     str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
                     str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
+                    str_starts_with($key, 'google_drive_') => 'services.google_drive.' . substr($key, 13),
                     default => 'school.' . $key,
                 };
                 config()->set($configKey, $value);

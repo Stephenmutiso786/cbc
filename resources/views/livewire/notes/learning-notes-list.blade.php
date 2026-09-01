@@ -66,7 +66,7 @@
                 </div>
                 <div class="flex gap-3">
                     @if($note->file_path)
-                    <a href="{{ Storage::url($note->file_path) }}" target="_blank"
+                    <a href="{{ str_starts_with($note->file_path, 'gdrive:') ? route('files.notes', $note) : Storage::url($note->file_path) }}" target="_blank"
                        class="text-xs text-blue-600 hover:text-blue-800 font-medium">Download</a>
                     @elseif($note->external_url)
                     <a href="{{ $note->external_url }}" target="_blank"

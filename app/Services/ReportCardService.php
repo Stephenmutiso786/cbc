@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Learner;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use App\Services\GoogleDriveStorage;
 
 class ReportCardService
 {
@@ -27,7 +28,7 @@ class ReportCardService
         ])->setPaper('a4', 'portrait');
 
         $fileName = "reports/{$academicYear}/term{$term}/{$learner->admission_number}_report.pdf";
-        Storage::put("public/{$fileName}", $pdf->output());
+        $fileName = app(GoogleDriveStorage::class)->store($pdf->output(), "reports/{$academicYear}/term{$term}", basename($fileName), 'application/pdf');
 
         return $fileName;
     }
