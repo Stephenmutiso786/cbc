@@ -71,6 +71,13 @@ class StudentList extends Component
         }
     }
 
+    public function updatedFormClassId($classId): void
+    {
+        if ($classId) {
+            $this->form['grade_level'] = (string) SchoolClass::forConfiguredGrades()->find($classId)?->grade_level;
+        }
+    }
+
     public function importLearners(): void
     {
         $this->validate([
@@ -91,7 +98,8 @@ class StudentList extends Component
         foreach ($rows as $index => $row) {
             $line = $index + 1;
             $row['class_id'] = $row['class_id'] ?: $this->importClassId;
-            $row['grade_level'] = $row['grade_level'] ?: ($this->importGrade ?: (string) SchoolClass::find($row['class_id'])?->grade_level);
+            $class = SchoolClass::forConfiguredGrades()->find($row['class_id']);
+            $row['grade_level'] = (string) $class?->grade_level;
             $row['admission_date'] = $row['admission_date'] ?: now()->format('Y-m-d');
             $row['date_of_birth'] = $row['date_of_birth'] ?: now()->subYears(6)->format('Y-m-d');
             $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
@@ -220,6 +228,7 @@ class StudentList extends Component
             'form.class_id' => 'required|exists:school_classes,id', 'form.admission_date' => 'required|date',
             'form.boarding_status' => 'required|in:day,boarding', 'form.academic_year' => 'required|string|max:9',
         ])['form'];
+        $data['grade_level'] = (string) SchoolClass::forConfiguredGrades()->findOrFail($data['class_id'])->grade_level;
         $learner = $this->editingId ? Learner::findOrFail($this->editingId) : new Learner();
         $learner->fill($data);
         $learner->is_active = true;
@@ -252,12 +261,13 @@ class StudentList extends Component
             ->when($this->statusFilter === '1', fn($q) => $q->where('is_active', true))
             ->when($this->statusFilter === '0', fn($q) => $q->where('is_active', false))
             ->when($this->boardingFilter, fn($q) => $q->where('boarding_status', $this->boardingFilter))
+            ->orderBy('class_id')
             ->orderBy('last_name')
             ->paginate($this->perPage);
 
         return view('livewire.students.student-list', [
             'learners' => $learners,
-            'classes'  => SchoolClass::forConfiguredGrades()->orderBy('grade_level')->get(),
+            'classes'  => SchoolClass::forConfiguredGrades()->withCount(['learners as active_learners_count' => fn ($query) => $query->where('is_active', true)])->orderBy('grade_level')->get(),
         ])->layout('layouts.admin');
     }
 }
