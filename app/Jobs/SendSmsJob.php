@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\Guardian;
 use App\Models\NotificationLog;
 use App\Models\SchoolNotification;
-use App\Services\AfricasTalkingService;
+use App\Services\OlympusSmsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,7 +25,7 @@ class SendSmsJob implements ShouldQueue
         public readonly string $targetGroup = 'all',
     ) {}
 
-    public function handle(AfricasTalkingService $sms): void
+    public function handle(OlympusSmsService $sms): void
     {
         $notification = SchoolNotification::findOrFail($this->notificationId);
         $notification->update(['status' => 'queued', 'sent_at' => now()]);

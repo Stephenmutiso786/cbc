@@ -41,8 +41,8 @@ return [
     ],
 
     'sms' => [
-        'enabled'   => !empty(env('AT_API_KEY')),
-        'provider'  => 'africastalking',
-        'sender_id' => env('AT_SENDER_ID', 'SCHOOL'),
+        'enabled'   => !empty(env('OLYMPUS_SMS_API_TOKEN')),
+        'provider'  => 'olympus_sms',
+        'sender_id' => env('OLYMPUS_SMS_SENDER_ID', 'SCHOOL'),
     ],
 ];

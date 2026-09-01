@@ -35,7 +35,10 @@ class AdminSettingsController extends Controller
             'at_api_key' => ['nullable', 'string', 'max:500'],
             'at_username' => ['nullable', 'string', 'max:100'],
             'at_sender_id' => ['nullable', 'string', 'max:50'],
-            'at_env' => ['required', 'in:sandbox,production'],
+            'at_env' => ['nullable', 'in:sandbox,production'],
+            'olympus_sms_api_url' => ['nullable', 'url', 'max:500'],
+            'olympus_sms_api_token' => ['nullable', 'string', 'max:500'],
+            'olympus_sms_sender_id' => ['required', 'string', 'max:11'],
             'firebase_server_key' => ['nullable', 'string', 'max:1000'],
             'firebase_project_id' => ['nullable', 'string', 'max:255'],
             'kemis_api_url' => ['nullable', 'url', 'max:500'],
@@ -64,7 +67,7 @@ class AdminSettingsController extends Controller
         }
         unset($data['logo']);
 
-        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
+        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
         foreach ($data as $key => $value) {
             $setting = SchoolSetting::firstOrNew(['key' => $key]);
             $configValue = $value;
@@ -77,6 +80,7 @@ class AdminSettingsController extends Controller
             $configKey = match (true) {
                 str_starts_with($key, 'mpesa_') => 'services.mpesa.' . substr($key, 6),
                 str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
+                str_starts_with($key, 'olympus_sms_') => 'services.olympus_sms.' . substr($key, 12),
                 str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
                 str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
                 default => 'school.' . $key,

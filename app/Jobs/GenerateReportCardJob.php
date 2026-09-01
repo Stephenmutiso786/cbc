@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Learner;
-use App\Services\AfricasTalkingService;
+use App\Services\OlympusSmsService;
 use App\Services\ReportCardService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +25,7 @@ class GenerateReportCardJob implements ShouldQueue
         public readonly bool   $notifyParent = true,
     ) {}
 
-    public function handle(ReportCardService $service, AfricasTalkingService $sms): void
+    public function handle(ReportCardService $service, OlympusSmsService $sms): void
     {
         try {
             $fileName = $service->generate($this->learnerId, $this->term, $this->academicYear);
