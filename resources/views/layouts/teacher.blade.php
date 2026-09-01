@@ -19,7 +19,7 @@
         <nav class="flex-1 px-3 py-4 space-y-1">
             @foreach([
                 ['teacher.dashboard','Dashboard'],['teacher.assessment.index','Assessment Entry'],
-                ['teacher.notes.index','Learning Notes'],['teacher.attendance.index','Attendance'],
+                ['teacher.notes.index','Learning Notes'],['teacher.notifications.index','Message Parents'],['teacher.attendance.index','Attendance'],
                 ['teacher.timetable.index','Timetable'],
             ] as [$route,$label])
             <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>

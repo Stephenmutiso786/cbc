@@ -23,6 +23,7 @@ class SendSmsJob implements ShouldQueue
         public readonly int    $notificationId,
         public readonly string $targetGrade = '',
         public readonly string $targetGroup = 'all',
+        public readonly ?int   $targetClassId = null,
     ) {}
 
     public function handle(OlympusSmsService $sms): void
@@ -35,6 +36,9 @@ class SendSmsJob implements ShouldQueue
 
         if ($this->targetGrade) {
             $query->whereHas('learners', fn($q) => $q->where('grade_level', $this->targetGrade)->where('is_active', true));
+        }
+        if ($this->targetClassId) {
+            $query->whereHas('learners', fn($q) => $q->where('class_id', $this->targetClassId)->where('is_active', true));
         }
         if ($this->targetGroup === 'boarding') {
             $query->whereHas('learners', fn($q) => $q->where('boarding_status', 'boarding'));
