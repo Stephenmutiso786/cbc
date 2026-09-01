@@ -45,6 +45,7 @@ class ExamManager extends Component
     // Mark entry
     public array  $marks          = []; // keyed by learner_id
     public array  $markSubjectOptions = [];
+    public float $marksTotal = 100;
 
     protected $rules = [
         'examName'  => 'required|string|max:200',
@@ -235,6 +236,8 @@ class ExamManager extends Component
             ->where('term', (int) $exam->term)->where('is_active', true)->exists()) {
             abort(403, 'You are not allocated to this exam subject.');
         }
+        $this->examScaleBands = $exam->schoolClass?->gradingScale()->first()?->bands ?? [];
+        $this->marksTotal = (float) $exam->total_marks;
         $learners = Learner::when($exam->class_id, fn ($query) => $query->where('class_id', $exam->class_id))
             ->where('grade_level', $exam->grade_level)->where('is_active', true)->get();
 
