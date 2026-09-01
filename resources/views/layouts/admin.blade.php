@@ -46,7 +46,7 @@
         <header class="flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-6">
             <button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
             <h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
-            <span class="text-sm text-gray-500">{{ config('school.academic_year') }}</span>
+            <div class="flex items-center gap-4"><span class="hidden text-sm text-gray-500 sm:inline">{{ config('school.academic_year') }}</span><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form></div>
         </header>
         <main class="p-4 md:p-6">
             @yield('content')

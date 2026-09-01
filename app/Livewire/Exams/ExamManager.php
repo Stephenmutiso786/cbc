@@ -60,15 +60,35 @@ class ExamManager extends Component
 
     public function updatedExamClassId($classId): void
     {
-        $class = $classId ? SchoolClass::with('learningAreas')->find($classId) : null;
-        $areas = $class?->learningAreas ?? collect();
-        $this->examGrade = (string) ($class?->grade_level ?? '');
-        $scale = $class?->gradingScale;
-        $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
-        $this->examScaleBands = $scale?->bands ?? [];
+        $this->examAreaId = null;
+        $this->resetErrorBag(['examClassId', 'examAreaId']);
 
-        if (!$areas->contains('id', $this->examAreaId)) {
-            $this->examAreaId = $areas->count() === 1 ? (int) $areas->first()->id : null;
+        if (! $classId) {
+            $this->examGrade = '';
+            $this->examScaleName = '';
+            $this->examScaleBands = [];
+            return;
+        }
+
+        try {
+            $class = SchoolClass::with('learningAreas')->findOrFail((int) $classId);
+            $this->examGrade = (string) $class->grade_level;
+            $scale = $class->gradingScales()
+                ->wherePivot('academic_year', (string) config('school.academic_year'))
+                ->where('grading_scales.is_active', true)
+                ->orderByDesc('grading_scales.id')->first();
+            $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
+            $this->examScaleBands = is_array($scale?->bands) ? $scale->bands : [];
+            $areas = $class->learningAreas;
+            if ($areas->count() === 1) {
+                $this->examAreaId = (int) $areas->first()->id;
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->examGrade = '';
+            $this->examScaleName = '';
+            $this->examScaleBands = [];
+            $this->addError('examClassId', 'This class could not load its subjects. Check the class subject assignments and try again.');
         }
     }
 
@@ -324,8 +344,13 @@ class ExamManager extends Component
     private function availableLearningAreas(bool $fullAdmin, $allocation)
     {
         if ($this->examClassId) {
-            return SchoolClass::find($this->examClassId)?->learningAreas()->where('learning_areas.is_active', true)->orderBy('name')->get()
-                ?? collect();
+            try {
+                return SchoolClass::findOrFail((int) $this->examClassId)->learningAreas()
+                    ->where('learning_areas.is_active', true)->orderBy('name')->get();
+            } catch (\Throwable $exception) {
+                report($exception);
+                return collect();
+            }
         }
 
         return $fullAdmin
