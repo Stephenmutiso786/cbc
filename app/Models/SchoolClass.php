@@ -13,4 +13,5 @@ class SchoolClass extends Model {
     public function learningAreas() { return $this->belongsToMany(LearningArea::class, 'class_learning_areas', 'class_id', 'learning_area_id')->withPivot(['lessons_per_week', 'is_active'])->wherePivot('is_active', true); }
     public function scopeActive($q) { return $q->where('is_active', true); }
     public function scopeForYear($q, $y) { return $q->where('academic_year', $y); }
+    public function scopeForConfiguredGrades($q) { return $q->whereIn('grade_level', array_merge(...array_values(config('school.grade_levels')))); }
 }

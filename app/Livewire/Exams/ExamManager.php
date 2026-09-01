@@ -207,7 +207,7 @@ class ExamManager extends Component
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
             'learningAreas' => $this->availableLearningAreas($fullAdmin, $allocation),
-            'classes' => $fullAdmin ? SchoolClass::with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
+            'classes' => $fullAdmin ? SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
         ])->layout('layouts.admin');

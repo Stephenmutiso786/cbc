@@ -119,7 +119,7 @@ class AcademicSetup extends Component
     public function render()
     {
         return view('livewire.admin.academic-setup', [
-            'classes' => SchoolClass::with(['classTeacher', 'learningAreas'])->orderBy('grade_level')->orderBy('name')->get(),
+            'classes' => SchoolClass::forConfiguredGrades()->with(['classTeacher', 'learningAreas'])->orderBy('grade_level')->orderBy('name')->get(),
             'staff' => StaffMember::active()->orderBy('last_name')->get(),
             'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
             'allocations' => TeacherSubjectAllocation::with(['teacher', 'schoolClass', 'learningArea'])->latest()->get(),

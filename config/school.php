@@ -15,11 +15,9 @@ return [
     'current_term'  => (int) env('CURRENT_TERM', 1),
 
     'grade_levels' => [
-        'pre_primary'     => ['PP1', 'PP2'],
-        'lower_primary'   => ['Grade 1', 'Grade 2', 'Grade 3'],
-        'upper_primary'   => ['Grade 4', 'Grade 5', 'Grade 6'],
-        'junior_secondary'=> ['Grade 7', 'Grade 8', 'Grade 9'],
-        'senior_secondary'=> ['Grade 10', 'Grade 11', 'Grade 12'],
+        'lower_primary'    => ['Grade 1', 'Grade 2', 'Grade 3'],
+        'upper_primary'    => ['Grade 4', 'Grade 5', 'Grade 6'],
+        'junior_secondary' => ['Grade 7', 'Grade 8', 'Grade 9'],
     ],
 
     'rubric_levels' => [
