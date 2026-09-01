@@ -9,6 +9,7 @@ use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TeacherSubjectAllocation;
+use App\Models\GradingScale;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -188,7 +189,7 @@ class ExamManager extends Component
             if ($data['marks'] === '' || $data['marks'] === null) continue;
 
             $marks = (float) $data['marks'];
-            $grade = $this->calculateGrade($marks, $exam->total_marks);
+            $grade = $this->calculateGrade($marks, $exam->total_marks, $exam->schoolClass?->gradingScale);
 
             ExamResult::updateOrCreate(
                 ['exam_id' => $exam->id, 'learner_id' => $learnerId],
@@ -250,9 +251,12 @@ class ExamManager extends Component
         session()->flash('success', "Exam results queued for {$recipients->count()} guardian phone number(s).");
     }
 
-    private function calculateGrade(float $marks, float $total): string
+    private function calculateGrade(float $marks, float $total, ?GradingScale $scale = null): string
     {
         $percent = ($marks / $total) * 100;
+        if ($scale && ($grade = $scale->gradeForPercent($percent)) !== null) {
+            return $grade;
+        }
         return match(true) {
             $percent >= 80 => 'A',
             $percent >= 70 => 'B',
