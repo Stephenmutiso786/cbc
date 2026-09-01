@@ -10,6 +10,7 @@ use App\Livewire\Notes\LearningNotesList;
 use App\Livewire\Admin\AcademicSetup;
 use App\Livewire\Admin\StaffManager;
 use App\Livewire\Admin\SubjectManager;
+use App\Livewire\Admin\ReportCardTemplates;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
@@ -37,6 +38,7 @@ Route::get('/reports', [AnalyticsController::class, 'index'])->name('reports.ind
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->name('reports.export');
 Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.index');
+Route::get('/report-forms', ReportCardTemplates::class)->name('report-forms.index');
 Route::get('/classes', AcademicSetup::class)->name('classes.index');
 Route::get('/subjects', SubjectManager::class)->name('subjects.index');
 Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');

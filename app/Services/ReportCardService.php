@@ -25,6 +25,7 @@ class ReportCardService
             'assessments'         => $assessments,
             'attendance'          => $attendance,
             'classTeacherRemark'  => '',
+            'template'            => config('school.report_card_template', 'cbc-classic'),
         ])->setPaper('a4', 'portrait');
 
         $fileName = "reports/{$academicYear}/term{$term}/{$learner->admission_number}_report.pdf";

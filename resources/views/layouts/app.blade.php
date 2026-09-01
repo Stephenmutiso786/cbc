@@ -20,7 +20,7 @@
                 'Academics' => [['admin.classes.index', 'Classes'], ['admin.subjects.index', 'Subjects'], ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'], ['admin.notes.index', 'Learning Notes'], ['admin.timetable.index', 'Timetable']],
                 'Finance' => [['finance.payments.index', 'Fees and Payments'], ['finance.invoices.index', 'Invoices'], ['finance.reports.index', 'Finance Reports']],
                 'Operations' => [['admin.inventory.index', 'Inventory'], ['admin.sms.index', 'SMS Center'], ['admin.notifications.index', 'Notifications'], ['admin.reports.index', 'Analytics and Reports']],
-                'Configuration' => [['admin.settings.index', 'School Settings'], ['admin.kemis.index', 'KEMIS Integration']],
+                'Configuration' => [['admin.settings.index', 'School Settings'], ['admin.report-forms.index', 'Report Forms'], ['admin.kemis.index', 'KEMIS Integration']],
             ] as $section => $links)
                 <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label])<a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>@endforeach</div>
             @endforeach
