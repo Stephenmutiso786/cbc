@@ -51,6 +51,17 @@ class ExamManager extends Component
         $this->examDate = now()->format('Y-m-d');
     }
 
+    public function updatedExamClassId($classId): void
+    {
+        $class = $classId ? SchoolClass::with('learningAreas')->find($classId) : null;
+        $areas = $class?->learningAreas ?? collect();
+        $this->examGrade = (string) ($class?->grade_level ?? '');
+
+        if (!$areas->contains('id', $this->examAreaId)) {
+            $this->examAreaId = $areas->count() === 1 ? (int) $areas->first()->id : null;
+        }
+    }
+
     public function createExam(): void
     {
         $this->validate();
