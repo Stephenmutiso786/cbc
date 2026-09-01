@@ -3,6 +3,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="{{ asset('icons/icon.svg') }}">
+<link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
 <script src="{{ asset('navigation.js') }}" defer></script>
 <script src="{{ asset('pwa.js') }}" defer></script>
