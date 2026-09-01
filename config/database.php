@@ -1,5 +1,6 @@
 <?php
 
+$databaseUrl = env('DB_URL') ?: env('DATABASE_URL');
 $mysqlCa = env('MYSQL_ATTR_SSL_CA');
 if (is_string($mysqlCa) && str_starts_with(trim($mysqlCa), '-----BEGIN CERTIFICATE-----')) {
     $mysqlCa = str_replace(['\\r\\n', '\\n', '\\r'], ["\r\n", "\n", "\r"], trim($mysqlCa));
@@ -15,7 +16,7 @@ return [
         'sqlite' => ['driver' => 'sqlite', 'url' => env('DB_URL'), 'database' => env('DB_DATABASE', database_path('database.sqlite')), 'prefix' => '', 'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true)],
         'mysql'  => [
             'driver' => 'mysql',
-            'url' => env('DB_URL'),
+            'url' => $databaseUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             // Aiven's public MySQL service uses its assigned public port, not 3306.
             'port' => (str_ends_with((string) env('DB_HOST', ''), '.aivencloud.com') && env('DB_PORT', '3306') === '3306')
@@ -43,7 +44,7 @@ return [
         ],
         'pgsql'  => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
+            'url' => $databaseUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),

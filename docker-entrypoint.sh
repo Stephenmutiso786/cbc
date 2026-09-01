@@ -11,6 +11,11 @@ elif [ "${APP_KEY#base64:}" = "$APP_KEY" ]; then
     export APP_KEY="base64:${APP_KEY}"
 fi
 
+if [ "${DB_CONNECTION:-mysql}" = "pgsql" ] && [ -z "${DB_URL:-${DATABASE_URL:-}}" ]; then
+    echo "DB_URL (or DATABASE_URL) is required when DB_CONNECTION=pgsql. Add the Neon PostgreSQL connection string in Render." >&2
+    exit 1
+fi
+
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 if ! timeout "${MIGRATION_TIMEOUT}" php artisan migrate --force; then
     echo "Database migrations did not finish within ${MIGRATION_TIMEOUT}s. Check the Render database host, SSL CA, and credentials." >&2
