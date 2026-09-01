@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxml2-dev \
         libzip-dev \
         libexif-dev \
-    && docker-php-ext-install pdo_mysql mbstring xml zip gd exif \
+        libpq-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -35,7 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxml2-dev \
         libzip-dev \
         libexif-dev \
-    && docker-php-ext-install pdo_mysql mbstring xml zip gd exif \
+        libpq-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
