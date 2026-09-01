@@ -27,6 +27,31 @@
             const binding = active?.getAttribute('wire:model.live') || '';
             return active?.matches('input[type="number"]') && binding.startsWith('marks.');
         };
+        const refreshRubrics = (input) => {
+            const bandsElement = document.getElementById('marks-grading-bands');
+            if (!bandsElement) return;
+            let bands = [];
+            try { bands = JSON.parse(bandsElement.dataset.bands || '[]'); } catch (_) { return; }
+            const update = (field) => {
+                const raw = field.value.trim();
+                const cell = field.closest('tr')?.querySelector('td:last-child');
+                if (!cell) return;
+                if (raw === '' || !/^\d+(?:\.\d+)?$/.test(raw)) { cell.textContent = '-'; return; }
+                const examTotal = Number(field.dataset.totalMarks || 100);
+                const marks = Number(raw);
+                if (!Number.isFinite(marks) || marks < 0 || marks > 100 || marks > examTotal || examTotal <= 0) { cell.textContent = '-'; return; }
+                const percent = (marks / examTotal) * 100;
+                const band = bands.find((item) => percent >= Number(item.min ?? 0) && percent <= Number(item.max ?? 100));
+                cell.textContent = band?.code || '-';
+            };
+            if (input) update(input);
+            else document.querySelectorAll('input[type="number"][wire\\:model^="marks."]').forEach(update);
+        };
+        document.addEventListener('input', (event) => {
+            const input = event.target;
+            const binding = input?.getAttribute?.('wire:model') || input?.getAttribute?.('wire:model.live') || '';
+            if (input?.matches?.('input[type="number"]') && binding.startsWith('marks.')) refreshRubrics(input);
+        }, true);
         document.addEventListener('input', (event) => {
             const input = event.target;
             const binding = input?.getAttribute?.('wire:model.live') || '';
@@ -53,7 +78,7 @@
                     return;
                 }
                 show();
-                succeed(() => hide());
+                succeed(() => { hide(); refreshRubrics(); });
                 fail(() => hide());
             });
         });
