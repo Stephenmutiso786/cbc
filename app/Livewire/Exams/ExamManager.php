@@ -55,6 +55,10 @@ class ExamManager extends Component
     {
         $this->validate();
         $teacher = StaffMember::where('user_id', auth()->id())->first();
+        if (!SchoolClass::findOrFail($this->examClassId)->learningAreas()->whereKey($this->examAreaId)->exists()) {
+            $this->addError('examAreaId', 'Assign this subject to the selected class first in Classes.');
+            return;
+        }
         if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', $teacher?->id)
             ->where('class_id', $this->examClassId)->where('learning_area_id', $this->examAreaId)->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->examTerm)->where('is_active', true)->exists()) {
@@ -191,10 +195,22 @@ class ExamManager extends Component
 
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
-            'learningAreas' => $fullAdmin ? LearningArea::where('is_active', true)->get() : LearningArea::whereIn('id', (clone $allocation)->pluck('learning_area_id'))->where('is_active', true)->get(),
-            'classes' => $fullAdmin ? SchoolClass::orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocation)->pluck('class_id'))->orderBy('grade_level')->get(),
+            'learningAreas' => $this->availableLearningAreas($fullAdmin, $allocation),
+            'classes' => $fullAdmin ? SchoolClass::with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
         ])->layout('layouts.admin');
+    }
+
+    private function availableLearningAreas(bool $fullAdmin, $allocation)
+    {
+        if ($this->examClassId) {
+            return SchoolClass::find($this->examClassId)?->learningAreas()->where('learning_areas.is_active', true)->orderBy('name')->get()
+                ?? collect();
+        }
+
+        return $fullAdmin
+            ? LearningArea::where('is_active', true)->orderBy('name')->get()
+            : LearningArea::whereIn('id', (clone $allocation)->pluck('learning_area_id'))->where('is_active', true)->orderBy('name')->get();
     }
 }
