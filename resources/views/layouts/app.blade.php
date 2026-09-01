@@ -16,7 +16,7 @@
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 text-sm">
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard']],
-                'People' => [['admin.students.index', 'Learners'], ['admin.staff.index', 'Staff']],
+                'People' => [['admin.students.index', 'Learners'], ['admin.students.import', 'Import Learners'], ['admin.staff.index', 'Staff'], ['admin.staff.import', 'Import Staff']],
                 'Academics' => [['admin.classes.index', 'Classes'], ['admin.subjects.index', 'Subjects'], ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'], ['admin.notes.index', 'Learning Notes'], ['admin.timetable.index', 'Timetable']],
                 'Finance' => [['finance.payments.index', 'Fees and Payments'], ['finance.invoices.index', 'Invoices'], ['finance.reports.index', 'Finance Reports']],
                 'Operations' => [['admin.inventory.index', 'Inventory'], ['admin.notifications.index', 'Notifications'], ['admin.reports.index', 'Analytics and Reports']],

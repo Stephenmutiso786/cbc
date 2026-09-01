@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Illuminate\Http\Request;
 
 class StaffManager extends Component
 {
@@ -23,6 +24,11 @@ class StaffManager extends Component
     public array $importErrors = [];
     public int $importedCount = 0;
     public array $importCredentials = [];
+
+    public function mount(Request $request): void
+    {
+        $this->showImport = $request->boolean('import') || $request->routeIs('admin.staff.import');
+    }
 
     public function create(): void
     {

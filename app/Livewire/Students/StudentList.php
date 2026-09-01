@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Illuminate\Http\Request;
 
 class StudentList extends Component
 {
@@ -37,6 +38,11 @@ class StudentList extends Component
     ];
 
     protected $queryString = ['search', 'gradeFilter', 'classFilter', 'statusFilter', 'boardingFilter'];
+
+    public function mount(Request $request): void
+    {
+        $this->showImport = $request->boolean('import') || $request->routeIs('admin.students.import');
+    }
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingGradeFilter(): void { $this->resetPage(); }
