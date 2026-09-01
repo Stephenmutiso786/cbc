@@ -1,10 +1,11 @@
 <div>
     @if(session('success'))<div class="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>@endif
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-800">Exams Management</h2>
-        <button wire:click="$set('showCreateModal', true)" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
+        <h2 class="text-xl font-bold text-gray-800">{{ auth()->user()->hasAnyRole(['admin', 'super-admin']) ? 'Exams Management' : 'Marks Entry' }}</h2>
+        <div class="flex flex-wrap items-center gap-2"><label class="text-xs font-semibold uppercase tracking-wide text-gray-500">Term <select wire:model.live="termFilter" class="ml-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal normal-case"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+        @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<button wire:click="$set('showCreateModal', true)" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
             + Create Exam
-        </button>
+        </button>@endif</div>
     </div>
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
