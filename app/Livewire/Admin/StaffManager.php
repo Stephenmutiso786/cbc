@@ -175,27 +175,78 @@ class StaffManager extends Component
 
     private function readPastedRows(): array
     {
-        return collect(preg_split('/\r\n|\r|\n/', trim($this->pasteNames)))
+        $lines = collect(preg_split('/\r\n|\r|\n/', trim($this->pasteNames)))
             ->filter(fn ($line) => trim($line) !== '')
-            ->map(function ($line) {
-                $parts = preg_split('/[\t,]+|\s+/', trim($line));
-                return $this->emptyImportRow(array_shift($parts) ?: '', $parts ? implode(' ', $parts) : '');
-            })->values()->all();
+            ->values();
+        if ($lines->isEmpty()) return [];
+
+        $firstValues = str_contains($lines->first(), "\t")
+            ? str_getcsv($lines->first(), "\t")
+            : str_getcsv($lines->first());
+        $headers = array_map(fn ($header) => $this->normaliseImportHeader($header), $firstValues);
+        $hasHeader = count(array_intersect($headers, array_keys($this->importHeaderAliases()))) >= 2;
+
+        if ($hasHeader) {
+            return $this->rowsFromDelimitedLines($lines->skip(1)->all(), $headers);
+        }
+
+        return $lines->map(function ($line) {
+            $parts = preg_split('/\s+/', trim($line));
+            return $this->emptyImportRow(array_shift($parts) ?: '', $parts ? implode(' ', $parts) : '');
+        })->values()->all();
     }
 
     private function readCsvRows(): array
     {
         $handle = fopen($this->csvFile->getRealPath(), 'r');
-        $headers = array_map(fn ($value) => preg_replace('/^\xEF\xBB\xBF/', '', strtolower(trim((string) $value))), fgetcsv($handle) ?: []);
+        $headers = array_map(fn ($value) => $this->normaliseImportHeader($value), fgetcsv($handle) ?: []);
         $rows = [];
         while (($values = fgetcsv($handle)) !== false) {
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
-            $row = $this->emptyImportRow();
-            foreach ($headers as $position => $header) if (array_key_exists($header, $row)) $row[$header] = trim((string) ($values[$position] ?? ''));
-            $rows[] = $row;
+            $rows[] = $this->mapImportValues($headers, $values);
         }
         fclose($handle);
         return $rows;
+    }
+
+    private function rowsFromDelimitedLines(array $lines, array $headers): array
+    {
+        return collect($lines)->map(function ($line) use ($headers) {
+            $delimiter = str_contains($line, "\t") ? "\t" : ',';
+            return $this->mapImportValues($headers, str_getcsv($line, $delimiter));
+        })->filter(fn ($row) => count(array_filter($row, fn ($value) => trim((string) $value) !== '')) > 0)->values()->all();
+    }
+
+    private function mapImportValues(array $headers, array $values): array
+    {
+        $row = $this->emptyImportRow();
+        $aliases = $this->importHeaderAliases();
+        foreach ($headers as $position => $header) {
+            $field = $aliases[$header] ?? null;
+            if ($field && array_key_exists($field, $row)) {
+                $row[$field] = trim((string) ($values[$position] ?? ''));
+            }
+        }
+        return $row;
+    }
+
+    private function normaliseImportHeader(mixed $header): string
+    {
+        $header = preg_replace('/^\xEF\xBB\xBF/', '', strtolower(trim((string) $header)));
+        return trim((string) preg_replace('/[^a-z0-9]+/', '_', $header), '_');
+    }
+
+    private function importHeaderAliases(): array
+    {
+        return array_fill_keys([
+            'staff_number', 'school_id', 'staff_id', 'first_name', 'firstname', 'last_name', 'lastname',
+            'email', 'email_address', 'phone_number', 'phone', 'gender', 'employment_type',
+            'staff_type', 'designation', 'date_joined', 'role', 'password',
+        ], null) + [
+            'school_id' => 'staff_number', 'staff_id' => 'staff_number',
+            'firstname' => 'first_name', 'lastname' => 'last_name',
+            'email_address' => 'email', 'phone' => 'phone_number',
+        ];
     }
 
     private function emptyImportRow(string $firstName = '', string $lastName = ''): array
