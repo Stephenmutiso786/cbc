@@ -27,6 +27,10 @@
                 </optgroup>
             @endforeach
         </select>
+        <select wire:model.live="classFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="">All Classes</option>
+            @foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->name }}</option>@endforeach
+        </select>
         <select wire:model.live="statusFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
             <option value="">All Status</option>
             <option value="1">Active</option>
@@ -37,6 +41,16 @@
             <option value="day">Day</option>
             <option value="boarding">Boarding</option>
         </select>
+    </div>
+
+    <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        @foreach($classes as $class)
+            <button wire:click="$set('classFilter', '{{ $class->id }}')" class="rounded-xl border p-4 text-left shadow-sm transition hover:border-green-500 hover:bg-green-50 {{ (string) $classFilter === (string) $class->id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white' }}">
+                <p class="truncate text-sm font-semibold text-gray-900">{{ $class->name }}</p>
+                <p class="mt-1 text-2xl font-bold text-green-700">{{ $class->active_learners_count }}</p>
+                <p class="text-xs text-gray-500">active learners</p>
+            </button>
+        @endforeach
     </div>
 
     {{-- Table --}}
