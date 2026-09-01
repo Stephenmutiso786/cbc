@@ -11,11 +11,15 @@
     <div class="w-full max-w-md">
         {{-- Logo / School Name --}}
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-                <svg class="w-9 h-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
-                </svg>
+            <div class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-lg mb-4">
+                @if(config('school.logo_data'))
+                    <img src="{{ config('school.logo_data') }}" alt="{{ config('school.name') }} logo" class="h-full w-full object-contain">
+                @else
+                    <svg class="h-9 w-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
+                    </svg>
+                @endif
             </div>
             <h1 class="text-white text-2xl font-bold">{{ config('school.name') }}</h1>
             <p class="text-green-200 text-sm mt-1">{{ config('school.motto') }}</p>
