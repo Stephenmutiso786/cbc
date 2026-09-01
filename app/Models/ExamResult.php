@@ -9,6 +9,8 @@ class ExamResult extends Model {
     public function learner()  { return $this->belongsTo(Learner::class); }
     public function markedBy() { return $this->belongsTo(StaffMember::class, 'marked_by'); }
     public function getPercentageAttribute(): float {
-        return $this->total_marks > 0 ? round(($this->marks_obtained / $this->total_marks) * 100, 1) : 0;
+        return $this->marks_obtained !== null && $this->total_marks > 0
+            ? round(($this->marks_obtained / $this->total_marks) * 100, 1)
+            : 0;
     }
 }

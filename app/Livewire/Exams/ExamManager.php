@@ -205,6 +205,7 @@ class ExamManager extends Component
     {
         $this->selectedExam = $examId;
         $exam = Exam::findOrFail($examId);
+        abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'These marks are already submitted or published.');
         if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)->where('academic_year', $exam->academic_year)
             ->where('term', (int) $exam->term)->where('is_active', true)->exists()) {
@@ -213,10 +214,14 @@ class ExamManager extends Component
         $learners = Learner::when($exam->class_id, fn ($query) => $query->where('class_id', $exam->class_id))
             ->where('grade_level', $exam->grade_level)->where('is_active', true)->get();
 
-        $existing = ExamResult::where('exam_id', $examId)->pluck('marks_obtained', 'learner_id');
+        $existing = ExamResult::where('exam_id', $examId)->get()->keyBy('learner_id');
 
         $this->marks = $learners->mapWithKeys(fn($l) => [
-            $l->id => ['name' => $l->full_name, 'marks' => $existing[$l->id] ?? '']
+            $l->id => [
+                'name' => $l->full_name,
+                'marks' => $existing[$l->id]?->marks_obtained ?? '',
+                'rubric' => $existing[$l->id]?->rubric_level?->value ?? '-',
+            ]
         ])->toArray();
 
         $this->tab = 'marks';
@@ -224,59 +229,117 @@ class ExamManager extends Component
 
     public function saveMarks(): void
     {
-        $exam    = Exam::findOrFail($this->selectedExam);
-        abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'These marks are already submitted or published.');
-        if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
-            ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)
-            ->where('academic_year', $exam->academic_year)->where('term', (int) $exam->term)
-            ->where('is_active', true)->exists()) {
-            abort(403, 'You are not allocated to this exam class and subject.');
-        }
-        $teacher = StaffMember::where('user_id', auth()->id())->first();
-        $gradingScale = $exam->schoolClass?->gradingScale()->first();
-        if (! $gradingScale) {
-            $this->addError('marks', 'This class has no active grading scale. Ask an administrator to assign one first.');
-            return;
-        }
-        $saved   = 0;
+        $exam = $this->editableMarksExam();
+        $saved = $this->persistMarks($exam);
+        if ($saved === null) return;
 
-        $learnerIds = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->pluck('id')->map(fn ($id) => (string) $id);
-        $missing = $learnerIds->filter(fn ($id) => !isset($this->marks[$id]['marks']) || $this->marks[$id]['marks'] === '')->values();
-        if ($missing->isNotEmpty()) {
-            $this->addError('marks', 'Every learner must have marks before submitting this subject.');
-            return;
-        }
+        $this->dispatch('notify', type: 'success', message: "{$saved} learner mark entries saved as draft. Submit them when complete.");
+    }
 
-        foreach ($this->marks as $learnerId => $data) {
-            if ($data['marks'] === '' || $data['marks'] === null) continue;
-
-            $marks = (float) $data['marks'];
-            if ($marks < 0 || $marks > 100 || $marks > (float) $exam->total_marks) {
-                $this->addError('marks', "Marks must be between 0 and 100 and cannot exceed the exam total of {$exam->total_marks}.");
-                return;
-            }
-            $grade = $this->calculateGrade($marks, $exam->total_marks, $gradingScale);
-
-            ExamResult::updateOrCreate(
-                ['exam_id' => $exam->id, 'learner_id' => $learnerId],
-                [
-                    'marks_obtained' => $marks,
-                    'total_marks'    => $exam->total_marks,
-                    'grade'          => $grade,
-                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $gradingScale),
-                    'remarks'        => $gradingScale->commentForCode($grade),
-                    'marked_by'      => $teacher?->id ?? 1,
-                ]
-            );
-            $saved++;
-        }
+    public function submitMarks(): void
+    {
+        $exam = $this->editableMarksExam();
+        $saved = $this->persistMarks($exam);
+        if ($saved === null) return;
 
         $exam->update([
             'marks_status' => 'submitted', 'marks_submitted_at' => now(),
             'marks_submitted_by' => auth()->id(), 'marks_review_comment' => null,
         ]);
 
-        $this->dispatch('notify', type: 'success', message: "{$saved} marks submitted for review.");
+        $this->dispatch('notify', type: 'success', message: "{$saved} learner mark entries submitted for review.");
+    }
+
+    public function updatedMarks($value, $key): void
+    {
+        $learnerId = explode('.', (string) $key)[0];
+        if (! isset($this->marks[$learnerId])) return;
+
+        $raw = is_scalar($value) ? trim((string) $value) : '';
+        if ($raw === '' || ! preg_match('/^\d+(?:\.\d+)?$/', $raw)) {
+            $this->marks[$learnerId]['rubric'] = '-';
+            return;
+        }
+
+        $exam = $this->selectedExam ? Exam::with('schoolClass')->find($this->selectedExam) : null;
+        $scale = $exam?->schoolClass?->gradingScale()->first();
+        $marks = (float) $raw;
+        if (! $exam || $marks > 100 || $marks > (float) $exam->total_marks) {
+            $this->marks[$learnerId]['rubric'] = '-';
+            return;
+        }
+
+        $this->marks[$learnerId]['rubric'] = $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $scale)->value;
+    }
+
+    private function editableMarksExam(): Exam
+    {
+        $exam = Exam::findOrFail($this->selectedExam);
+        abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'These marks are already submitted or published.');
+        if (! $this->isFullAdmin() && ! TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+            ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)
+            ->where('academic_year', $exam->academic_year)->where('term', (int) $exam->term)
+            ->where('is_active', true)->exists()) {
+            abort(403, 'You are not allocated to this exam class and subject.');
+        }
+
+        return $exam;
+    }
+
+    private function persistMarks(Exam $exam): ?int
+    {
+        $gradingScale = $exam->schoolClass?->gradingScale()->first();
+        if (! $gradingScale) {
+            $this->addError('marks', 'This class has no active grading scale. Ask an administrator to assign one first.');
+            return null;
+        }
+
+        $learnerIds = Learner::where('class_id', $exam->class_id)
+            ->where('grade_level', $exam->grade_level)->where('is_active', true)->pluck('id');
+        if ($learnerIds->isEmpty()) {
+            $this->addError('marks', 'No active learners were found for this class.');
+            return null;
+        }
+
+        $normalized = [];
+        foreach ($learnerIds as $learnerId) {
+            $data = $this->marks[$learnerId] ?? $this->marks[(string) $learnerId] ?? [];
+            $raw = $data['marks'] ?? '';
+            if ($raw === '' || $raw === null) {
+                $normalized[$learnerId] = null;
+                continue;
+            }
+            if (! is_scalar($raw) || ! preg_match('/^\d+(?:\.\d+)?$/', trim((string) $raw))) {
+                $this->addError('marks', 'Marks must contain numbers only, or be left blank for a learner who did not sit the exam.');
+                return null;
+            }
+            $marks = (float) trim((string) $raw);
+            if ($marks < 0 || $marks > 100 || $marks > (float) $exam->total_marks) {
+                $this->addError('marks', "Marks must be between 0 and 100 and cannot exceed the exam total of {$exam->total_marks}.");
+                return null;
+            }
+            $normalized[$learnerId] = $marks;
+        }
+
+        $teacher = StaffMember::where('user_id', auth()->id())->first();
+        DB::transaction(function () use ($normalized, $exam, $gradingScale, $teacher): void {
+            foreach ($normalized as $learnerId => $marks) {
+                $grade = $marks === null ? null : $this->calculateGrade($marks, (float) $exam->total_marks, $gradingScale);
+                ExamResult::updateOrCreate(
+                    ['exam_id' => $exam->id, 'learner_id' => $learnerId],
+                    [
+                        'marks_obtained' => $marks,
+                        'total_marks' => $exam->total_marks,
+                        'grade' => $grade,
+                        'rubric_level' => $marks === null ? null : $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $gradingScale),
+                        'remarks' => $grade ? $gradingScale->commentForCode($grade) : null,
+                        'marked_by' => $teacher?->id ?? 1,
+                    ]
+                );
+            }
+        });
+
+        return count($normalized);
     }
 
     public function openMarksReview(int $examId): void
@@ -312,8 +375,9 @@ class ExamManager extends Component
     {
         abort_unless($this->canReviewMarks(), 403);
         $exam = Exam::with('results')->findOrFail($this->selectedExam);
-        $learnerCount = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->count();
-        abort_unless($learnerCount > 0 && $exam->marks_status === 'submitted' && $exam->results->count() === $learnerCount && $exam->results->every(fn ($result) => $result->marks_obtained !== null), 422, 'All learner marks must be submitted before publishing results.');
+        $learnerIds = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->pluck('id');
+        $submittedCount = $exam->results->whereIn('learner_id', $learnerIds)->count();
+        abort_unless($learnerIds->isNotEmpty() && $exam->marks_status === 'submitted' && $submittedCount === $learnerIds->count(), 422, 'Every learner must have a saved mark entry before publishing results. Blank entries are treated as did not sit.');
         $exam->update(['marks_status' => 'approved', 'marks_reviewed_at' => now(), 'marks_reviewed_by' => auth()->id(), 'marks_review_comment' => $this->reviewComment ?: null, 'status' => 'completed', 'results_locked_at' => now(), 'locked_by' => auth()->user()->staffMember?->id]);
         $this->tab = 'exams';
         session()->flash('success', 'Marks approved and results published.');
