@@ -728,3 +728,11 @@ Livewire POST requests must not be replayed from a browser queue because that
 can duplicate marks, payments, or learner records. Full offline data entry
 requires each module to use an authenticated, idempotent sync endpoint with
 conflict handling before offline writes are enabled.
+
+After deployment, open the site once while online, wait for the install prompt,
+and accept it. If an older PWA version is already installed, uninstall that
+old shortcut once and install the new version so the browser refreshes its
+manifest and service worker. Android Chrome shows the native confirmation when
+the browser considers the site installable; iPhone/iPad Safari requires the
+user to choose **Share → Add to Home Screen**, because iOS does not allow a
+website to install itself silently.
