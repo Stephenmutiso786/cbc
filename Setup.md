@@ -655,9 +655,9 @@ The current Aiven hostname in the old deployment no longer resolves. Existing Ai
 The 11 teacher records shown in the supplied staff screenshot are included in
 `ScreenshotTeachersSeeder`. The seeder is idempotent and uses the displayed
 School IDs as staff numbers, so it can be run safely once on the school
-database. New imported accounts use `ChangeMe@123` unless
-`IMPORTED_TEACHER_TEMP_PASSWORD` is set in Render; change these passwords after
-the first login.
+database. The imported teachers use `Teacher@2026` as their initial password
+and log in with the email address shown in the staff records. Change the shared
+password after the first login.
 
 ## 🚢 Production Deployment Checklist
 

@@ -30,7 +30,7 @@ class ScreenshotTeachersSeeder extends Seeder
                 ['email' => $email],
                 [
                     'name' => $firstName . ' ' . $lastName,
-                    'password' => Hash::make(env('IMPORTED_TEACHER_TEMP_PASSWORD', 'ChangeMe@123')),
+                    'password' => Hash::make('Teacher@2026'),
                     'email_verified_at' => now(),
                 ],
             );
