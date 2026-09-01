@@ -31,6 +31,8 @@ services:
         value: cookie
       - key: SESSION_LIFETIME
         value: "120"
+      - key: SESSION_COOKIE
+        value: cbc_session
       - key: SESSION_SECURE_COOKIE
         value: "true"
       - key: QUEUE_CONNECTION

@@ -18,6 +18,7 @@ class StaffManager extends Component
     public bool $showImport = false;
     public ?int $editingId = null;
     public $csvFile;
+    public string $pasteNames = '';
     public array $form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => '', 'role' => 'teacher', 'password' => ''];
     public array $importErrors = [];
     public int $importedCount = 0;
@@ -27,6 +28,12 @@ class StaffManager extends Component
         $this->editingId = null;
         $this->form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => now()->format('Y-m-d'), 'role' => 'teacher', 'password' => ''];
         $this->showForm = true;
+    }
+
+    public function openImport(): void
+    {
+        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount']);
+        $this->showImport = true;
     }
 
     public function edit(int $id): void
@@ -67,28 +74,86 @@ class StaffManager extends Component
 
     public function importCsv(): void
     {
-        $this->validate(['csvFile' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
-        $handle = fopen($this->csvFile->getRealPath(), 'r');
-        $headers = array_map(fn ($v) => strtolower(trim((string) $v)), fgetcsv($handle) ?: []);
-        $this->importErrors = []; $this->importedCount = 0; $rowNumber = 1;
-        while (($values = fgetcsv($handle)) !== false) {
-            $rowNumber++;
-            $row = [];
-            foreach ($headers as $i => $header) $row[$header] = trim((string) ($values[$i] ?? ''));
+        $this->validate([
+            'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:10240'],
+            'pasteNames' => ['nullable', 'string', 'max:50000'],
+        ]);
+        if (!$this->csvFile && trim($this->pasteNames) === '') {
+            $this->addError('pasteNames', 'Paste staff names or choose a CSV file.');
+            return;
+        }
+
+        $rows = $this->csvFile ? $this->readCsvRows() : $this->readPastedRows();
+        $this->importErrors = []; $this->importedCount = 0;
+        foreach ($rows as $index => $row) {
+            $rowNumber = $index + 1;
             $row['role'] = $row['role'] ?: 'teacher';
             $row['password'] = $row['password'] ?: 'ChangeMe@123';
+            $row['staff_number'] = $row['staff_number'] ?: $this->newStaffNumber();
+            $row['email'] = $row['email'] ?: $this->newEmail($row['first_name'], $row['last_name']);
+            $row['phone_number'] = $row['phone_number'] ?: 'Not provided';
+            $row['gender'] = $row['gender'] ?: 'male';
+            $row['employment_type'] = $row['employment_type'] ?: 'permanent';
+            $row['staff_type'] = $row['staff_type'] ?: 'teaching';
+            $row['date_joined'] = $row['date_joined'] ?: now()->format('Y-m-d');
             $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'required|string|max:50', 'gender' => 'required|in:male,female', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
-            DB::transaction(function () use ($row) {
-                $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'email_verified_at' => now()]);
-                $user->assignRole($row['role']);
-                StaffMember::create(array_merge($row, ['user_id' => $user->id, 'is_active' => true]));
-            });
-            $this->importedCount++;
+            try {
+                DB::transaction(function () use ($row) {
+                    $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'email_verified_at' => now()]);
+                    $user->assignRole($row['role']);
+                    StaffMember::create(array_merge($row, ['user_id' => $user->id, 'is_active' => true]));
+                });
+                $this->importedCount++;
+            } catch (\Throwable $exception) {
+                $this->importErrors[] = 'Row ' . $rowNumber . ': could not be saved (' . $exception->getMessage() . ').';
+            }
         }
-        fclose($handle);
         if ($this->importedCount) session()->flash('success', "{$this->importedCount} staff account(s) imported.");
         if (!$this->importErrors) $this->showImport = false;
+    }
+
+    private function readPastedRows(): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', trim($this->pasteNames)))
+            ->filter(fn ($line) => trim($line) !== '')
+            ->map(function ($line) {
+                $parts = preg_split('/[\t,]+|\s+/', trim($line));
+                return $this->emptyImportRow(array_shift($parts) ?: '', $parts ? implode(' ', $parts) : '');
+            })->values()->all();
+    }
+
+    private function readCsvRows(): array
+    {
+        $handle = fopen($this->csvFile->getRealPath(), 'r');
+        $headers = array_map(fn ($value) => strtolower(trim((string) $value)), fgetcsv($handle) ?: []);
+        $rows = [];
+        while (($values = fgetcsv($handle)) !== false) {
+            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
+            $row = $this->emptyImportRow();
+            foreach ($headers as $position => $header) if (array_key_exists($header, $row)) $row[$header] = trim((string) ($values[$position] ?? ''));
+            $rows[] = $row;
+        }
+        fclose($handle);
+        return $rows;
+    }
+
+    private function emptyImportRow(string $firstName = '', string $lastName = ''): array
+    {
+        return array_merge(array_fill_keys(['staff_number','first_name','last_name','email','phone_number','gender','employment_type','staff_type','designation','date_joined','role','password'], ''), ['first_name' => $firstName, 'last_name' => $lastName]);
+    }
+
+    private function newStaffNumber(): string
+    {
+        do { $number = 'STF-' . str_pad((string) (StaffMember::withTrashed()->max('id') + random_int(1, 9)), 5, '0', STR_PAD_LEFT); }
+        while (StaffMember::withTrashed()->where('staff_number', $number)->exists());
+        return $number;
+    }
+
+    private function newEmail(string $firstName, string $lastName): string
+    {
+        $base = strtolower(preg_replace('/[^a-z0-9]+/i', '.', trim($firstName . '.' . $lastName))) . '.' . random_int(1000, 9999) . '@staff.local';
+        return $base;
     }
 
     public function render()
