@@ -24,4 +24,13 @@ class GradingScale extends Model
         }
         return null;
     }
+
+    public function commentForCode(?string $code): ?string
+    {
+        if (! $code) return null;
+        foreach ($this->bands ?? [] as $band) {
+            if (($band['code'] ?? null) === $code) return $band['label'] ?? null;
+        }
+        return null;
+    }
 }
