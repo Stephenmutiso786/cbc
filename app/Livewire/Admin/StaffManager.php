@@ -25,6 +25,7 @@ class StaffManager extends Component
     public array $importErrors = [];
     public int $importedCount = 0;
     public array $importCredentials = [];
+    public array $selectedIds = [];
 
     public function mount(Request $request): void
     {
@@ -43,6 +44,37 @@ class StaffManager extends Component
     {
         $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount', 'importCredentials']);
         $this->showImport = true;
+    }
+
+    public function updatedSelectedIds(): void
+    {
+        $this->selectedIds = array_values(array_unique(array_map('intval', $this->selectedIds)));
+    }
+
+    public function selectAllStaff(): void
+    {
+        abort_unless($this->canDelete(), 403);
+        $this->selectedIds = StaffMember::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedIds = [];
+    }
+
+    public function bulkDelete(): void
+    {
+        abort_unless($this->canDelete(), 403);
+        $ids = array_values(array_filter(array_map('intval', $this->selectedIds)));
+        abort_if($ids === [], 422, 'Select at least one staff member.');
+        DB::transaction(function () use ($ids): void {
+            StaffMember::whereIn('id', $ids)->with('user')->get()->each(function (StaffMember $member): void {
+                $member->user?->syncRoles([]);
+                $member->delete();
+            });
+        });
+        $this->selectedIds = [];
+        session()->flash('success', count($ids) . ' staff record(s) deleted.');
     }
 
     public function edit(int $id): void
@@ -68,6 +100,10 @@ class StaffManager extends Component
             'form.role' => ['required', 'exists:roles,name'], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
             'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ])['form'];
+        if ($this->duplicateNameExists($data['first_name'], $data['last_name'], $this->editingId)) {
+            $this->addError('form.first_name', 'A staff member with the same name already exists.');
+            return;
+        }
         $signatureData = $this->signatureFile ? 'data:' . $this->signatureFile->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->signatureFile->getRealPath())) : null;
         DB::transaction(function () use ($data, $staff, $signatureData) {
             $user = $staff?->user;
@@ -110,6 +146,10 @@ class StaffManager extends Component
             $row['employment_type'] = $row['employment_type'] ?: 'permanent';
             $row['staff_type'] = $row['staff_type'] ?: 'teaching';
             $row['date_joined'] = $row['date_joined'] ?: now()->format('Y-m-d');
+            if ($this->duplicateNameExists($row['first_name'], $row['last_name'])) {
+                $this->importErrors[] = 'Row ' . $rowNumber . ': a staff member with the same name already exists.';
+                continue;
+            }
             $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'gender' => 'required|in:male,female', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
             try {
@@ -181,6 +221,24 @@ class StaffManager extends Component
     private function newTemporaryPassword(): string
     {
         return 'Kyandulu@' . random_int(100000, 999999);
+    }
+
+    private function duplicateNameExists(string $first, string $last, ?int $ignoreId = null): bool
+    {
+        $key = $this->nameKey($first, $last);
+        return StaffMember::query()->when($ignoreId, fn ($query) => $query->where('id', '<>', $ignoreId))
+            ->get(['id', 'first_name', 'last_name'])
+            ->contains(fn ($member) => $this->nameKey($member->first_name, $member->last_name) === $key);
+    }
+
+    private function nameKey(string $first, string $last): string
+    {
+        return strtolower(trim(preg_replace('/\s+/', ' ', $first . ' ' . $last)));
+    }
+
+    private function canDelete(): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
     }
 
     public function render()

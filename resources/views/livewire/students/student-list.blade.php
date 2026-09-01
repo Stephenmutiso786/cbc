@@ -12,6 +12,8 @@
         </div>
     </div>
 
+    @if($selectedIds)<div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><strong>{{ count($selectedIds) }} selected</strong><button wire:click="bulkDelete" wire:confirm="Delete the selected learners? Their historical results will be retained." class="rounded-lg bg-red-700 px-3 py-2 font-semibold text-white">Delete selected</button><button wire:click="clearSelection" class="rounded-lg border border-red-300 px-3 py-2">Clear</button></div>@endif
+
     {{-- Filters --}}
     <div class="bg-white rounded-xl shadow-sm p-4 mb-5 flex flex-wrap gap-4">
         <input wire:model.live.debounce.300ms="search" type="text"
@@ -58,7 +60,7 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Learner</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" wire:click="selectAllMatching" title="Select all matching learners" class="rounded border-gray-300"></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Learner</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adm. No.</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KEMIS UPI</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
@@ -71,6 +73,7 @@
             <tbody class="bg-white divide-y divide-gray-100">
                 @forelse($learners as $learner)
                 <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3"><input type="checkbox" wire:model.live="selectedIds" value="{{ $learner->id }}" class="rounded border-gray-300"></td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <div class="h-9 w-9 rounded-full {{ $learner->gender === 'male' ? 'bg-blue-100' : 'bg-pink-100' }} flex items-center justify-center text-sm font-bold {{ $learner->gender === 'male' ? 'text-blue-700' : 'text-pink-700' }}">
@@ -104,7 +107,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                    <td colspan="9" class="px-4 py-12 text-center text-gray-400">
                         <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
                         <p class="text-sm">No learners found. Adjust your filters or enrol a new learner.</p>
                     </td>
