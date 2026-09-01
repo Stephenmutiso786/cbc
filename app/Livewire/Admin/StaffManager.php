@@ -19,6 +19,7 @@ class StaffManager extends Component
     public bool $showImport = false;
     public ?int $editingId = null;
     public $csvFile;
+    public $signatureFile;
     public string $pasteNames = '';
     public array $form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => '', 'role' => 'teacher', 'password' => ''];
     public array $importErrors = [];
@@ -32,6 +33,7 @@ class StaffManager extends Component
 
     public function create(): void
     {
+        $this->signatureFile = null;
         $this->editingId = null;
         $this->form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => now()->format('Y-m-d'), 'role' => 'teacher', 'password' => ''];
         $this->showForm = true;
@@ -47,6 +49,7 @@ class StaffManager extends Component
     {
         $staff = StaffMember::with('user')->findOrFail($id);
         $this->editingId = $id;
+        $this->signatureFile = null;
         $this->form = array_merge($staff->only(['staff_number', 'first_name', 'last_name', 'email', 'phone_number', 'gender', 'employment_type', 'staff_type', 'designation', 'date_joined']), ['role' => $staff->user?->getRoleNames()->first() ?: 'teacher', 'password' => '']);
         $this->form['date_joined'] = $staff->date_joined?->format('Y-m-d');
         $this->showForm = true;
@@ -63,8 +66,10 @@ class StaffManager extends Component
             'form.employment_type' => ['required', 'in:permanent,contract,bom,volunteer'], 'form.staff_type' => ['required', 'in:teaching,non_teaching'],
             'form.designation' => ['nullable', 'string', 'max:255'], 'form.date_joined' => ['required', 'date'],
             'form.role' => ['required', 'exists:roles,name'], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
+            'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ])['form'];
-        DB::transaction(function () use ($data, $staff) {
+        $signatureData = $this->signatureFile ? 'data:' . $this->signatureFile->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->signatureFile->getRealPath())) : null;
+        DB::transaction(function () use ($data, $staff, $signatureData) {
             $user = $staff?->user;
             if (!$user) $user = User::create(['name' => $data['first_name'] . ' ' . $data['last_name'], 'email' => $data['email'], 'password' => Hash::make($data['password']), 'email_verified_at' => now()]);
             else {
@@ -74,7 +79,9 @@ class StaffManager extends Component
             $user->syncRoles([$data['role']]);
             $staff = $staff ?: new StaffMember();
             $staff->fill(array_diff_key($data, array_flip(['role', 'password'])))->forceFill(['user_id' => $user->id, 'is_active' => true])->save();
+            if ($signatureData) $staff->update(['signature_data' => $signatureData]);
         });
+        $this->signatureFile = null;
         $this->showForm = false;
         session()->flash('success', $this->editingId ? 'Staff record updated.' : 'Staff account created.');
     }

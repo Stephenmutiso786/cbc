@@ -15,7 +15,7 @@ class ReportCardService
     {
         $learner = Learner::with(['schoolClass', 'guardians'])->findOrFail($learnerId);
 
-        $assessments = $this->buildAssessmentSummary($learnerId, $term, $academicYear);
+        $assessments = $this->buildAssessmentSummary($learnerId, $term, $academicYear, $learner->schoolClass?->gradingScale);
         $attendance  = $this->buildAttendanceSummary($learnerId, $term, $academicYear);
 
         $pdf = Pdf::loadView('pdf.report-card', [
@@ -26,6 +26,9 @@ class ReportCardService
             'attendance'          => $attendance,
             'classTeacherRemark'  => '',
             'template'            => config('school.report_card_template', 'cbc-classic'),
+            'classTeacherSignature' => $learner->schoolClass?->classTeacher?->signature_data,
+            'officialSignature'   => config('school.official_signature_data'),
+            'officialStamp'       => config('school.official_stamp_data'),
         ])->setPaper('a4', 'portrait');
 
         $fileName = "reports/{$academicYear}/term{$term}/{$learner->admission_number}_report.pdf";
@@ -34,7 +37,7 @@ class ReportCardService
         return $fileName;
     }
 
-    private function buildAssessmentSummary(int $learnerId, string $term, string $academicYear): array
+    private function buildAssessmentSummary(int $learnerId, string $term, string $academicYear, $gradingScale = null): array
     {
         $assessments = Assessment::with(['learningArea', 'strand'])
             ->where('learner_id', $learnerId)
@@ -65,6 +68,13 @@ class ReportCardService
             $f = $summary[$areaName]['formative'];
             $s = $summary[$areaName]['summative'];
             $summary[$areaName]['overall'] = $s ?? $f;
+            if (! $summary[$areaName]['remarks']) {
+                $code = $summary[$areaName]['overall'] instanceof \BackedEnum
+                    ? $summary[$areaName]['overall']->value
+                    : (string) $summary[$areaName]['overall'];
+                $summary[$areaName]['remarks'] = $gradingScale?->commentForCode($code)
+                    ?? config("school.rubric_levels.{$code}.label");
+            }
         }
 
         return $summary;

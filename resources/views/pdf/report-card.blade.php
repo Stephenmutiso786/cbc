@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:DejaVu Sans,sans-serif;font-size:11px;color:#1a1a1a;}
+@page{size:A4 portrait;margin:8mm;}*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:DejaVu Sans,sans-serif;font-size:11px;color:#1a1a1a;min-height:277mm;}
 .header{background:#1a5c2a;color:white;padding:16px 24px;display:flex;align-items:center;gap:16px;}
 .header h1{font-size:17px;font-weight:bold;}
 .logo{width:48px;height:48px;object-fit:contain;background:#fff;padding:3px;border-radius:4px;}
@@ -130,8 +130,8 @@ tr:nth-child(even) td{background:#fafafa;}
 </div>
 
 <div class="sig-row">
-    <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Class Teacher's Signature &amp; Date</div></div>
-    <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Headteacher's Signature &amp; Date</div></div>
+    <div class="sig-block">@if($classTeacherSignature)<img src="{{ $classTeacherSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Class Teacher's Signature &amp; Date</div></div>
+    <div class="sig-block">@if($officialSignature)<img src="{{ $officialSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Headteacher's Signature &amp; Date</div>@if($officialStamp)<img src="{{ $officialStamp }}" style="height:34px;max-width:70px;object-fit:contain;margin-top:2px">@endif</div>
     <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Parent/Guardian's Signature &amp; Date</div></div>
 </div>
 
@@ -144,7 +144,7 @@ tr:nth-child(even) td{background:#fafafa;}
 
 <div class="footer">
     Generated on {{ now()->format('d M Y') }} &nbsp;|&nbsp; {{ config('school.name') }} School Management System
-    <br>This is a computer-generated report. No signature required if generated from the school portal.
+    <br>This is an official computer-generated report from {{ config('school.name') }}.
 </div>
 </body>
 </html>

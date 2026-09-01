@@ -14,7 +14,7 @@ class StaffMember extends Model
         'user_id','staff_number','tsc_number','first_name','last_name','email',
         'phone_number','gender','date_of_birth','employment_type','staff_type',
         'designation','department','date_joined','national_id','kra_pin',
-        'nhif_number','nssf_number','basic_salary','qualifications','is_active',
+        'nhif_number','nssf_number','basic_salary','qualifications','is_active','signature_data',
     ];
 
     protected $casts = [

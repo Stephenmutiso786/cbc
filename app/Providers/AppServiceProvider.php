@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
                     str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
                     str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
                     str_starts_with($key, 'google_drive_') => 'services.google_drive.' . substr($key, 13),
+                    in_array($key, ['official_signature_data', 'official_stamp_data'], true) => 'school.' . $key,
                     default => 'school.' . $key,
                 };
                 config()->set($configKey, $value);
@@ -47,6 +48,14 @@ class AppServiceProvider extends ServiceProvider
             }
         } catch (\Throwable) {
             // The table is unavailable during a first install or migration.
+        }
+
+        try {
+            foreach (DB::table('school_setting_assets')->pluck('data', 'key') as $key => $value) {
+                config()->set('school.' . $key, $value);
+            }
+        } catch (\Throwable) {
+            // Assets are unavailable during a first install or migration.
         }
 
         if (app()->environment('production')) {

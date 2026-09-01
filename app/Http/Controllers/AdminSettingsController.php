@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolSetting;
+use App\Models\SchoolSettingAsset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -41,6 +42,8 @@ class AdminSettingsController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'official_signature' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'official_stamp' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'maintenance_mode' => ['required', 'boolean'],
             'maintenance_message' => ['nullable', 'string', 'max:500'],
             'mpesa_env' => ['required', 'in:sandbox,production'],
@@ -86,8 +89,23 @@ class AdminSettingsController extends Controller
         }
         unset($data['logo']);
 
+        foreach (['official_signature', 'official_stamp'] as $upload) {
+            if ($request->hasFile($upload)) {
+                $file = $request->file($upload);
+                $data[$upload . '_data'] = 'data:' . $file->getMimeType() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
+            }
+            unset($data[$upload]);
+        }
+        $assetData = [];
+        foreach (['official_signature_data', 'official_stamp_data'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $assetData[$key] = $data[$key];
+                unset($data[$key]);
+            }
+        }
+
         $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
-        DB::transaction(function () use ($data, $secretKeys): void {
+        DB::transaction(function () use ($data, $secretKeys, $assetData): void {
             foreach ($data as $key => $value) {
                 $setting = SchoolSetting::firstOrNew(['key' => $key]);
                 if (in_array($key, $secretKeys, true) && $value === '' && $setting->exists) continue;
@@ -106,6 +124,10 @@ class AdminSettingsController extends Controller
                     default => 'school.' . $key,
                 };
                 config()->set($configKey, $configValue);
+            }
+            foreach ($assetData as $key => $value) {
+                SchoolSettingAsset::updateOrCreate(['key' => $key], ['data' => $value]);
+                config()->set('school.' . $key, $value);
             }
         });
 
