@@ -12,23 +12,26 @@
 <body class="bg-gray-100 font-sans antialiased">
 <div class="min-h-screen">
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
-    <aside data-sidebar class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
+    <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center bg-green-900 px-5">
             <span class="truncate font-bold">{{ config('school.name') }}</span>
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
         </div>
-        <nav class="space-y-1 px-3 py-4 text-sm">
+        <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 text-sm">
             @foreach([
-                ['admin.dashboard', 'Dashboard'], ['admin.students.index', 'Learners'],
-                ['admin.staff.index', 'Staff'], ['finance.payments.index', 'Fees'],
-                ['admin.classes.index', 'Classes'],
-                ['admin.subjects.index', 'Subjects'],
-                ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'],
-                ['admin.notes.index', 'Learning Notes'], ['admin.inventory.index', 'Inventory'],
-                ['admin.timetable.index', 'Timetable'], ['admin.reports.index', 'Reports'],
-                ['admin.settings.index', 'Settings'],
-            ] as [$route, $label])
-                <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+                'Overview' => [['admin.dashboard', 'Dashboard']],
+                'People' => [['admin.students.index', 'Learners'], ['admin.staff.index', 'Staff']],
+                'Academics' => [['admin.classes.index', 'Classes'], ['admin.subjects.index', 'Subjects'], ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'], ['admin.notes.index', 'Learning Notes'], ['admin.timetable.index', 'Timetable']],
+                'Finance' => [['finance.payments.index', 'Fees and Payments'], ['finance.invoices.index', 'Invoices'], ['finance.reports.index', 'Finance Reports']],
+                'Operations' => [['admin.inventory.index', 'Inventory'], ['admin.notifications.index', 'Notifications'], ['admin.reports.index', 'Analytics and Reports']],
+                'Configuration' => [['admin.settings.index', 'School Settings'], ['admin.kemis.index', 'KEMIS Integration']],
+            ] as $section => $links)
+                <div>
+                    <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
+                    @foreach($links as [$route, $label])
+                        <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+                    @endforeach
+                </div>
             @endforeach
         </nav>
         <div class="absolute inset-x-0 bottom-0 border-t border-green-700 px-4 py-3">

@@ -12,22 +12,27 @@
 <body class="font-sans antialiased bg-gray-100">
     <div class="min-h-screen">
         <div data-sidebar-overlay class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
-        <aside data-sidebar class="fixed inset-y-0 left-0 z-50 w-64 -translate-x-full bg-green-800 shadow-lg transition-transform duration-300 md:translate-x-0">
+        <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-green-800 shadow-lg transition-transform duration-300 md:translate-x-0">
             <div class="flex items-center h-16 px-6 bg-green-900">
                 <span class="text-white font-bold text-lg truncate">{{ config('school.name') }}</span>
                 <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
             </div>
-            <nav class="mt-4 px-3 space-y-1 text-sm">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Dashboard</a>
-                <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Learners</a>
-                <a href="{{ route('admin.staff.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Staff</a>
-                <a href="{{ route('finance.payments.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Fees</a>
-                <a href="{{ route('admin.classes.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Classes</a>
-                <a href="{{ route('admin.subjects.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Subjects</a>
-                <a href="{{ route('admin.assessment.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Assessments</a>
-                <a href="{{ route('admin.timetable.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Timetable</a>
-                <a href="{{ route('admin.reports.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Reports</a>
-                <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-green-100 hover:bg-green-700">Settings</a>
+            <nav class="min-h-0 mt-4 flex-1 space-y-4 overflow-y-auto px-3 pb-4 text-sm">
+                @foreach([
+                    'Overview' => [['admin.dashboard', 'Dashboard']],
+                    'People' => [['admin.students.index', 'Learners'], ['admin.staff.index', 'Staff']],
+                    'Academics' => [['admin.classes.index', 'Classes'], ['admin.subjects.index', 'Subjects'], ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'], ['admin.notes.index', 'Learning Notes'], ['admin.timetable.index', 'Timetable']],
+                    'Finance' => [['finance.payments.index', 'Fees and Payments'], ['finance.invoices.index', 'Invoices'], ['finance.reports.index', 'Finance Reports']],
+                    'Operations' => [['admin.inventory.index', 'Inventory'], ['admin.notifications.index', 'Notifications'], ['admin.reports.index', 'Analytics and Reports']],
+                    'Configuration' => [['admin.settings.index', 'School Settings'], ['admin.kemis.index', 'KEMIS Integration']],
+                ] as $section => $links)
+                    <div>
+                        <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
+                        @foreach($links as [$route, $label])
+                            <a href="{{ route($route) }}" class="flex items-center gap-3 rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+                        @endforeach
+                    </div>
+                @endforeach
             </nav>
         </aside>
         <div class="md:pl-64">
