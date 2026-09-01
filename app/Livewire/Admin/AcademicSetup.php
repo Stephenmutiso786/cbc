@@ -28,6 +28,7 @@ class AcademicSetup extends Component
     {
         $this->classForm['academic_year'] = (string) config('school.academic_year');
         $this->allocationForm['academic_year'] = (string) config('school.academic_year');
+        $this->allocationForm['term'] = (int) config('school.current_term');
     }
 
     public function createClass(): void
@@ -80,7 +81,7 @@ class AcademicSetup extends Component
             'teacher_id' => '',
             'class_id' => '',
             'learning_area_ids' => [],
-            'term' => 1,
+            'term' => (int) config('school.current_term'),
             'academic_year' => (string) config('school.academic_year'),
         ];
         $this->showAllocationForm = true;
