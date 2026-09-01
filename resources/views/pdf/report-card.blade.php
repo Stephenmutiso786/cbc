@@ -57,7 +57,6 @@ tr:nth-child(even) td{background:#fafafa;}
     <div class="learner-field"><div class="lf-label">KEMIS UPI</div><div class="lf-value">{{ $learner->kemis_upi ?? 'N/A' }}</div></div>
     <div class="learner-field"><div class="lf-label">Grade</div><div class="lf-value">{{ $learner->grade_level->value }}</div></div>
     <div class="learner-field"><div class="lf-label">Class</div><div class="lf-value">{{ $learner->schoolClass->name ?? '—' }}</div></div>
-    <div class="learner-field"><div class="lf-label">Gender</div><div class="lf-value">{{ ucfirst($learner->gender) }}</div></div>
 </div>
 
 <div class="section-head">{{ ($template ?? 'cbc-classic') === 'cbc-classic' ? 'Learning Areas and Expected Outcomes' : 'Competency Assessment — Learning Areas' }}</div>

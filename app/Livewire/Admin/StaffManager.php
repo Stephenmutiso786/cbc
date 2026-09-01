@@ -21,7 +21,7 @@ class StaffManager extends Component
     public $csvFile;
     public $signatureFile;
     public string $pasteNames = '';
-    public array $form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => '', 'role' => 'teacher', 'password' => ''];
+    public array $form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => '', 'role' => 'teacher', 'password' => ''];
     public array $importErrors = [];
     public int $importedCount = 0;
     public array $importCredentials = [];
@@ -36,7 +36,7 @@ class StaffManager extends Component
     {
         $this->signatureFile = null;
         $this->editingId = null;
-        $this->form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'gender' => 'male', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => now()->format('Y-m-d'), 'role' => 'teacher', 'password' => ''];
+        $this->form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => now()->format('Y-m-d'), 'role' => 'teacher', 'password' => ''];
         $this->showForm = true;
     }
 
@@ -82,7 +82,7 @@ class StaffManager extends Component
         $staff = StaffMember::with('user')->findOrFail($id);
         $this->editingId = $id;
         $this->signatureFile = null;
-        $this->form = array_merge($staff->only(['staff_number', 'first_name', 'last_name', 'email', 'phone_number', 'gender', 'employment_type', 'staff_type', 'designation', 'date_joined']), ['role' => $staff->user?->getRoleNames()->first() ?: 'teacher', 'password' => '']);
+        $this->form = array_merge($staff->only(['staff_number', 'first_name', 'last_name', 'email', 'phone_number', 'employment_type', 'staff_type', 'designation', 'date_joined']), ['role' => $staff->user?->getRoleNames()->first() ?: 'teacher', 'password' => '']);
         $this->form['date_joined'] = $staff->date_joined?->format('Y-m-d');
         $this->showForm = true;
     }
@@ -94,7 +94,7 @@ class StaffManager extends Component
             'form.staff_number' => ['required', 'string', 'max:255', Rule::unique('staff_members', 'staff_number')->ignore($this->editingId)],
             'form.first_name' => ['required', 'string', 'max:255'], 'form.last_name' => ['required', 'string', 'max:255'],
             'form.email' => ['required', 'email', 'max:255', Rule::unique('staff_members', 'email')->ignore($this->editingId)],
-            'form.phone_number' => ['required', 'string', 'max:50'], 'form.gender' => ['required', 'in:male,female'],
+            'form.phone_number' => ['required', 'string', 'max:50'],
             'form.employment_type' => ['required', 'in:permanent,contract,bom,volunteer'], 'form.staff_type' => ['required', 'in:teaching,non_teaching'],
             'form.designation' => ['nullable', 'string', 'max:255'], 'form.date_joined' => ['required', 'date'],
             'form.role' => ['required', 'exists:roles,name'], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
@@ -114,7 +114,7 @@ class StaffManager extends Component
             }
             $user->syncRoles([$data['role']]);
             $staff = $staff ?: new StaffMember();
-            $staff->fill(array_diff_key($data, array_flip(['role', 'password'])))->forceFill(['user_id' => $user->id, 'is_active' => true])->save();
+            $staff->fill(array_diff_key($data, array_flip(['role', 'password'])))->forceFill(['gender' => $staff->gender ?: 'male', 'user_id' => $user->id, 'is_active' => true])->save();
             if ($signatureData) $staff->update(['signature_data' => $signatureData]);
         });
         $this->signatureFile = null;
@@ -142,7 +142,6 @@ class StaffManager extends Component
             $row['staff_number'] = $row['staff_number'] ?: $this->newStaffNumber();
             $row['email'] = $row['email'] ?: $this->newEmail($row['first_name'], $row['last_name']);
             $row['phone_number'] = $row['phone_number'] ?: null;
-            $row['gender'] = $row['gender'] ?: 'male';
             $row['employment_type'] = $row['employment_type'] ?: 'permanent';
             $row['staff_type'] = $row['staff_type'] ?: 'teaching';
             $row['date_joined'] = $row['date_joined'] ?: now()->format('Y-m-d');
@@ -150,13 +149,13 @@ class StaffManager extends Component
                 $this->importErrors[] = 'Row ' . $rowNumber . ': a staff member with the same name already exists.';
                 continue;
             }
-            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'gender' => 'required|in:male,female', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
+            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
             try {
                 DB::transaction(function () use ($row) {
                     $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'email_verified_at' => now()]);
                     $user->assignRole($row['role']);
-                    StaffMember::create(array_merge($row, ['user_id' => $user->id, 'is_active' => true]));
+                    StaffMember::create(array_merge($row, ['gender' => 'male', 'user_id' => $user->id, 'is_active' => true]));
                 });
                 $this->importedCount++;
                 $this->importCredentials[] = ['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => $row['password']];
@@ -240,7 +239,7 @@ class StaffManager extends Component
     {
         return array_fill_keys([
             'staff_number', 'school_id', 'staff_id', 'first_name', 'firstname', 'last_name', 'lastname',
-            'email', 'email_address', 'phone_number', 'phone', 'gender', 'employment_type',
+            'email', 'email_address', 'phone_number', 'phone', 'employment_type',
             'staff_type', 'designation', 'date_joined', 'role', 'password',
         ], null) + [
             'school_id' => 'staff_number', 'staff_id' => 'staff_number',
@@ -251,7 +250,7 @@ class StaffManager extends Component
 
     private function emptyImportRow(string $firstName = '', string $lastName = ''): array
     {
-        return array_merge(array_fill_keys(['staff_number','first_name','last_name','email','phone_number','gender','employment_type','staff_type','designation','date_joined','role','password'], ''), ['first_name' => $firstName, 'last_name' => $lastName]);
+        return array_merge(array_fill_keys(['staff_number','first_name','last_name','email','phone_number','employment_type','staff_type','designation','date_joined','role','password'], ''), ['first_name' => $firstName, 'last_name' => $lastName]);
     }
 
     private function newStaffNumber(): string

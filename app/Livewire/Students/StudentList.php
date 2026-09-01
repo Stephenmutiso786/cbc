@@ -34,7 +34,7 @@ class StudentList extends Component
     public ?int $editingId = null;
     public array $form = [
         'admission_number' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '',
-        'date_of_birth' => '', 'gender' => 'male', 'grade_level' => '', 'class_id' => '',
+        'date_of_birth' => '', 'grade_level' => '', 'class_id' => '',
         'admission_date' => '', 'boarding_status' => 'day', 'academic_year' => '',
     ];
 
@@ -83,7 +83,7 @@ class StudentList extends Component
         $this->editingId = null;
         $this->form = array_merge($this->form, [
             'admission_number' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '',
-            'date_of_birth' => '', 'gender' => 'male', 'grade_level' => '', 'class_id' => '',
+            'date_of_birth' => '', 'grade_level' => '', 'class_id' => '',
             'admission_date' => now()->format('Y-m-d'), 'boarding_status' => 'day',
             'academic_year' => (string) config('school.academic_year'),
         ]);
@@ -141,7 +141,6 @@ class StudentList extends Component
             $row['admission_date'] = $row['admission_date'] ?: now()->format('Y-m-d');
             $row['date_of_birth'] = $row['date_of_birth'] ?: null;
             $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
-            $row['gender'] = strtolower($row['gender'] ?: 'male');
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
             $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber((int) $row['class_id']);
 
@@ -156,7 +155,6 @@ class StudentList extends Component
                 'middle_name' => ['nullable', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
                 'date_of_birth' => ['nullable', 'date'],
-                'gender' => ['required', 'in:male,female'],
                 'grade_level' => ['required', 'string', 'max:255'],
                 'class_id' => ['required', 'integer', 'exists:school_classes,id'],
                 'admission_date' => ['required', 'date'],
@@ -176,7 +174,7 @@ class StudentList extends Component
                     'middle_name' => $row['middle_name'] ?: null,
                     'last_name' => $row['last_name'],
                     'date_of_birth' => $row['date_of_birth'] ?: null,
-                    'gender' => $row['gender'],
+                    'gender' => 'male',
                     'grade_level' => $row['grade_level'],
                     'class_id' => $row['class_id'],
                     'admission_date' => $row['admission_date'],
@@ -210,7 +208,7 @@ class StudentList extends Component
                     'middle_name' => count($parts) > 2 ? implode(' ', array_slice($parts, 1, -1)) : '',
                     'last_name' => count($parts) > 1 ? end($parts) : '',
                     'admission_number' => '',
-                    'date_of_birth' => '', 'gender' => '', 'grade_level' => '',
+                    'date_of_birth' => '', 'grade_level' => '',
                     'class_id' => '', 'admission_date' => '', 'boarding_status' => '', 'academic_year' => '',
                 ];
             })->values()->all();
@@ -223,7 +221,7 @@ class StudentList extends Component
         $rows = [];
         while (($values = fgetcsv($handle)) !== false) {
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
-            $row = array_fill_keys(['admission_number','first_name','middle_name','last_name','date_of_birth','gender','grade_level','class_id','admission_date','boarding_status','academic_year'], '');
+            $row = array_fill_keys(['admission_number','first_name','middle_name','last_name','date_of_birth','grade_level','class_id','admission_date','boarding_status','academic_year'], '');
             foreach ($headers as $position => $header) {
                 if (array_key_exists($header, $row)) $row[$header] = trim((string) ($values[$position] ?? ''));
             }
@@ -253,7 +251,7 @@ class StudentList extends Component
         $this->form = [
             'admission_number' => $learner->admission_number, 'first_name' => $learner->first_name,
             'middle_name' => $learner->middle_name ?? '', 'last_name' => $learner->last_name,
-            'date_of_birth' => $learner->date_of_birth?->format('Y-m-d'), 'gender' => $learner->gender,
+            'date_of_birth' => $learner->date_of_birth?->format('Y-m-d'),
             'grade_level' => $learner->grade_level->value, 'class_id' => (string) $learner->class_id,
             'admission_date' => $learner->admission_date?->format('Y-m-d'),
             'boarding_status' => $learner->boarding_status, 'academic_year' => (string) $learner->academic_year,
@@ -267,7 +265,7 @@ class StudentList extends Component
             'form.admission_number' => 'required|string|max:255|unique:learners,admission_number,' . ($this->editingId ?? 'NULL'),
             'form.first_name' => 'required|string|max:255', 'form.middle_name' => 'nullable|string|max:255',
             'form.last_name' => 'required|string|max:255', 'form.date_of_birth' => 'required|date',
-            'form.gender' => 'required|in:male,female', 'form.grade_level' => 'required|string',
+            'form.grade_level' => 'required|string',
             'form.class_id' => 'required|exists:school_classes,id', 'form.admission_date' => 'required|date',
             'form.boarding_status' => 'required|in:day,boarding', 'form.academic_year' => 'required|string|max:9',
         ])['form'];
@@ -278,6 +276,7 @@ class StudentList extends Component
         }
         $learner = $this->editingId ? Learner::findOrFail($this->editingId) : new Learner();
         $learner->fill($data);
+        if (! $learner->gender) $learner->gender = 'male';
         $learner->is_active = true;
         $learner->save();
         $this->showForm = false;
