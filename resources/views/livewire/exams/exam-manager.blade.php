@@ -7,18 +7,18 @@
             + Create Exam
         </button>@endif</div>
     </div>
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exam Name</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class / Grade</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Learning Area</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th class="hidden px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase md:table-cell">Type</th>
+                    <th class="hidden px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase md:table-cell">Term</th>
+                    <th class="hidden px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase md:table-cell">Date</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="sticky right-0 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
@@ -30,15 +30,15 @@
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ $exam->name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->schoolClass?->grade_level }}{{ $exam->schoolClass?->name && $exam->schoolClass?->name !== $exam->schoolClass?->grade_level ? ' - '.$exam->schoolClass?->name : '' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->learningArea->name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700 capitalize">{{ str_replace('_',' ',$exam->exam_type) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">Term {{ $exam->term }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->exam_date?->format('d M Y') ?? '—' }}</td>
+                    <td class="hidden px-4 py-3 text-sm text-gray-700 capitalize md:table-cell">{{ str_replace('_',' ',$exam->exam_type) }}</td>
+                    <td class="hidden px-4 py-3 text-sm text-gray-700 md:table-cell">Term {{ $exam->term }}</td>
+                    <td class="hidden px-4 py-3 text-sm text-gray-700 md:table-cell">{{ $exam->exam_date?->format('d M Y') ?? '—' }}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 rounded-full text-xs font-medium {{ $exam->marks_status === 'approved' ? 'bg-green-100 text-green-700' : ($exam->marks_status === 'submitted' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600') }}">
                             {{ $exam->marks_status === 'approved' ? 'Results published' : 'Marks '.str_replace('_', ' ', $exam->marks_status) }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 flex flex-wrap gap-2">
+                    <td class="sticky right-0 bg-white px-4 py-3 flex min-w-[112px] flex-wrap gap-2">
                         @if(!$exam->isLocked() && $exam->marks_status !== 'submitted')<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@elseif($exam->isLocked())<span class="text-xs font-medium text-gray-500">Locked</span>@endif
                         @if($exam->marks_status === 'submitted' && auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']))<button wire:click="openMarksReview({{ $exam->id }})" class="text-amber-700 hover:text-amber-900 text-xs font-medium">Review marks</button>@endif
                         @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']) && $exam->marks_status === 'approved' && $exam->results->count() > 0)

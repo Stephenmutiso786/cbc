@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="overflow-x-hidden bg-gray-100 font-sans antialiased">
 <div class="min-h-screen">
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white shadow-lg transition-transform duration-300 md:translate-x-0">
@@ -29,7 +29,7 @@
     </aside>
     <div class="md:pl-64">
         <header class="flex h-16 items-center justify-between bg-white px-4 shadow-sm md:px-6"><button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button><h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1><span class="text-sm text-gray-500">{{ config('school.academic_year') }}</span></header>
-        <main class="p-4 md:p-6">@yield('content') @isset($slot){{ $slot }}@endisset</main>
+        <main class="min-w-0 overflow-x-hidden p-4 md:p-6">@yield('content') @isset($slot){{ $slot }}@endisset</main>
     </div>
 </div>
 @livewireScripts
