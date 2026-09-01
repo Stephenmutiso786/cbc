@@ -7,6 +7,7 @@ use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TeacherSubjectAllocation;
 use App\Models\GradingScale;
+use Database\Seeders\DefaultClassSubjectsSeeder;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
@@ -66,6 +67,7 @@ class AcademicSetup extends Component
             if ($scale && ! $class->gradingScales()->wherePivot('academic_year', $class->academic_year)->exists()) {
                 $class->gradingScales()->attach($scale->id, ['academic_year' => $class->academic_year]);
             }
+            app(DefaultClassSubjectsSeeder::class)->seedForClass($class);
         }
         $this->showClassForm = false;
         $this->notice = 'Class saved successfully.';
