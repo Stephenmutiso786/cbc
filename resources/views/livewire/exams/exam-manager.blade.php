@@ -11,7 +11,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exam Name</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class / Grade</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Learning Area</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
@@ -24,7 +24,7 @@
                 @forelse($exams as $exam)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ $exam->name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->schoolClass?->name ?: $exam->grade_level }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->schoolClass?->grade_level }}{{ $exam->schoolClass?->name && $exam->schoolClass?->name !== $exam->schoolClass?->grade_level ? ' - '.$exam->schoolClass?->name : '' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->learningArea->name ?? '—' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700 capitalize">{{ str_replace('_',' ',$exam->exam_type) }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">Term {{ $exam->term }}</td>
@@ -56,8 +56,7 @@
             </div>
             <form wire:submit="createExam" class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam name</span><input wire:model="examName" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm" placeholder="e.g. Term 1 Mathematics Exam">@error('examName')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Grade</span><select wire:model="examGrade" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select grade</option>@foreach(array_merge(...array_values(config('school.grade_levels'))) as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach</select>@error('examGrade')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Class</span><select wire:model="examClassId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select class</option>@foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->name }}</option>@endforeach</select>@error('examClassId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                <label class="block md:col-span-2"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Class / Grade</span><select wire:model.live="examClassId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select class</option>@foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->grade_level }}{{ $class->name !== $class->grade_level ? ' - '.$class->name : '' }}</option>@endforeach</select><span class="text-[11px] text-gray-500">The grade is taken automatically from the selected class.</span>@error('examClassId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Learning area</span><select wire:key="exam-subjects-{{ $examClassId ?: 'all' }}" wire:model="examAreaId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm" @disabled(!$examClassId)><option value="">{{ $examClassId ? 'Select class subject' : 'Select class first' }}</option>@foreach($learningAreas as $area)<option value="{{ $area->id }}">{{ $area->name }}@if($area->pivot?->lessons_per_week) ({{ $area->pivot->lessons_per_week }} lessons/week)@endif</option>@endforeach</select><span class="text-[11px] text-gray-500">Subjects are loaded automatically from the selected class.</span>@error('examAreaId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam type</span><select wire:model="examType" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="cat">CAT</option><option value="mid_term">Mid term</option><option value="end_term">End term</option><option value="mock">Mock</option><option value="kpsea">KPSEA</option><option value="kcse">KCSE</option></select></label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Term</span><select wire:model="examTerm" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">@foreach([1,2,3] as $term)<option value="{{ $term }}">Term {{ $term }}</option>@endforeach</select>@error('examTerm')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label>
