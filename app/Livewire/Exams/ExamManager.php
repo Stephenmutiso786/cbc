@@ -518,15 +518,30 @@ class ExamManager extends Component
         $fullAdmin = $this->isFullAdmin();
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
+        $allocatedExamIds = $fullAdmin ? collect() : Exam::where('academic_year', config('school.academic_year'))
+            ->where('term', (int) $this->termFilter)
+            ->whereIn('class_id', (clone $allocation)->pluck('class_id'))
+            ->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id'))
+            ->pluck('id');
+        $allocatedGroupMasterIds = $fullAdmin ? collect() : Exam::whereIn('id', $allocatedExamIds)
+            ->pluck('exam_group_id')->filter()->values();
         $exams = Exam::with(['learningArea', 'schoolClass', 'groupedSubjects.learningArea'])
             ->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
-            ->when(!$fullAdmin, fn ($query) => $query->whereIn('class_id', (clone $allocation)->pluck('class_id'))->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id')))
+            ->when(!$fullAdmin, fn ($query) => $query->where(function ($query) use ($allocatedExamIds, $allocatedGroupMasterIds): void {
+                $query->whereIn('id', $allocatedExamIds)->orWhereIn('id', $allocatedGroupMasterIds);
+            }))
             ->latest()->paginate(20);
         $exams->setCollection($exams->getCollection()->filter(fn ($exam) => $exam->isGroupMaster())->values());
         $exams->getCollection()->each(function ($exam): void {
             $areas = collect([$exam->learningArea])->merge($exam->groupedSubjects->pluck('learningArea'))->filter();
             $exam->setRelation('learningArea', (object) ['name' => $areas->pluck('name')->unique()->join(', ')]);
+            $subjects = collect([$exam])->merge($exam->groupedSubjects);
+            $exam->setAttribute('subjects_total', $subjects->count());
+            $exam->setAttribute('subjects_submitted', $subjects->whereIn('marks_status', ['submitted', 'approved'])->count());
+            $exam->setAttribute('subjects_approved', $subjects->where('marks_status', 'approved')->count());
+            $exam->setAttribute('has_editable_subjects', $subjects->contains(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true) && ! $subject->isLocked()));
+            $exam->setAttribute('missing_subjects', $subjects->filter(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true))->map(fn ($subject) => $subject->learningArea?->name)->filter()->values()->all());
         });
 
         $reviewQueue = $this->canReviewMarks()
