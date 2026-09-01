@@ -22,10 +22,15 @@ if ! timeout "${MIGRATION_TIMEOUT}" php artisan migrate --force; then
     exit 1
 fi
 
-# Seeders are for first-time provisioning, not every container restart. Running
-# them on every cold start unnecessarily delays Render's health check.
+# Provision a new empty database once, but never reseed an existing school on
+# ordinary restarts. The seeders use firstOrCreate/syncRoles and are idempotent.
 if [ "${RUN_DB_SEEDER:-false}" = "true" ]; then
     timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
+else
+    if ! php artisan tinker --execute="exit(\\App\\Models\\User::query()->exists() ? 0 : 1);" >/dev/null 2>&1; then
+        echo "No users found. Provisioning the initial administrator accounts..."
+        timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
+    fi
 fi
 
 php artisan optimize:clear
