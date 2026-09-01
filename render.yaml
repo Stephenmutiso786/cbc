@@ -28,7 +28,7 @@ services:
       - key: CACHE_STORE
         value: array
       - key: SESSION_DRIVER
-        value: cookie
+        value: database
       - key: SESSION_LIFETIME
         value: "120"
       - key: SESSION_COOKIE
