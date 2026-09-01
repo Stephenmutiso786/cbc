@@ -18,7 +18,7 @@
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1">
             @foreach([
-                ['teacher.dashboard','Dashboard'],['teacher.learners.index','My Learners'],['teacher.assessment.index','Assessment Entry'],
+                ['teacher.dashboard','Dashboard'],['teacher.learners.index','My Learners'],['teacher.exams.index','Marks Entry'],
                 ['teacher.notes.index','Learning Notes'],['teacher.notifications.index','Message Parents'],['teacher.signature.index','Report-card Signature'],['teacher.attendance.index','Attendance'],
                 ['teacher.timetable.index','Timetable'],
             ] as [$route,$label])

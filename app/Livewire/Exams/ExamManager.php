@@ -33,6 +33,7 @@ class ExamManager extends Component
     public array   $selectedExamAreaIds = [];
     public string $examType       = 'end_term';
     public string $examTerm       = '';
+    public string $termFilter     = '';
     public float  $totalMarks     = 100;
     public float  $passMark       = 50;
     public ?string $examDate      = null;
@@ -58,6 +59,7 @@ class ExamManager extends Component
     public function mount(): void
     {
         $this->examTerm = (string) config('school.current_term');
+        $this->termFilter = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
     }
 
@@ -413,6 +415,7 @@ class ExamManager extends Component
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
         $exams = Exam::with(['learningArea', 'schoolClass'])
             ->where('academic_year', config('school.academic_year'))
+            ->where('term', (int) $this->termFilter)
             ->when(!$fullAdmin, fn ($query) => $query->whereIn('class_id', (clone $allocation)->pluck('class_id'))->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id')))
             ->latest()->paginate(20);
 
@@ -425,7 +428,7 @@ class ExamManager extends Component
             'examScaleName' => $this->examScaleName,
             'examScaleBands' => $this->examScaleBands,
             'reviewExam' => $this->selectedExam ? Exam::with(['schoolClass', 'learningArea'])->find($this->selectedExam) : null,
-        ])->layout('layouts.admin');
+        ])->layout($fullAdmin ? 'layouts.admin' : 'layouts.teacher');
     }
 
     private function availableLearningAreas(bool $fullAdmin, $allocation)
