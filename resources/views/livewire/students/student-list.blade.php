@@ -76,12 +76,12 @@
                     <td class="px-4 py-3"><input type="checkbox" wire:model.live="selectedIds" value="{{ $learner->id }}" class="rounded border-gray-300"></td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
-                            <div class="h-9 w-9 rounded-full {{ $learner->gender === 'male' ? 'bg-blue-100' : 'bg-pink-100' }} flex items-center justify-center text-sm font-bold {{ $learner->gender === 'male' ? 'text-blue-700' : 'text-pink-700' }}">
+                            <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700">
                                 {{ strtoupper(substr($learner->first_name,0,1).substr($learner->last_name,0,1)) }}
                             </div>
                             <div>
                                 <div class="text-sm font-semibold text-gray-900">{{ $learner->full_name }}</div>
-                                <div class="text-xs text-gray-500">{{ ucfirst($learner->gender) }} · Age {{ $learner->age }}</div>
+                                <div class="text-xs text-gray-500">Age {{ $learner->age }}</div>
                             </div>
                         </div>
                     </td>
@@ -124,7 +124,7 @@
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         <div class="mb-5 flex items-center justify-between"><h3 class="text-lg font-bold text-gray-900">Bulk import learners</h3><button wire:click="$set('showImport', false)" class="text-gray-400 hover:text-gray-700" aria-label="Close">&times;</button></div>
-        <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,gender,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
+        <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label class="block text-sm text-gray-700">Default grade
                 <select wire:model="importGrade" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select grade</option>@foreach(config('school.grade_levels') as $grades) @foreach($grades as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach @endforeach</select>
@@ -166,9 +166,6 @@
                 @error('form.'.$field)<span class="text-xs text-red-600">{{ $message }}</span>@enderror
             </label>
             @endforeach
-            <label class="text-sm text-gray-700">Gender
-                <select wire:model="form.gender" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="male">Male</option><option value="female">Female</option></select>
-            </label>
             <label class="text-sm text-gray-700">Grade
                 <select wire:model="form.grade_level" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select grade</option>@foreach(config('school.grade_levels') as $grades) @foreach($grades as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach @endforeach</select>
             </label>
