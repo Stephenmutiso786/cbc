@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="overflow-x-hidden bg-gray-100 font-sans antialiased">
 <div class="min-h-screen">
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
@@ -48,7 +48,7 @@
             <h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
             <div class="flex items-center gap-4"><span class="hidden text-sm text-gray-500 sm:inline">{{ config('school.academic_year') }}</span><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form></div>
         </header>
-        <main class="p-4 md:p-6">
+        <main class="min-w-0 overflow-x-hidden p-4 md:p-6">
             @yield('content')
             @isset($slot){{ $slot }}@endisset
         </main>

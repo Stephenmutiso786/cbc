@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
-<body class="font-sans antialiased bg-gray-100">
+<body class="overflow-x-hidden font-sans antialiased bg-gray-100">
 <div class="min-h-screen">
     <div data-sidebar-overlay class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-indigo-900 transition-transform duration-300 md:translate-x-0">
@@ -36,7 +36,7 @@
             <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? 'Finance' }}</h1>
             <form method="POST" action="{{ route('logout') }}" class="ml-auto">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form>
         </header>
-        <main class="p-4 md:p-6">
+        <main class="min-w-0 overflow-x-hidden p-4 md:p-6">
             @yield('content')
             @isset($slot)
                 {{ $slot }}
