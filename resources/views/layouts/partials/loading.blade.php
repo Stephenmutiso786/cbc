@@ -27,6 +27,14 @@
             const binding = active?.getAttribute('wire:model.live') || '';
             return active?.matches('input[type="number"]') && binding.startsWith('marks.');
         };
+        document.addEventListener('input', (event) => {
+            const input = event.target;
+            const binding = input?.getAttribute?.('wire:model.live') || '';
+            if (!input?.matches?.('input[type="number"]') || !binding.startsWith('marks.') || input.value === '') return;
+            const value = Number(input.value);
+            if (Number.isFinite(value) && value > 100) input.value = '100';
+            if (Number.isFinite(value) && value < 0) input.value = '0';
+        }, true);
         document.addEventListener('submit', (event) => {
             if (!event.target.hasAttribute('data-no-loading')) show();
         });
