@@ -638,6 +638,20 @@ php artisan schedule:run
 
 ---
 
+## 🌐 Neon PostgreSQL on Render
+
+The production Docker image includes both `pdo_pgsql` and `pdo_mysql`, but Render is configured to use Neon PostgreSQL. Neon credentials must stay in Render and must not be committed to Git.
+
+1. In Neon, open the project dashboard and copy the pooled PostgreSQL connection string. It should begin with `postgresql://` or `postgres://` and include `sslmode=require`.
+2. In Render, open the `cbc-school-management` service, then **Environment**.
+3. Set `DB_URL` to the complete Neon connection string as a secret value.
+4. Confirm `DB_CONNECTION=pgsql`, `PGSSLMODE=require`, `DB_CONNECT_TIMEOUT=10`, and `MIGRATION_TIMEOUT=120`.
+5. Remove the old `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and `MYSQL_ATTR_*` values from the Render service, or leave them unused. `DB_URL` takes precedence for PostgreSQL.
+6. Deploy from the latest commit and check the logs for `php artisan migrate --force` completing before the server starts.
+7. Open `/up`, then test login and one database-backed module. Do not enable `RUN_DB_SEEDER=true` on every deploy; seed only a new empty database when required.
+
+The current Aiven hostname in the old deployment no longer resolves. Existing Aiven data will not appear in Neon automatically. If that data must be preserved, restore/export it from Aiven or a backup before using Neon in production; otherwise Neon will start as a new database and Laravel will create its schema through migrations.
+
 ## 🚢 Production Deployment Checklist
 
 ```bash

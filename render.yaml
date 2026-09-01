@@ -38,22 +38,12 @@ services:
       - key: QUEUE_CONNECTION
         value: sync
       - key: DB_CONNECTION
-        value: mysql
-      - key: DB_HOST
+        value: pgsql
+      - key: DB_URL
         sync: false
-      - key: DB_PORT
-        value: "21229"
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_USERNAME
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
+      - key: PGSSLMODE
+        value: require
       - key: DB_CONNECT_TIMEOUT
         value: "10"
       - key: MIGRATION_TIMEOUT
         value: "120"
-      - key: MYSQL_ATTR_SSL_CA
-        sync: false
-      - key: MYSQL_ATTR_SSL_VERIFY_SERVER_CERT
-        value: "true"
