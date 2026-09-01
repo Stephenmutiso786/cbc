@@ -7,6 +7,7 @@
 body{font-family:DejaVu Sans,sans-serif;font-size:11px;color:#1a1a1a;}
 .header{background:#1a5c2a;color:white;padding:16px 24px;display:flex;align-items:center;gap:16px;}
 .header h1{font-size:17px;font-weight:bold;}
+.logo{width:48px;height:48px;object-fit:contain;background:#fff;padding:3px;border-radius:4px;}
 .header p{font-size:9px;opacity:0.85;margin-top:2px;}
 .report-title{text-align:center;background:#f0fdf4;border-bottom:2px solid #16a34a;padding:8px;font-size:13px;font-weight:bold;color:#166534;letter-spacing:0.05em;}
 .learner-bar{display:flex;border-bottom:1px solid #e5e7eb;}
@@ -39,6 +40,7 @@ tr:nth-child(even) td{background:#fafafa;}
 </head>
 <body>
 <div class="header">
+    @if(config('school.logo_data'))<img class="logo" src="{{ config('school.logo_data') }}" alt="School logo">@endif
     <div>
         <h1>{{ config('school.name') }}</h1>
         <p>{{ config('school.address') }} &nbsp;|&nbsp; {{ config('school.phone') }}</p>
