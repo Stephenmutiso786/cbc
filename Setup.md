@@ -717,3 +717,14 @@ Schedule: 0 * * * *
 Copy the web service's `APP_KEY`, `DB_CONNECTION=pgsql`, `DB_URL`, and
 `PGSSLMODE=require` into the Cron Job. These must be the same values as the web
 service because the Google Drive settings are encrypted in the shared database.
+
+## Offline/PWA behavior
+
+The PWA provides an offline shell and a visible Online/Offline indicator. When
+a request cannot reach the server, the service worker shows the safe offline
+page instead of leaving the user on a blank loading screen. The current
+Laravel modules still require the server for database writes. Arbitrary
+Livewire POST requests must not be replayed from a browser queue because that
+can duplicate marks, payments, or learner records. Full offline data entry
+requires each module to use an authenticated, idempotent sync endpoint with
+conflict handling before offline writes are enabled.

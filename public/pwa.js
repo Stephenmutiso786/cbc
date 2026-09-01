@@ -2,6 +2,7 @@
     var deferredPrompt;
     var installButton;
     var helpPanel;
+    var statusBadge;
 
     function isInstalled() {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -61,6 +62,20 @@
         document.body.appendChild(installButton);
     }
 
+    function updateConnectionStatus() {
+        if (!document.body) return;
+        if (!statusBadge) {
+            statusBadge = document.createElement('div');
+            statusBadge.setAttribute('role', 'status');
+            statusBadge.style.cssText = 'position:fixed;left:1rem;bottom:1rem;z-index:59;border-radius:9999px;padding:.45rem .7rem;font:600 12px sans-serif;box-shadow:0 5px 16px rgba(0,0,0,.14)';
+            document.body.appendChild(statusBadge);
+        }
+        var online = navigator.onLine;
+        statusBadge.textContent = online ? 'Online' : 'Offline';
+        statusBadge.style.background = online ? '#dcfce7' : '#fee2e2';
+        statusBadge.style.color = online ? '#166534' : '#991b1b';
+    }
+
     window.addEventListener('beforeinstallprompt', function (event) {
         event.preventDefault();
         deferredPrompt = event;
@@ -74,6 +89,9 @@
         deferredPrompt = null;
     });
 
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
     if ('serviceWorker' in navigator && window.isSecureContext) {
         window.addEventListener('load', function () {
             navigator.serviceWorker.register('/sw.js').catch(function () {});
@@ -83,8 +101,12 @@
     // Keep a visible install action on mobile, including iOS where the native
     // beforeinstallprompt event is not supported.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', createInstallButton);
+        document.addEventListener('DOMContentLoaded', function () {
+            createInstallButton();
+            updateConnectionStatus();
+        });
     } else {
         createInstallButton();
+        updateConnectionStatus();
     }
 })();
