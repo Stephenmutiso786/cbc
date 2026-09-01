@@ -31,6 +31,44 @@ class GoogleDriveStorage
         return 'gdrive:' . $created->getId();
     }
 
+    /**
+     * Upload a local file without loading the entire file into PHP memory.
+     */
+    public function storeFilePath(string $path, string $folder, ?string $name = null, ?string $mime = null): string
+    {
+        if (!$this->enabled()) {
+            throw new \RuntimeException('Google Drive storage is not configured.');
+        }
+
+        if (!is_file($path) || !is_readable($path)) {
+            throw new \RuntimeException('The file to upload does not exist or is not readable.');
+        }
+
+        $stream = fopen($path, 'rb');
+        if ($stream === false) {
+            throw new \RuntimeException('The file could not be opened for upload.');
+        }
+
+        try {
+            $driveFile = new DriveFile([
+                'name' => $name ?? basename($path),
+                'parents' => [config('services.google_drive.folder_id')],
+                'description' => 'CBC School Management - ' . trim($folder, '/'),
+            ]);
+
+            $created = $this->drive()->files->create($driveFile, [
+                'data' => $stream,
+                'mimeType' => $mime ?? 'application/octet-stream',
+                'uploadType' => 'resumable',
+                'fields' => 'id',
+            ]);
+        } finally {
+            fclose($stream);
+        }
+
+        return 'gdrive:' . $created->getId();
+    }
+
     public function contents(string $path): string
     {
         if (!str_starts_with($path, 'gdrive:')) return Storage::disk('public')->get($path);
