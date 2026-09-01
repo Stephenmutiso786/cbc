@@ -24,8 +24,9 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasAnyRole(['admin', 'super-admin']) ? true : null;
         });
 
-        try {
-            foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
+        if (! (app()->bound('request') && request()->is('up'))) {
+            try {
+                foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
                 try {
                 $value = is_string($value) && str_starts_with($value, 'enc:')
                     ? Crypt::decryptString(substr($value, 4))
@@ -45,17 +46,20 @@ class AppServiceProvider extends ServiceProvider
                     // A corrupt secret must not prevent unrelated settings loading.
                     report($exception);
                 }
+                }
+            } catch (\Throwable) {
+                // The table is unavailable during a first install or migration.
             }
-        } catch (\Throwable) {
-            // The table is unavailable during a first install or migration.
         }
 
-        try {
-            foreach (DB::table('school_setting_assets')->pluck('data', 'key') as $key => $value) {
-                config()->set('school.' . $key, $value);
+        if (! (app()->bound('request') && request()->is('up'))) {
+            try {
+                foreach (DB::table('school_setting_assets')->pluck('data', 'key') as $key => $value) {
+                    config()->set('school.' . $key, $value);
+                }
+            } catch (\Throwable) {
+                // Assets are unavailable during a first install or migration.
             }
-        } catch (\Throwable) {
-            // Assets are unavailable during a first install or migration.
         }
 
         if (app()->environment('production')) {

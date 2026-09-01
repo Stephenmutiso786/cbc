@@ -11,8 +11,18 @@ elif [ "${APP_KEY#base64:}" = "$APP_KEY" ]; then
     export APP_KEY="base64:${APP_KEY}"
 fi
 
-php artisan migrate --force
-php artisan db:seed --force
+MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
+if ! timeout "${MIGRATION_TIMEOUT}" php artisan migrate --force; then
+    echo "Database migrations did not finish within ${MIGRATION_TIMEOUT}s. Check the Render database host, SSL CA, and credentials." >&2
+    exit 1
+fi
+
+# Seeders are for first-time provisioning, not every container restart. Running
+# them on every cold start unnecessarily delays Render's health check.
+if [ "${RUN_DB_SEEDER:-false}" = "true" ]; then
+    timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
+fi
+
 php artisan optimize:clear
 php artisan storage:link || true
 
