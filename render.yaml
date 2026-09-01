@@ -49,6 +49,10 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: DB_CONNECT_TIMEOUT
+        value: "10"
+      - key: MIGRATION_TIMEOUT
+        value: "120"
       - key: MYSQL_ATTR_SSL_CA
         sync: false
       - key: MYSQL_ATTR_SSL_VERIFY_SERVER_CERT
