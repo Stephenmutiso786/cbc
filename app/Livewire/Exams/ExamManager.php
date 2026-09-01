@@ -35,6 +35,8 @@ class ExamManager extends Component
     public float  $totalMarks     = 100;
     public float  $passMark       = 50;
     public ?string $examDate      = null;
+    public string $examScaleName  = '';
+    public array $examScaleBands  = [];
 
     // Mark entry
     public array  $marks          = []; // keyed by learner_id
@@ -61,6 +63,9 @@ class ExamManager extends Component
         $class = $classId ? SchoolClass::with('learningAreas')->find($classId) : null;
         $areas = $class?->learningAreas ?? collect();
         $this->examGrade = (string) ($class?->grade_level ?? '');
+        $scale = $class?->gradingScale;
+        $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
+        $this->examScaleBands = $scale?->bands ?? [];
 
         if (!$areas->contains('id', $this->examAreaId)) {
             $this->examAreaId = $areas->count() === 1 ? (int) $areas->first()->id : null;
@@ -123,6 +128,9 @@ class ExamManager extends Component
         $this->examGrade = $exam->grade_level;
         $this->examClassId = (string) $exam->class_id;
         $this->examAreaId = $exam->learning_area_id;
+        $scale = $exam->schoolClass?->gradingScale;
+        $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
+        $this->examScaleBands = $scale?->bands ?? [];
         $this->examType = $exam->exam_type;
         $this->examTerm = (string) $exam->term;
         $this->totalMarks = (float) $exam->total_marks;
@@ -147,7 +155,7 @@ class ExamManager extends Component
     {
         $this->showCreateModal = false;
         $this->editingExamId = null;
-        $this->reset(['examName','examGrade','examClassId','examAreaId','examTerm','examDate']);
+        $this->reset(['examName','examGrade','examClassId','examAreaId','examTerm','examDate','examScaleName','examScaleBands']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
     }
@@ -189,7 +197,8 @@ class ExamManager extends Component
             if ($data['marks'] === '' || $data['marks'] === null) continue;
 
             $marks = (float) $data['marks'];
-            $grade = $this->calculateGrade($marks, $exam->total_marks, $exam->schoolClass?->gradingScale);
+            $scale = $exam->schoolClass?->gradingScale;
+            $grade = $this->calculateGrade($marks, $exam->total_marks, $scale);
 
             ExamResult::updateOrCreate(
                 ['exam_id' => $exam->id, 'learner_id' => $learnerId],
@@ -197,7 +206,8 @@ class ExamManager extends Component
                     'marks_obtained' => $marks,
                     'total_marks'    => $exam->total_marks,
                     'grade'          => $grade,
-                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100),
+                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $scale),
+                    'remarks'        => $scale?->commentForCode($grade),
                     'marked_by'      => $teacher?->id ?? 1,
                 ]
             );
@@ -266,8 +276,17 @@ class ExamManager extends Component
         };
     }
 
-    private function calculateRubric(float $percent): \App\Enums\RubricLevel
+    private function calculateRubric(float $percent, ?GradingScale $scale = null): \App\Enums\RubricLevel
     {
+        $code = $scale?->gradeForPercent($percent);
+        if ($code) {
+            return match (substr($code, 0, 2)) {
+                'EE' => \App\Enums\RubricLevel::ExceedsExpectation,
+                'ME' => \App\Enums\RubricLevel::MeetsExpectation,
+                'AE' => \App\Enums\RubricLevel::ApproachesExpectation,
+                default => \App\Enums\RubricLevel::BelowExpectation,
+            };
+        }
         return match (true) {
             $percent >= 75 => \App\Enums\RubricLevel::ExceedsExpectation,
             $percent >= 50 => \App\Enums\RubricLevel::MeetsExpectation,
@@ -297,6 +316,8 @@ class ExamManager extends Component
             'classes' => $fullAdmin ? SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
+            'examScaleName' => $this->examScaleName,
+            'examScaleBands' => $this->examScaleBands,
         ])->layout('layouts.admin');
     }
 

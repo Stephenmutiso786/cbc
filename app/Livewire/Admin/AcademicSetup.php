@@ -6,6 +6,7 @@ use App\Models\LearningArea;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TeacherSubjectAllocation;
+use App\Models\GradingScale;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
@@ -54,6 +55,18 @@ class AcademicSetup extends Component
         ])['classForm'];
         $class = $this->editingClassId ? SchoolClass::findOrFail($this->editingClassId) : new SchoolClass();
         $class->fill($data)->save();
+        if (! $this->editingClassId) {
+            $scaleName = match (true) {
+                in_array($class->grade_level, ['Grade 1', 'Grade 2', 'Grade 3'], true) => 'CBC Lower Primary (Grades 1-3)',
+                in_array($class->grade_level, ['Grade 4', 'Grade 5', 'Grade 6'], true) => 'CBC Upper Primary (Grades 4-6)',
+                in_array($class->grade_level, ['Grade 7', 'Grade 8', 'Grade 9'], true) => 'KJSEA Eight-Point Scale (Grades 7-9)',
+                default => null,
+            };
+            $scale = $scaleName ? GradingScale::where('name', $scaleName)->first() : null;
+            if ($scale && ! $class->gradingScales()->wherePivot('academic_year', $class->academic_year)->exists()) {
+                $class->gradingScales()->attach($scale->id, ['academic_year' => $class->academic_year]);
+            }
+        }
         $this->showClassForm = false;
         $this->notice = 'Class saved successfully.';
     }
