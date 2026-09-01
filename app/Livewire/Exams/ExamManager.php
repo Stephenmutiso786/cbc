@@ -140,7 +140,7 @@ class ExamManager extends Component
             'name' => $this->examName, 'grade_level' => $this->examGrade, 'class_id' => $this->examClassId,
             'academic_year' => config('school.academic_year'), 'term' => $this->examTerm,
             'exam_type' => $this->examType, 'total_marks' => $this->totalMarks, 'pass_mark' => $this->passMark,
-            'exam_date' => $this->examDate, 'status' => 'published',
+            'exam_date' => $this->examDate, 'status' => 'draft', 'exam_state' => 'draft',
         ];
 
         if ($this->editingExamId) {
@@ -421,7 +421,43 @@ class ExamManager extends Component
         abort_unless($learnerIds->isNotEmpty() && $exam->marks_status === 'submitted' && $submittedCount === $learnerIds->count(), 422, 'Every learner must have a saved mark entry before publishing results. Blank entries are treated as did not sit.');
         $exam->update(['marks_status' => 'approved', 'marks_reviewed_at' => now(), 'marks_reviewed_by' => auth()->id(), 'marks_review_comment' => $this->reviewComment ?: null, 'status' => 'completed', 'results_locked_at' => now(), 'locked_by' => auth()->user()->staffMember?->id]);
         $this->tab = 'exams';
-        session()->flash('success', 'Marks approved and results published.');
+        session()->flash('success', 'Marks approved. Finalize the complete exam before publishing results.');
+    }
+
+    public function finalizeExam(int $examId): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $exam = Exam::findOrFail($examId);
+        $group = Exam::whereIn('id', $exam->groupExamIds())->get();
+        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->marks_status === 'approved'), 422, 'Every subject must be submitted and reviewed before the exam can be finalized.');
+        abort_unless($group->every(fn ($item) => $item->exam_state === 'draft'), 422, 'This exam has already been finalized or published.');
+
+        DB::transaction(function () use ($group): void {
+            Exam::whereIn('id', $group->pluck('id'))->update([
+                'exam_state' => 'finalized',
+                'results_locked_at' => now(),
+                'locked_by' => auth()->user()->staffMember?->id,
+            ]);
+        });
+        $this->tab = 'exams';
+        session()->flash('success', 'All subjects were finalized. The exam is locked and ready for publication.');
+    }
+
+    public function publishExam(int $examId): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $exam = Exam::findOrFail($examId);
+        $group = Exam::whereIn('id', $exam->groupExamIds())->get();
+        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->exam_state === 'finalized' && $item->marks_status === 'approved'), 422, 'Finalize the complete reviewed exam before publishing results.');
+
+        DB::transaction(function () use ($group): void {
+            Exam::whereIn('id', $group->pluck('id'))->update([
+                'exam_state' => 'published',
+                'status' => 'published',
+            ]);
+        });
+        $this->tab = 'exams';
+        session()->flash('success', 'Exam published. Report cards, merit lists, and result SMS are now available.');
     }
 
     public function lockResults(): void
@@ -542,6 +578,8 @@ class ExamManager extends Component
             $exam->setAttribute('subjects_approved', $subjects->where('marks_status', 'approved')->count());
             $exam->setAttribute('subjects_awaiting_review', $subjects->where('marks_status', 'submitted')->count());
             $exam->setAttribute('all_subjects_approved', $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
+            $exam->setAttribute('all_subjects_published', $subjects->every(fn ($subject) => $subject->exam_state === 'published'));
+            $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => $subject->exam_state === 'finalized'));
             $exam->setAttribute('has_editable_subjects', $subjects->contains(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true) && ! $subject->isLocked()));
             $exam->setAttribute('missing_subjects', $subjects->filter(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true))->map(fn ($subject) => $subject->learningArea?->name)->filter()->values()->all());
         });
