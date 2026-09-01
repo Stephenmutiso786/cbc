@@ -82,6 +82,7 @@
             this.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
             this.setAttribute('aria-pressed', visible ? 'true' : 'false');
         });
-    </script>
+</script>
+@include('layouts.partials.loading')
 </body>
 </html>

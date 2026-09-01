@@ -25,5 +25,6 @@
     @endisset
 </div>
 @livewireScripts
+@include('layouts.partials.loading')
 </body>
 </html>

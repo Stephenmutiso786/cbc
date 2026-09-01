@@ -32,5 +32,6 @@
             </div>
         </div>
     </div>
+@include('layouts.partials.loading')
 </body>
 </html>
