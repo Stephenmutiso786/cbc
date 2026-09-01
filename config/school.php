@@ -8,6 +8,8 @@ return [
     'phone'         => env('SCHOOL_PHONE', ''),
     'email'         => env('SCHOOL_EMAIL', ''),
     'logo_data'     => env('SCHOOL_LOGO_DATA'),
+    'maintenance_mode' => false,
+    'maintenance_message' => 'We are carrying out scheduled maintenance. Please check back shortly.',
     'academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_term'  => (int) env('CURRENT_TERM', 1),
