@@ -12,9 +12,9 @@ class ExamReportsController extends Controller
     public function resultCards(Exam $exam): Response
     {
         $this->authorizeExamReports();
-        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results are not published. Marks must be reviewed and approved first.');
-        $results = ExamResult::with(['learner.schoolClass'])
-            ->where('exam_id', $exam->id)
+        $this->ensureGroupPublished($exam);
+        $results = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
+            ->whereIn('exam_id', $exam->groupExamIds())
             ->whereHas('learner')
             ->get()
             ->sortBy(fn ($result) => [$result->learner->last_name, $result->learner->first_name])
@@ -30,14 +30,22 @@ class ExamReportsController extends Controller
     public function meritList(Exam $exam): Response
     {
         $this->authorizeExamReports();
-        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results are not published. Marks must be reviewed and approved first.');
+        $this->ensureGroupPublished($exam);
         $results = ExamResult::with(['learner.schoolClass'])
-            ->where('exam_id', $exam->id)
+            ->whereIn('exam_id', $exam->groupExamIds())
             ->whereHas('learner')
             ->get()
-            ->sortByDesc(fn ($result) => $result->total_marks > 0
-                ? (float) $result->marks_obtained / (float) $result->total_marks
-                : 0)
+            ->groupBy('learner_id')
+            ->map(function ($learnerResults) {
+                $first = $learnerResults->first();
+                $first->marks_obtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
+                $first->total_marks = $learnerResults->sum(fn ($result) => (float) $result->total_marks);
+                $first->grade = null;
+                $first->rubric_level = null;
+                $first->remarks = 'Combined results across ' . $learnerResults->count() . ' learning areas.';
+                return $first;
+            })
+            ->sortByDesc(fn ($result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks : 0)
             ->values();
 
         abort_if($results->isEmpty(), 422, 'No marks have been entered for this exam.');
@@ -65,5 +73,11 @@ class ExamReportsController extends Controller
     private function authorizeExamReports(): void
     {
         abort_unless(auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher']), 403);
+    }
+
+    private function ensureGroupPublished(Exam $exam): void
+    {
+        $group = Exam::whereIn('id', $exam->groupExamIds())->get();
+        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->status === 'completed' && $item->marks_status === 'approved'), 422, 'Results are not published. Every subject in this exam must be reviewed and approved first.');
     }
 }

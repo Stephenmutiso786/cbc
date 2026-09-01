@@ -148,8 +148,9 @@ class ExamManager extends Component
             $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
             $message = 'Exam updated successfully.';
         } else {
-            foreach ($selectedAreaIds as $areaId) {
-                Exam::create($attributes + ['learning_area_id' => $areaId, 'created_by' => $teacher?->id ?? 1]);
+            $master = Exam::create($attributes + ['learning_area_id' => $selectedAreaIds->first(), 'created_by' => $teacher?->id ?? 1]);
+            foreach ($selectedAreaIds->skip(1) as $areaId) {
+                Exam::create($attributes + ['exam_group_id' => $master->id, 'learning_area_id' => $areaId, 'created_by' => $teacher?->id ?? 1]);
             }
             $message = $selectedAreaIds->count() . ' exam subject(s) created successfully.';
         }
@@ -183,7 +184,9 @@ class ExamManager extends Component
     public function deleteExam(int $examId): void
     {
         abort_unless($this->isFullAdmin(), 403);
-        DB::transaction(fn () => Exam::findOrFail($examId)->delete());
+        $exam = Exam::findOrFail($examId);
+        $groupIds = $exam->groupExamIds();
+        DB::transaction(fn () => Exam::whereIn('id', $groupIds)->delete());
         if ($this->selectedExam === $examId) {
             $this->selectedExam = null;
             $this->marks = [];
@@ -477,11 +480,16 @@ class ExamManager extends Component
         $fullAdmin = $this->isFullAdmin();
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
-        $exams = Exam::with(['learningArea', 'schoolClass'])
+        $exams = Exam::with(['learningArea', 'schoolClass', 'groupedSubjects.learningArea'])
             ->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
             ->when(!$fullAdmin, fn ($query) => $query->whereIn('class_id', (clone $allocation)->pluck('class_id'))->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id')))
             ->latest()->paginate(20);
+        $exams->setCollection($exams->getCollection()->filter(fn ($exam) => $exam->isGroupMaster())->values());
+        $exams->getCollection()->each(function ($exam): void {
+            $areas = collect([$exam->learningArea])->merge($exam->groupedSubjects->pluck('learningArea'))->filter();
+            $exam->setRelation('learningArea', (object) ['name' => $areas->pluck('name')->unique()->join(', ')]);
+        });
 
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
