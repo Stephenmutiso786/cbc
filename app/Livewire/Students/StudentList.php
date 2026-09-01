@@ -29,6 +29,7 @@ class StudentList extends Component
     public string $importGrade = '';
     public string $importClassId = '';
     public array $importErrors = [];
+    public array $selectedIds = [];
     public int $importedCount = 0;
     public ?int $editingId = null;
     public array $form = [
@@ -49,6 +50,33 @@ class StudentList extends Component
     public function updatingClassFilter(): void { $this->resetPage(); }
     public function updatingStatusFilter(): void { $this->resetPage(); }
     public function updatingBoardingFilter(): void { $this->resetPage(); }
+
+    public function updatedSelectedIds(): void
+    {
+        $this->selectedIds = array_values(array_unique(array_map('intval', $this->selectedIds)));
+    }
+
+    public function selectAllMatching(): void
+    {
+        abort_unless($this->canDelete(), 403);
+        $this->selectedIds = $this->filteredQuery()->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedIds = [];
+    }
+
+    public function bulkDelete(): void
+    {
+        abort_unless($this->canDelete(), 403);
+        $ids = array_values(array_filter(array_map('intval', $this->selectedIds)));
+        abort_if($ids === [], 422, 'Select at least one learner.');
+        DB::transaction(fn () => Learner::whereIn('id', $ids)->get()->each->delete());
+        $this->selectedIds = [];
+        $this->resetPage();
+        session()->flash('success', count($ids) . ' learner(s) deleted.');
+    }
 
     public function create(): void
     {
@@ -116,6 +144,11 @@ class StudentList extends Component
             $row['gender'] = strtolower($row['gender'] ?: 'male');
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
             $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber((int) $row['class_id']);
+
+            if ($this->duplicateNameExists($row['first_name'], $row['middle_name'], $row['last_name'], (int) $row['class_id'], $row['academic_year'])) {
+                $this->importErrors[] = 'Row ' . $line . ': a learner with the same name already exists in this class and academic year.';
+                continue;
+            }
 
             $validator = Validator::make($row, [
                 'admission_number' => ['required', 'string', 'max:255', 'unique:learners,admission_number'],
@@ -239,6 +272,10 @@ class StudentList extends Component
             'form.boarding_status' => 'required|in:day,boarding', 'form.academic_year' => 'required|string|max:9',
         ])['form'];
         $data['grade_level'] = (string) SchoolClass::forConfiguredGrades()->findOrFail($data['class_id'])->grade_level;
+        if ($this->duplicateNameExists($data['first_name'], $data['middle_name'], $data['last_name'], (int) $data['class_id'], $data['academic_year'], $this->editingId)) {
+            $this->addError('form.first_name', 'A learner with the same name already exists in this class and academic year.');
+            return;
+        }
         $learner = $this->editingId ? Learner::findOrFail($this->editingId) : new Learner();
         $learner->fill($data);
         $learner->is_active = true;
@@ -259,7 +296,7 @@ class StudentList extends Component
 
     public function render()
     {
-        $learners = Learner::with(['schoolClass'])
+        $learners = $this->filteredQuery()->with(['schoolClass'])
             ->when($this->search, fn($q) => $q->where(function ($q) {
                 $q->where('first_name', 'like', "%{$this->search}%")
                   ->orWhere('last_name', 'like', "%{$this->search}%")
@@ -279,5 +316,40 @@ class StudentList extends Component
             'learners' => $learners,
             'classes'  => SchoolClass::forConfiguredGrades()->withCount(['learners as active_learners_count' => fn ($query) => $query->where('is_active', true)])->orderBy('grade_level')->get(),
         ])->layout('layouts.admin');
+    }
+
+    private function filteredQuery()
+    {
+        return Learner::query()
+            ->when($this->search, fn($q) => $q->where(function ($q) {
+                $q->where('first_name', 'like', "%{$this->search}%")
+                  ->orWhere('last_name', 'like', "%{$this->search}%")
+                  ->orWhere('admission_number', 'like', "%{$this->search}%")
+                  ->orWhere('kemis_upi', 'like', "%{$this->search}%");
+            }))
+            ->when($this->gradeFilter, fn($q) => $q->where('grade_level', $this->gradeFilter))
+            ->when($this->classFilter, fn($q) => $q->where('class_id', $this->classFilter))
+            ->when($this->statusFilter === '1', fn($q) => $q->where('is_active', true))
+            ->when($this->statusFilter === '0', fn($q) => $q->where('is_active', false))
+            ->when($this->boardingFilter, fn($q) => $q->where('boarding_status', $this->boardingFilter));
+    }
+
+    private function duplicateNameExists(string $first, ?string $middle, string $last, int $classId, string $year, ?int $ignoreId = null): bool
+    {
+        $key = $this->nameKey($first, $middle, $last);
+        return Learner::where('class_id', $classId)->where('academic_year', $year)
+            ->when($ignoreId, fn ($query) => $query->where('id', '<>', $ignoreId))
+            ->get(['id', 'first_name', 'middle_name', 'last_name'])
+            ->contains(fn ($learner) => $this->nameKey($learner->first_name, $learner->middle_name, $learner->last_name) === $key);
+    }
+
+    private function nameKey(string $first, ?string $middle, string $last): string
+    {
+        return strtolower(trim(preg_replace('/\s+/', ' ', trim($first . ' ' . ($middle ?? '') . ' ' . $last))));
+    }
+
+    private function canDelete(): bool
+    {
+        return auth()->user()->can('delete students') || auth()->user()->hasAnyRole(['admin', 'super-admin']);
     }
 }
