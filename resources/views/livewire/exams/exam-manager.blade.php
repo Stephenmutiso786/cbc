@@ -21,7 +21,10 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
-                @forelse($exams as $exam)
+                @php($examGroups = $exams->getCollection()->groupBy(fn ($exam) => $exam->grade_level.'|'.($exam->schoolClass?->name ?? '').'|'.$exam->name.'|'.$exam->term))
+                @forelse($examGroups as $group)
+                <tr class="bg-gray-100"><td colspan="8" class="px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-600">{{ $group->first()->grade_level }} @if($group->first()->schoolClass) · {{ $group->first()->schoolClass->name }} @endif · {{ $group->first()->name }} · Term {{ $group->first()->term }}</td></tr>
+                @foreach($group as $exam)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ $exam->name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->schoolClass?->grade_level }}{{ $exam->schoolClass?->name && $exam->schoolClass?->name !== $exam->schoolClass?->grade_level ? ' - '.$exam->schoolClass?->name : '' }}</td>
@@ -30,13 +33,14 @@
                     <td class="px-4 py-3 text-sm text-gray-700">Term {{ $exam->term }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ $exam->exam_date?->format('d M Y') ?? '—' }}</td>
                     <td class="px-4 py-3 text-center">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium {{ $exam->status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
-                            {{ ucfirst($exam->status) }}
+                        <span class="px-2 py-1 rounded-full text-xs font-medium {{ $exam->marks_status === 'approved' ? 'bg-green-100 text-green-700' : ($exam->marks_status === 'submitted' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600') }}">
+                            {{ $exam->marks_status === 'approved' ? 'Results published' : 'Marks '.str_replace('_', ' ', $exam->marks_status) }}
                         </span>
                     </td>
                     <td class="px-4 py-3 flex flex-wrap gap-2">
-                        @if(!$exam->isLocked())<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@else<span class="text-xs font-medium text-gray-500">Locked</span>@endif
-                        @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']) && in_array($exam->status, ['published', 'completed']) && $exam->results->count() > 0)
+                        @if(!$exam->isLocked() && $exam->marks_status !== 'submitted')<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@elseif($exam->isLocked())<span class="text-xs font-medium text-gray-500">Locked</span>@endif
+                        @if($exam->marks_status === 'submitted' && auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']))<button wire:click="openMarksReview({{ $exam->id }})" class="text-amber-700 hover:text-amber-900 text-xs font-medium">Review marks</button>@endif
+                        @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']) && $exam->marks_status === 'approved' && $exam->results->count() > 0)
                             <a href="{{ route('admin.exams.report-cards', $exam) }}" target="_blank" class="text-indigo-700 hover:text-indigo-900 text-xs font-medium">Print report cards</a>
                             <a href="{{ route('admin.exams.merit-list', $exam) }}" target="_blank" class="text-indigo-700 hover:text-indigo-900 text-xs font-medium">Print merit list</a>
                             @if($exam->results_sms_status === 'sent')<span class="text-xs font-medium text-green-700">Results sent</span>
@@ -46,6 +50,7 @@
                         @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<button wire:click="editExam({{ $exam->id }})" class="text-green-600 hover:text-green-800 text-xs font-medium">Edit</button><button wire:click="deleteExam({{ $exam->id }})" wire:confirm="Delete this exam and all its results? This cannot be undone." class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>@endif
                     </td>
                 </tr>
+                @endforeach
                 @empty
                 <tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 text-sm">No exams created yet.</td></tr>
                 @endforelse
@@ -81,5 +86,8 @@
         <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs uppercase">#</th><th class="px-4 py-3 text-left text-xs uppercase">Learner</th><th class="px-4 py-3 text-left text-xs uppercase">Marks</th></tr></thead><tbody class="divide-y divide-gray-100">@forelse($marks as $learnerId => $mark)<tr><td class="px-4 py-3 text-sm text-gray-500">{{ $loop->iteration }}</td><td class="px-4 py-3 text-sm font-semibold">{{ $mark['name'] }}</td><td class="px-4 py-3"><input wire:model="marks.{{ $learnerId }}.marks" type="number" min="0" step="0.01" class="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"></td></tr>@empty<tr><td colspan="3" class="p-8 text-center text-sm text-gray-400">No active learners found for this class.</td></tr>@endforelse</tbody></table></div>
         <div class="mt-4 flex flex-wrap justify-end gap-2"><button wire:click="saveMarks" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Save marks</button>@if(auth()->user()->can('publish results'))<button wire:click="lockResults" class="rounded-lg bg-gray-800 px-5 py-2.5 text-sm font-semibold text-white">Lock results</button>@endif</div>
     </div>
+    @endif
+    @if($tab === 'review' && $selectedExam)
+    <div class="mt-5 rounded-xl bg-white p-5 shadow-sm"><div class="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h3 class="font-bold text-gray-900">Marks review</h3><p class="text-sm text-gray-500">{{ $reviewExam?->name }} · {{ $reviewExam?->schoolClass?->name }} · {{ $reviewExam?->learningArea?->name }}</p></div><button wire:click="$set('tab', 'exams')" class="text-sm text-green-700">Back to exams</button></div><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs uppercase">#</th><th class="px-4 py-3 text-left text-xs uppercase">Admission</th><th class="px-4 py-3 text-left text-xs uppercase">Learner</th><th class="px-4 py-3 text-left text-xs uppercase">Marks</th><th class="px-4 py-3 text-left text-xs uppercase">Grade</th><th class="px-4 py-3 text-left text-xs uppercase">Comment</th></tr></thead><tbody class="divide-y divide-gray-100">@forelse($reviewResults as $result)<tr><td class="px-4 py-3 text-sm">{{ $loop->iteration }}</td><td class="px-4 py-3 text-sm">{{ $result['admission_number'] }}</td><td class="px-4 py-3 text-sm font-semibold">{{ $result['name'] }}</td><td class="px-4 py-3 text-sm">{{ $result['marks'] }} / {{ $result['total'] }}</td><td class="px-4 py-3 text-sm">{{ $result['grade'] }}</td><td class="px-4 py-3 text-sm">{{ $result['remarks'] ?: '-' }}</td></tr>@empty<tr><td colspan="6" class="p-8 text-center text-sm text-red-600">No submitted marks found. Results cannot be published.</td></tr>@endforelse</tbody></table></div><label class="mt-4 block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Review comment</span><textarea wire:model="reviewComment" rows="3" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Optional feedback for the teacher"></textarea></label><div class="mt-4 flex flex-wrap justify-end gap-2"><button wire:click="returnMarksForCorrection" wire:confirm="Return these marks to the teacher for correction?" class="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700">Return for correction</button><button wire:click="approveMarksAndPublish" wire:confirm="Approve all marks and publish results?" class="rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white">Approve and publish results</button></div></div>
     @endif
 </div>

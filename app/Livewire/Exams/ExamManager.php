@@ -38,6 +38,8 @@ class ExamManager extends Component
     public ?string $examDate      = null;
     public string $examScaleName  = '';
     public array $examScaleBands  = [];
+    public array $reviewResults = [];
+    public string $reviewComment = '';
 
     // Mark entry
     public array  $marks          = []; // keyed by learner_id
@@ -215,6 +217,7 @@ class ExamManager extends Component
     public function saveMarks(): void
     {
         $exam    = Exam::findOrFail($this->selectedExam);
+        abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'These marks are already submitted or published.');
         if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)
             ->where('academic_year', $exam->academic_year)->where('term', (int) $exam->term)
@@ -224,10 +227,21 @@ class ExamManager extends Component
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         $saved   = 0;
 
+        $learnerIds = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->pluck('id')->map(fn ($id) => (string) $id);
+        $missing = $learnerIds->filter(fn ($id) => !isset($this->marks[$id]['marks']) || $this->marks[$id]['marks'] === '')->values();
+        if ($missing->isNotEmpty()) {
+            $this->addError('marks', 'Every learner must have marks before submitting this subject.');
+            return;
+        }
+
         foreach ($this->marks as $learnerId => $data) {
             if ($data['marks'] === '' || $data['marks'] === null) continue;
 
             $marks = (float) $data['marks'];
+            if ($marks < 0 || $marks > (float) $exam->total_marks) {
+                $this->addError('marks', "Marks must be between 0 and {$exam->total_marks}.");
+                return;
+            }
             $scale = $exam->schoolClass?->gradingScale;
             $grade = $this->calculateGrade($marks, $exam->total_marks, $scale);
 
@@ -245,12 +259,57 @@ class ExamManager extends Component
             $saved++;
         }
 
-        $this->dispatch('notify', type: 'success', message: "{$saved} results saved.");
+        $exam->update([
+            'marks_status' => 'submitted', 'marks_submitted_at' => now(),
+            'marks_submitted_by' => auth()->id(), 'marks_review_comment' => null,
+        ]);
+
+        $this->dispatch('notify', type: 'success', message: "{$saved} marks submitted for review.");
+    }
+
+    public function openMarksReview(int $examId): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $exam = Exam::with(['results.learner'])->findOrFail($examId);
+        abort_unless($exam->marks_status === 'submitted', 422, 'Only submitted marks can be reviewed.');
+        $this->selectedExam = $exam->id;
+        $this->reviewResults = $exam->results->map(fn ($result) => [
+            'name' => $result->learner?->full_name ?? 'Unknown learner',
+            'admission_number' => $result->learner?->admission_number ?? '-',
+            'marks' => $result->marks_obtained,
+            'total' => $result->total_marks,
+            'grade' => $result->grade,
+            'remarks' => $result->remarks,
+        ])->values()->all();
+        $this->reviewComment = '';
+        $this->tab = 'review';
+    }
+
+    public function returnMarksForCorrection(): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $exam = Exam::findOrFail($this->selectedExam);
+        abort_unless($exam->marks_status === 'submitted', 422, 'Only submitted marks can be returned.');
+        $exam->update(['marks_status' => 'returned', 'marks_reviewed_at' => now(), 'marks_reviewed_by' => auth()->id(), 'marks_review_comment' => $this->reviewComment ?: 'Please correct and resubmit the marks.']);
+        $this->tab = 'exams';
+        session()->flash('success', 'Marks returned to the teacher for correction and resubmission.');
+    }
+
+    public function approveMarksAndPublish(): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $exam = Exam::with('results')->findOrFail($this->selectedExam);
+        $learnerCount = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->count();
+        abort_unless($learnerCount > 0 && $exam->marks_status === 'submitted' && $exam->results->count() === $learnerCount && $exam->results->every(fn ($result) => $result->marks_obtained !== null), 422, 'All learner marks must be submitted before publishing results.');
+        $exam->update(['marks_status' => 'approved', 'marks_reviewed_at' => now(), 'marks_reviewed_by' => auth()->id(), 'marks_review_comment' => $this->reviewComment ?: null, 'status' => 'completed', 'results_locked_at' => now(), 'locked_by' => auth()->user()->staffMember?->id]);
+        $this->tab = 'exams';
+        session()->flash('success', 'Marks approved and results published.');
     }
 
     public function lockResults(): void
     {
         $exam = Exam::findOrFail($this->selectedExam);
+        abort_unless($exam->marks_status === 'approved', 422, 'Marks must be reviewed and approved before locking results.');
         abort_unless(auth()->user()->can('lockResults', $exam), 403);
         $exam->update([
             'status' => 'completed',
@@ -266,7 +325,7 @@ class ExamManager extends Component
         abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']), 403);
 
         $exam = Exam::with(['results.learner.guardians'])->findOrFail($examId);
-        abort_unless(in_array($exam->status, ['published', 'completed'], true), 422, 'Only published or completed exams can send results.');
+        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results can only be sent after all marks are reviewed and approved.');
         abort_if($exam->results_sms_status === 'queued', 422, 'Results are already being sent.');
         abort_if($exam->results_sms_status === 'sent', 422, 'Results have already been sent for this exam.');
 
@@ -331,6 +390,11 @@ class ExamManager extends Component
         return auth()->user()->hasAnyRole(['admin', 'super-admin']);
     }
 
+    private function canReviewMarks(): bool
+    {
+        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']);
+    }
+
     public function render()
     {
         $fullAdmin = $this->isFullAdmin();
@@ -349,6 +413,7 @@ class ExamManager extends Component
             'marks'         => $this->marks,
             'examScaleName' => $this->examScaleName,
             'examScaleBands' => $this->examScaleBands,
+            'reviewExam' => $this->selectedExam ? Exam::with(['schoolClass', 'learningArea'])->find($this->selectedExam) : null,
         ])->layout('layouts.admin');
     }
 

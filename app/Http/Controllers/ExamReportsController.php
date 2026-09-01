@@ -12,6 +12,7 @@ class ExamReportsController extends Controller
     public function resultCards(Exam $exam): Response
     {
         $this->authorizeExamReports();
+        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results are not published. Marks must be reviewed and approved first.');
         $results = ExamResult::with(['learner.schoolClass'])
             ->where('exam_id', $exam->id)
             ->whereHas('learner')
@@ -29,6 +30,7 @@ class ExamReportsController extends Controller
     public function meritList(Exam $exam): Response
     {
         $this->authorizeExamReports();
+        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results are not published. Marks must be reviewed and approved first.');
         $results = ExamResult::with(['learner.schoolClass'])
             ->where('exam_id', $exam->id)
             ->whereHas('learner')
