@@ -14,9 +14,11 @@ class AcademicSetup extends Component
     public string $tab = 'classes';
     public bool $showClassForm = false;
     public bool $showAllocationForm = false;
+    public bool $showSubjectForm = false;
     public ?int $editingClassId = null;
     public array $classForm = ['name' => '', 'grade_level' => '', 'stream' => '', 'capacity' => 45, 'academic_year' => '', 'class_teacher_id' => ''];
     public array $allocationForm = ['teacher_id' => '', 'class_id' => '', 'learning_area_id' => '', 'term' => 1, 'academic_year' => ''];
+    public array $subjectForm = ['class_id' => '', 'learning_area_id' => '', 'lessons_per_week' => 5];
     public ?string $notice = null;
 
     public function mount(): void
@@ -62,6 +64,32 @@ class AcademicSetup extends Component
         $this->showAllocationForm = true;
     }
 
+    public function openSubjectAssignment(?int $classId = null): void
+    {
+        $this->subjectForm = ['class_id' => $classId ?: '', 'learning_area_id' => '', 'lessons_per_week' => 5];
+        $this->showSubjectForm = true;
+    }
+
+    public function assignSubject(): void
+    {
+        $data = $this->validate([
+            'subjectForm.class_id' => ['required', 'integer', 'exists:school_classes,id'],
+            'subjectForm.learning_area_id' => ['required', 'integer', 'exists:learning_areas,id'],
+            'subjectForm.lessons_per_week' => ['required', 'integer', 'min:1', 'max:50'],
+        ])['subjectForm'];
+        SchoolClass::findOrFail($data['class_id'])->learningAreas()->syncWithoutDetaching([
+            $data['learning_area_id'] => ['lessons_per_week' => $data['lessons_per_week'], 'is_active' => true],
+        ]);
+        $this->showSubjectForm = false;
+        $this->notice = 'Subject assigned to class successfully.';
+    }
+
+    public function removeSubject(int $classId, int $learningAreaId): void
+    {
+        SchoolClass::findOrFail($classId)->learningAreas()->detach($learningAreaId);
+        $this->notice = 'Subject removed from class.';
+    }
+
     public function saveAllocation(): void
     {
         $data = $this->validate([
@@ -75,6 +103,9 @@ class AcademicSetup extends Component
             ['teacher_id' => $data['teacher_id'], 'class_id' => $data['class_id'], 'learning_area_id' => $data['learning_area_id'], 'term' => $data['term'], 'academic_year' => $data['academic_year']],
             ['is_active' => true, 'created_by' => auth()->id()]
         );
+        SchoolClass::findOrFail($data['class_id'])->learningAreas()->syncWithoutDetaching([
+            $data['learning_area_id'] => ['is_active' => true],
+        ]);
         $this->showAllocationForm = false;
         $this->notice = 'Teacher allocation saved successfully.';
     }
@@ -88,7 +119,7 @@ class AcademicSetup extends Component
     public function render()
     {
         return view('livewire.admin.academic-setup', [
-            'classes' => SchoolClass::with('classTeacher')->orderBy('grade_level')->orderBy('name')->get(),
+            'classes' => SchoolClass::with(['classTeacher', 'learningAreas'])->orderBy('grade_level')->orderBy('name')->get(),
             'staff' => StaffMember::active()->orderBy('last_name')->get(),
             'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
             'allocations' => TeacherSubjectAllocation::with(['teacher', 'schoolClass', 'learningArea'])->latest()->get(),
