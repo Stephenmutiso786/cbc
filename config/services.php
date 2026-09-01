@@ -18,6 +18,7 @@ return [
 
     'olympus_sms' => [
         'api_url' => env('OLYMPUS_SMS_API_URL', 'https://sms.ots.co.ke'),
+        'portal_url' => env('OLYMPUS_SMS_PORTAL_URL', 'https://sms.ots.co.ke/login'),
         'api_token' => env('OLYMPUS_SMS_API_TOKEN'),
         'sender_id' => env('OLYMPUS_SMS_SENDER_ID', 'SCHOOL'),
     ],

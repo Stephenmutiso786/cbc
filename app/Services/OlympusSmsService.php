@@ -8,6 +8,36 @@ use RuntimeException;
 
 class OlympusSmsService
 {
+    /**
+     * Read the provider balance without changing anything on the account.
+     */
+    public function getBalance(): array
+    {
+        $token = (string) config('services.olympus_sms.api_token');
+        if ($token === '') {
+            throw new RuntimeException('Olympus SMS API token is not configured. Add it in Admin Settings.');
+        }
+
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(20)
+            ->retry(2, 500)
+            ->get($this->baseUrl() . '/api/v3/balance');
+
+        $result = $response->json() ?: ['status' => 'error', 'message' => $response->body()];
+
+        if (!$response->successful() || ($result['status'] ?? null) !== 'success') {
+            throw new RuntimeException('Unable to read Olympus SMS balance: ' . ($result['message'] ?? 'Unknown provider error'));
+        }
+
+        return [
+            'status' => 'success',
+            'data' => $result['data'] ?? null,
+            'units' => $this->findBalanceValue($result['data'] ?? $result),
+            'checked_at' => now()->toIso8601String(),
+        ];
+    }
+
     public function sendSms(string|array $recipients, string $message): array
     {
         $token = (string) config('services.olympus_sms.api_token');
@@ -26,13 +56,12 @@ class OlympusSmsService
             'message' => $message,
         ];
 
-        $baseUrl = rtrim((string) config('services.olympus_sms.api_url', 'https://sms.ots.co.ke'), '/') ?: 'https://sms.ots.co.ke';
         $response = Http::withToken($token)
             ->acceptJson()
             ->asJson()
             ->timeout(30)
             ->retry(2, 500)
-            ->post($baseUrl . '/api/v3/sms/send', $payload);
+            ->post($this->baseUrl() . '/api/v3/sms/send', $payload);
 
         $result = $response->json() ?: ['status' => 'error', 'message' => $response->body()];
         Log::info('Olympus SMS request completed', [
@@ -65,5 +94,36 @@ class OlympusSmsService
             return '254' . $digits;
         }
         return $digits;
+    }
+
+    private function baseUrl(): string
+    {
+        return rtrim((string) config('services.olympus_sms.api_url', 'https://sms.ots.co.ke'), '/') ?: 'https://sms.ots.co.ke';
+    }
+
+    /**
+     * Olympus has used different names for the returned balance field. Keep
+     * the raw provider data available while displaying common numeric keys.
+     */
+    private function findBalanceValue(mixed $value): int|float|string|null
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+
+        foreach (['balance', 'sms_balance', 'sms_units', 'units', 'credits', 'remaining'] as $key) {
+            if (array_key_exists($key, $value) && is_scalar($value[$key])) {
+                return $value[$key];
+            }
+        }
+
+        foreach ($value as $nested) {
+            $found = $this->findBalanceValue($nested);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 }
