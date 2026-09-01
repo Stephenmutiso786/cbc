@@ -103,7 +103,7 @@ class BulkAssessmentEntry extends Component
                 : collect(),
             'rubricLevels'  => RubricLevel::cases(),
             'terms'         => TermEnum::cases(),
-        ])->layout('layouts.teacher');
+        ])->layout($fullAdmin ? 'layouts.admin' : 'layouts.teacher');
     }
 
     private function canUseSelection(): bool

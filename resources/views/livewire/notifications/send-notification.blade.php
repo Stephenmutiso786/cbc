@@ -1,6 +1,6 @@
 <div class="max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-800">Send Notification</h2>
+        <h2 class="text-xl font-bold text-gray-800">{{ $isAdmin ? 'Send School Message' : 'Message Parents' }}</h2>
         <span class="text-sm text-gray-500">Recipients preview: <strong class="text-green-700">{{ $count }}</strong></span>
     </div>
 
@@ -14,6 +14,14 @@
     <div class="bg-white rounded-xl shadow-sm p-6 space-y-5">
         {{-- Type & Channel --}}
         <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">{{ $isAdmin ? 'Target Class (optional)' : 'Parents of class' }}</label>
+                <select wire:model.live="targetClassId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">{{ $isAdmin ? 'All classes' : 'Select a class' }}</option>
+                    @foreach($classes as $class)<option value="{{ $class->id }}">{{ $class->name }}</option>@endforeach
+                </select>
+                @error('targetClassId')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+            </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Notification Type</label>
                 <select wire:model="type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -54,7 +62,7 @@
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Target Group</label>
                 <select wire:model.live="targetGroup" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="all">All Learners</option>
+                    <option value="all">{{ $isAdmin ? 'All learners' : 'All parents in class' }}</option>
                     <option value="boarding">Boarding Only</option>
                     <option value="day">Day Scholars Only</option>
                 </select>
@@ -87,7 +95,7 @@
 
         <div class="pt-2 border-t flex justify-between items-center">
             <div class="text-sm text-gray-500">
-                Will be sent to <strong class="text-gray-800">{{ $count }}</strong> guardian(s)
+                Will be sent to <strong class="text-gray-800">{{ $count }}</strong> parent/guardian(s)
             </div>
             <button wire:click="send" wire:loading.attr="disabled" wire:loading.class="opacity-60 cursor-not-allowed"
                     class="bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-800 flex items-center gap-2">
