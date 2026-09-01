@@ -34,7 +34,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 flex gap-2">
-                        <button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>
+                        @if(!$exam->isLocked())<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@else<span class="text-xs font-medium text-gray-500">Locked</span>@endif
                     </td>
                 </tr>
                 @empty
@@ -71,7 +71,7 @@
     <div class="mt-5 rounded-xl bg-white p-5 shadow-sm">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-2"><h3 class="font-bold text-gray-900">Enter marks</h3><button wire:click="$set('tab', 'exams')" class="text-sm text-green-700">Back to exams</button></div>
         <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs uppercase">#</th><th class="px-4 py-3 text-left text-xs uppercase">Learner</th><th class="px-4 py-3 text-left text-xs uppercase">Marks</th></tr></thead><tbody class="divide-y divide-gray-100">@forelse($marks as $learnerId => $mark)<tr><td class="px-4 py-3 text-sm text-gray-500">{{ $loop->iteration }}</td><td class="px-4 py-3 text-sm font-semibold">{{ $mark['name'] }}</td><td class="px-4 py-3"><input wire:model="marks.{{ $learnerId }}.marks" type="number" min="0" step="0.01" class="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"></td></tr>@empty<tr><td colspan="3" class="p-8 text-center text-sm text-gray-400">No active learners found for this class.</td></tr>@endforelse</tbody></table></div>
-        <div class="mt-4 flex justify-end"><button wire:click="saveMarks" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Save marks</button></div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2"><button wire:click="saveMarks" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Save marks</button>@if(auth()->user()->can('publish results'))<button wire:click="lockResults" class="rounded-lg bg-gray-800 px-5 py-2.5 text-sm font-semibold text-white">Lock results</button>@endif</div>
     </div>
     @endif
 </div>
