@@ -393,6 +393,15 @@ class ExamManager extends Component
         $this->tab = 'review';
     }
 
+    public function openMarksReviewQueue(): void
+    {
+        abort_unless($this->canReviewMarks(), 403);
+        $this->selectedExam = null;
+        $this->reviewResults = [];
+        $this->reviewComment = '';
+        $this->tab = 'review-queue';
+    }
+
     public function returnMarksForCorrection(): void
     {
         abort_unless($this->canReviewMarks(), 403);
@@ -499,9 +508,9 @@ class ExamManager extends Component
         return auth()->user()->hasAnyRole(['admin', 'super-admin']);
     }
 
-    private function canReviewMarks(): bool
+    public function canReviewMarks(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']);
+        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy']);
     }
 
     public function render()
@@ -520,6 +529,14 @@ class ExamManager extends Component
             $exam->setRelation('learningArea', (object) ['name' => $areas->pluck('name')->unique()->join(', ')]);
         });
 
+        $reviewQueue = $this->canReviewMarks()
+            ? Exam::with(['learningArea', 'schoolClass'])
+                ->where('academic_year', config('school.academic_year'))
+                ->where('term', (int) $this->termFilter)
+                ->where('marks_status', 'submitted')
+                ->latest('marks_submitted_at')->latest('id')->get()
+            : collect();
+
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
             'learningAreas' => $this->availableLearningAreas($fullAdmin, $allocation),
@@ -529,6 +546,7 @@ class ExamManager extends Component
             'examScaleName' => $this->examScaleName,
             'examScaleBands' => $this->examScaleBands,
             'reviewExam' => $this->selectedExam ? Exam::with(['schoolClass', 'learningArea'])->find($this->selectedExam) : null,
+            'reviewQueue' => $reviewQueue,
         ])->layout($fullAdmin ? 'layouts.admin' : 'layouts.teacher');
     }
 

@@ -40,6 +40,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'headteacher'      => array_diff($permissions, ['manage system settings','manage roles']),
             'deputy-principal' => ['view students','view assessments','view timetable','manage timetable',
                                    'view notes','view exams','view analytics','view attendance','mark attendance'],
+            'deputy'           => ['view students','view assessments','view timetable','manage timetable',
+                                   'view notes','view exams','view analytics','view attendance','mark attendance'],
             'hod'              => ['view students','view assessments','create assessments','edit assessments',
                                    'view notes','upload notes','publish notes','manage curriculum',
                                    'view exams','manage exams','enter marks'],
