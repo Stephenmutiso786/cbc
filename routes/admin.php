@@ -14,6 +14,7 @@ use App\Livewire\Admin\ReportCardTemplates;
 use App\Livewire\Admin\GradeManager;
 use App\Livewire\Admin\AcademicPeriods;
 use App\Livewire\Admin\RoleManager;
+use App\Livewire\Admin\PromotionManager;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
@@ -47,6 +48,7 @@ Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.in
 Route::get('/report-forms', ReportCardTemplates::class)->name('report-forms.index');
 Route::get('/grades', GradeManager::class)->name('grades.index');
 Route::get('/academic-periods', AcademicPeriods::class)->name('academic-periods.index');
+Route::get('/promotions', PromotionManager::class)->name('promotions.index');
 Route::get('/roles', RoleManager::class)->name('roles.index');
 Route::get('/classes', AcademicSetup::class)->name('classes.index');
 Route::get('/subjects', SubjectManager::class)->name('subjects.index');
