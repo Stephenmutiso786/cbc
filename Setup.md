@@ -686,3 +686,34 @@ numprocs=2
 ---
 
 *Next steps: Database migrations → Models → Livewire components → PDF report cards*
+
+## Google Drive database backups
+
+The application now measures the live PostgreSQL/Neon database. When it reaches
+100 MB, `backup:drive` creates a PostgreSQL custom-format archive (compressed
+with level 9), streams it to the configured Google Drive folder, records the
+result in `database_backups`, and removes the temporary local archive. This is a
+compressed backup copy; the live database remains in Neon so the application
+can continue querying it normally.
+
+Run a manual check:
+
+```bash
+php artisan backup:drive --threshold=100
+```
+
+For an immediate test upload, use `--force`. Do not use `--force` in a recurring
+job. The command will refuse to upload when Google Drive is disabled or the
+credentials/folder ID saved in Admin Settings are invalid.
+
+Render web services do not run Laravel's scheduler by themselves. Create a
+separate Render Cron Job for this same repository with:
+
+```text
+Command: php artisan backup:drive --threshold=100
+Schedule: 0 * * * *
+```
+
+Copy the web service's `APP_KEY`, `DB_CONNECTION=pgsql`, `DB_URL`, and
+`PGSSLMODE=require` into the Cron Job. These must be the same values as the web
+service because the Google Drive settings are encrypted in the shared database.

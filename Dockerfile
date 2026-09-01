@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         libexif-dev \
         libpq-dev \
+        postgresql-client \
     && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
@@ -37,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         libexif-dev \
         libpq-dev \
+        postgresql-client \
     && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
