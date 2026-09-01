@@ -6,6 +6,7 @@ use App\Models\SchoolSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Validation\ValidationException;
 
 class AdminSettingsController extends Controller
 {
@@ -43,7 +44,19 @@ class AdminSettingsController extends Controller
             'google_drive_enabled' => ['required', 'boolean'],
             'google_drive_folder_id' => ['nullable', 'string', 'max:255'],
             'google_drive_credentials' => ['nullable', 'json', 'max:30000'],
+            'google_drive_credentials_file' => ['nullable', 'file', 'mimes:json,txt', 'max:100'],
         ]);
+
+        if ($request->hasFile('google_drive_credentials_file')) {
+            $credentials = file_get_contents($request->file('google_drive_credentials_file')->getRealPath());
+            if (json_decode($credentials, true) === null) {
+                throw ValidationException::withMessages(['google_drive_credentials_file' => 'The selected file is not valid Google service-account JSON.']);
+            }
+            $data['google_drive_credentials'] = $credentials;
+        } elseif (!empty($data['google_drive_credentials']) && json_decode($data['google_drive_credentials'], true) === null) {
+            throw ValidationException::withMessages(['google_drive_credentials' => 'Paste the original JSON file contents, including quotes and \\n characters.']);
+        }
+        unset($data['google_drive_credentials_file']);
 
         if ($request->hasFile('logo')) {
             $logo = $request->file('logo');
