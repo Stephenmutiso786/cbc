@@ -96,7 +96,7 @@ class BulkAssessmentEntry extends Component
         $allocations = TeacherSubjectAllocation::where('teacher_id', $staffId)->where('is_active', true)
             ->where('academic_year', (string) $this->academicYear);
         return view('livewire.assessment.bulk-assessment-entry', [
-            'classes'       => $fullAdmin ? SchoolClass::orderBy('grade_level')->get() : SchoolClass::whereIn('id', (clone $allocations)->pluck('class_id'))->orderBy('grade_level')->get(),
+            'classes'       => $fullAdmin ? SchoolClass::forConfiguredGrades()->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocations)->pluck('class_id'))->orderBy('grade_level')->get(),
             'learningAreas' => $fullAdmin ? LearningArea::where('is_active', true)->orderBy('name')->get() : LearningArea::whereIn('id', (clone $allocations)->pluck('learning_area_id'))->where('is_active', true)->orderBy('name')->get(),
             'strands'       => $this->learningAreaId
                 ? Strand::where('learning_area_id', $this->learningAreaId)->orderBy('order')->get()

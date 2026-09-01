@@ -17,7 +17,7 @@ class AnalyticsController extends Controller
     {
         $year = (string) config('school.academic_year');
         $exams = Exam::with('learningArea')->where('academic_year', $year)->latest('exam_date')->latest()->get();
-        $classes = SchoolClass::active()->forYear($year)->orderBy('grade_level')->orderBy('name')->get();
+        $classes = SchoolClass::active()->forYear($year)->forConfiguredGrades()->orderBy('grade_level')->orderBy('name')->get();
         $exam = $exams->firstWhere('id', (int) $request->input('exam_id')) ?: $exams->first();
         $class = $classes->firstWhere('id', (int) $request->input('class_id')) ?: $classes->first();
 
@@ -52,7 +52,7 @@ class AnalyticsController extends Controller
     {
         $year = (string) config('school.academic_year');
         $exam = Exam::where('academic_year', $year)->findOrFail((int) $request->input('exam_id'));
-        $class = SchoolClass::active()->forYear($year)->findOrFail((int) $request->input('class_id'));
+        $class = SchoolClass::active()->forYear($year)->forConfiguredGrades()->findOrFail((int) $request->input('class_id'));
         $rows = $this->analytics->ranking($exam, $class);
 
         return response()->streamDownload(function () use ($rows, $exam, $class) {

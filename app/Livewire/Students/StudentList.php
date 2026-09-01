@@ -257,7 +257,7 @@ class StudentList extends Component
 
         return view('livewire.students.student-list', [
             'learners' => $learners,
-            'classes'  => SchoolClass::orderBy('grade_level')->get(),
+            'classes'  => SchoolClass::forConfiguredGrades()->orderBy('grade_level')->get(),
         ])->layout('layouts.admin');
     }
 }
