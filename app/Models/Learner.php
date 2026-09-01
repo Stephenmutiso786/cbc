@@ -36,6 +36,7 @@ class Learner extends Model
     public function feePayments()   { return $this->hasMany(FeePayment::class); }
     public function examResults()   { return $this->hasMany(ExamResult::class); }
     public function portfolio()     { return $this->hasMany(PortfolioItem::class); }
+    public function promotions()    { return $this->hasMany(LearnerPromotion::class); }
 
     // ── Accessors ────────────────────────────────────────────────
     public function getFullNameAttribute(): string
