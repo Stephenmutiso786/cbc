@@ -17,6 +17,7 @@ use App\Livewire\Admin\RoleManager;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\ExamReportsController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
@@ -25,6 +26,8 @@ Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
 Route::get('/sms', SmsBalance::class)->name('sms.index');
 Route::get('/exams', ExamManager::class)->name('exams.index');
+Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
+Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->name('exams.merit-list');
 Route::get('/inventory', InventoryList::class)->name('inventory.index');
 Route::get('/notes', LearningNotesList::class)->name('notes.index');
 Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
