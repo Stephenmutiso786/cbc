@@ -205,11 +205,11 @@ class ExamManager extends Component
         $this->examDate = now()->format('Y-m-d');
     }
 
-    public function loadMarkEntry(int $examId): void
+    public function loadMarkEntry(int $examId, bool $subjectAlreadyChosen = false): void
     {
         $this->selectedExam = $examId;
         $exam = Exam::with(['learningArea', 'groupedSubjects.learningArea'])->findOrFail($examId);
-        if ($exam->isGroupMaster() && $exam->groupedSubjects->isNotEmpty()) {
+        if (! $subjectAlreadyChosen && $exam->isGroupMaster() && $exam->groupedSubjects->isNotEmpty()) {
             $subjects = collect([$exam])->merge($exam->groupedSubjects);
             if (! $this->isFullAdmin()) {
                 $subjects = $subjects->filter(fn ($subject) => TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
@@ -253,7 +253,7 @@ class ExamManager extends Component
 
     public function chooseMarkSubject(int $examId): void
     {
-        $this->loadMarkEntry($examId);
+        $this->loadMarkEntry($examId, true);
     }
 
     public function saveMarks(): void
