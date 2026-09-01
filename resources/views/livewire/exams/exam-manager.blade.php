@@ -37,6 +37,8 @@
                     <td class="px-4 py-3 flex flex-wrap gap-2">
                         @if(!$exam->isLocked())<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@else<span class="text-xs font-medium text-gray-500">Locked</span>@endif
                         @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']) && in_array($exam->status, ['published', 'completed']) && $exam->results->count() > 0)
+                            <a href="{{ route('admin.exams.report-cards', $exam) }}" target="_blank" class="text-indigo-700 hover:text-indigo-900 text-xs font-medium">Print report cards</a>
+                            <a href="{{ route('admin.exams.merit-list', $exam) }}" target="_blank" class="text-indigo-700 hover:text-indigo-900 text-xs font-medium">Print merit list</a>
                             @if($exam->results_sms_status === 'sent')<span class="text-xs font-medium text-green-700">Results sent</span>
                             @elseif($exam->results_sms_status === 'queued')<span class="text-xs font-medium text-amber-700">Sending results...</span>
                             @else<button wire:click="sendResults({{ $exam->id }})" wire:confirm="Send each learner's result to their guardian by SMS?" class="text-purple-700 hover:text-purple-900 text-xs font-medium">Send results</button>@endif
