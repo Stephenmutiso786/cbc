@@ -6,6 +6,7 @@ use App\Models\LearningNote;
 use App\Models\LearningArea;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Services\GoogleDriveStorage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -46,7 +47,7 @@ class LearningNotesList extends Component
 
         $filePath = null;
         if ($this->uploadedFile) {
-            $filePath = $this->uploadedFile->store("notes/{$this->grade}", 'public');
+            $filePath = app(GoogleDriveStorage::class)->store($this->uploadedFile, "notes/{$this->grade}");
         }
 
         LearningNote::create([
@@ -78,7 +79,7 @@ class LearningNotesList extends Component
     {
         $note = LearningNote::findOrFail($id);
         if ($note->file_path) {
-            Storage::disk('public')->delete($note->file_path);
+            app(GoogleDriveStorage::class)->delete($note->file_path);
         }
         $note->delete();
     }

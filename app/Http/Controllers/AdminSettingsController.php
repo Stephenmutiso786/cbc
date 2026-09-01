@@ -40,6 +40,9 @@ class AdminSettingsController extends Controller
             'kemis_api_url' => ['nullable', 'url', 'max:500'],
             'kemis_api_key' => ['nullable', 'string', 'max:500'],
             'kemis_school_code' => ['nullable', 'string', 'max:100'],
+            'google_drive_enabled' => ['required', 'boolean'],
+            'google_drive_folder_id' => ['nullable', 'string', 'max:255'],
+            'google_drive_credentials' => ['nullable', 'json', 'max:30000'],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -48,7 +51,7 @@ class AdminSettingsController extends Controller
         }
         unset($data['logo']);
 
-        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'firebase_server_key', 'kemis_api_key'];
+        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
         foreach ($data as $key => $value) {
             $setting = SchoolSetting::firstOrNew(['key' => $key]);
             $configValue = $value;
