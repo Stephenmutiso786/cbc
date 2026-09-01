@@ -129,6 +129,7 @@ class ExamManager extends Component
                     'marks_obtained' => $marks,
                     'total_marks'    => $exam->total_marks,
                     'grade'          => $grade,
+                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100),
                     'marked_by'      => $teacher?->id ?? 1,
                 ]
             );
@@ -136,6 +137,19 @@ class ExamManager extends Component
         }
 
         $this->dispatch('notify', type: 'success', message: "{$saved} results saved.");
+    }
+
+    public function lockResults(): void
+    {
+        $exam = Exam::findOrFail($this->selectedExam);
+        abort_unless(auth()->user()->can('lockResults', $exam), 403);
+        $exam->update([
+            'status' => 'completed',
+            'results_locked_at' => now(),
+            'locked_by' => auth()->user()->staffMember?->id,
+        ]);
+        $this->tab = 'exams';
+        session()->flash('success', 'Results locked. Further mark changes are disabled.');
     }
 
     private function calculateGrade(float $marks, float $total): string
@@ -147,6 +161,16 @@ class ExamManager extends Component
             $percent >= 60 => 'C',
             $percent >= 50 => 'D',
             default        => 'E',
+        };
+    }
+
+    private function calculateRubric(float $percent): \App\Enums\RubricLevel
+    {
+        return match (true) {
+            $percent >= 75 => \App\Enums\RubricLevel::ExceedsExpectation,
+            $percent >= 50 => \App\Enums\RubricLevel::MeetsExpectation,
+            $percent >= 30 => \App\Enums\RubricLevel::ApproachesExpectation,
+            default => \App\Enums\RubricLevel::BelowExpectation,
         };
     }
 
