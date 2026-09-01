@@ -30,6 +30,7 @@ class ExamManager extends Component
     public string $examGrade      = '';
     public string $examClassId    = '';
     public ?int   $examAreaId     = null;
+    public array   $selectedExamAreaIds = [];
     public string $examType       = 'end_term';
     public string $examTerm       = '';
     public float  $totalMarks     = 100;
@@ -61,6 +62,7 @@ class ExamManager extends Component
     public function updatedExamClassId($classId): void
     {
         $this->examAreaId = null;
+        $this->selectedExamAreaIds = [];
         $this->resetErrorBag(['examClassId', 'examAreaId']);
 
         if (! $classId) {
@@ -80,9 +82,8 @@ class ExamManager extends Component
             $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
             $this->examScaleBands = is_array($scale?->bands) ? $scale->bands : [];
             $areas = $class->learningAreas;
-            if ($areas->count() === 1) {
-                $this->examAreaId = (int) $areas->first()->id;
-            }
+            $this->selectedExamAreaIds = $areas->pluck('id')->map(fn ($id) => (string) $id)->all();
+            if ($areas->count() === 1) $this->examAreaId = (int) $areas->first()->id;
         } catch (\Throwable $exception) {
             report($exception);
             $this->examGrade = '';
@@ -94,44 +95,53 @@ class ExamManager extends Component
 
     public function createExam(): void
     {
-        $this->validate();
+        $this->validate([
+            'examName' => ['required', 'string', 'max:200'],
+            'examGrade' => ['required'],
+            'examClassId' => ['required', 'exists:school_classes,id'],
+            'selectedExamAreaIds' => ['required', 'array', 'min:1'],
+            'selectedExamAreaIds.*' => ['integer', 'exists:learning_areas,id'],
+            'examType' => ['required'], 'examTerm' => ['required'],
+            'totalMarks' => ['required', 'numeric', 'min:1'], 'passMark' => ['required', 'numeric', 'min:0'],
+        ]);
         abort_unless($this->isFullAdmin() || auth()->user()->can('manage exams'), 403);
         $teacher = StaffMember::where('user_id', auth()->id())->first();
-        if (!SchoolClass::findOrFail($this->examClassId)->learningAreas()->whereKey($this->examAreaId)->exists()) {
-            $this->addError('examAreaId', 'Assign this subject to the selected class first in Classes.');
+        $class = SchoolClass::findOrFail($this->examClassId);
+        $classAreaIds = $class->learningAreas()->pluck('learning_areas.id')->map(fn ($id) => (int) $id);
+        $selectedAreaIds = collect($this->selectedExamAreaIds)->map(fn ($id) => (int) $id)->unique()->values();
+        if ($selectedAreaIds->diff($classAreaIds)->isNotEmpty()) {
+            $this->addError('selectedExamAreaIds', 'Every selected subject must be assigned to the selected class first.');
             return;
         }
-        if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', $teacher?->id)
-            ->where('class_id', $this->examClassId)->where('learning_area_id', $this->examAreaId)->where('academic_year', config('school.academic_year'))
-            ->where('term', (int) $this->examTerm)->where('is_active', true)->exists()) {
-            $this->addError('examAreaId', 'You are not allocated to this learning area for this term.');
-            return;
+        if (!$this->isFullAdmin()) {
+            $allocated = TeacherSubjectAllocation::where('teacher_id', $teacher?->id)
+                ->where('class_id', $this->examClassId)->whereIn('learning_area_id', $selectedAreaIds)
+                ->where('academic_year', config('school.academic_year'))->where('term', (int) $this->examTerm)
+                ->where('is_active', true)->pluck('learning_area_id')->map(fn ($id) => (int) $id);
+            if ($selectedAreaIds->diff($allocated)->isNotEmpty()) {
+                $this->addError('selectedExamAreaIds', 'You are not allocated to every selected subject for this term.');
+                return;
+            }
         }
 
         $attributes = [
-            'name'            => $this->examName,
-            'grade_level'     => $this->examGrade,
-            'class_id'        => $this->examClassId,
-            'learning_area_id'=> $this->examAreaId,
-            'academic_year'   => config('school.academic_year'),
-            'term'            => $this->examTerm,
-            'exam_type'       => $this->examType,
-            'total_marks'     => $this->totalMarks,
-            'pass_mark'       => $this->passMark,
-            'exam_date'       => $this->examDate,
-            'status'          => 'published',
+            'name' => $this->examName, 'grade_level' => $this->examGrade, 'class_id' => $this->examClassId,
+            'academic_year' => config('school.academic_year'), 'term' => $this->examTerm,
+            'exam_type' => $this->examType, 'total_marks' => $this->totalMarks, 'pass_mark' => $this->passMark,
+            'exam_date' => $this->examDate, 'status' => 'published',
         ];
 
         if ($this->editingExamId) {
             $exam = Exam::findOrFail($this->editingExamId);
             abort_unless($this->isFullAdmin(), 403);
             abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
-            $exam->update($attributes);
+            $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
             $message = 'Exam updated successfully.';
         } else {
-            $attributes['created_by'] = $teacher?->id ?? 1;
-            Exam::create($attributes);
-            $message = 'Exam created successfully.';
+            foreach ($selectedAreaIds as $areaId) {
+                Exam::create($attributes + ['learning_area_id' => $areaId, 'created_by' => $teacher?->id ?? 1]);
+            }
+            $message = $selectedAreaIds->count() . ' exam subject(s) created successfully.';
         }
 
         $this->dispatch('notify', type: 'success', message: $message);
@@ -148,6 +158,7 @@ class ExamManager extends Component
         $this->examGrade = $exam->grade_level;
         $this->examClassId = (string) $exam->class_id;
         $this->examAreaId = $exam->learning_area_id;
+        $this->selectedExamAreaIds = [(string) $exam->learning_area_id];
         $scale = $exam->schoolClass?->gradingScale;
         $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
         $this->examScaleBands = $scale?->bands ?? [];
@@ -175,7 +186,7 @@ class ExamManager extends Component
     {
         $this->showCreateModal = false;
         $this->editingExamId = null;
-        $this->reset(['examName','examGrade','examClassId','examAreaId','examTerm','examDate','examScaleName','examScaleBands']);
+        $this->reset(['examName','examGrade','examClassId','examAreaId','selectedExamAreaIds','examTerm','examDate','examScaleName','examScaleBands']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
     }
