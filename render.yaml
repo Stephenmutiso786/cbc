@@ -41,6 +41,8 @@ services:
         value: pgsql
       - key: DB_URL
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: PGSSLMODE
         value: require
       - key: DB_CONNECT_TIMEOUT
