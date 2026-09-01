@@ -15,6 +15,7 @@ use App\Http\Controllers\AnalyticsController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
+Route::get('/students/import', StudentList::class)->name('students.import');
 Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
 Route::get('/exams', ExamManager::class)->name('exams.index');
@@ -28,6 +29,7 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
     return view('pdf.fee-receipt', compact('payment'));
 })->name('fees.receipt');
 Route::get('/staff', StaffManager::class)->name('staff.index');
+Route::get('/staff/import', StaffManager::class)->name('staff.import');
 Route::get('/timetable', fn() => view('admin.timetable.index'))->name('timetable.index');
 Route::get('/reports', [AnalyticsController::class, 'index'])->name('reports.index');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->name('reports.student');
