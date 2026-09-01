@@ -16,11 +16,10 @@ return [
         'validation_url'  => env('MPESA_VALIDATION_URL'),
     ],
 
-    'africastalking' => [
-        'api_key'   => env('AT_API_KEY'),
-        'username'  => env('AT_USERNAME', 'sandbox'),
-        'sender_id' => env('AT_SENDER_ID', 'SCHOOL'),
-        'env'       => env('AT_ENV', 'sandbox'),
+    'olympus_sms' => [
+        'api_url' => env('OLYMPUS_SMS_API_URL', 'https://sms.ots.co.ke'),
+        'api_token' => env('OLYMPUS_SMS_API_TOKEN'),
+        'sender_id' => env('OLYMPUS_SMS_SENDER_ID', 'SCHOOL'),
     ],
 
     'firebase' => [
