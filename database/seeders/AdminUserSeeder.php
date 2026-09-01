@@ -18,7 +18,7 @@ class AdminUserSeeder extends Seeder
         );
         $admin->assignRole('super-admin');
 
-        StaffMember::firstOrCreate(['email' => 'admin@school.ac.ke'], [
+        $this->provisionStaff($admin, 'admin@school.ac.ke', [
             'user_id'         => $admin->id,
             'staff_number'    => 'STAFF-001',
             'first_name'      => 'System',
@@ -38,7 +38,7 @@ class AdminUserSeeder extends Seeder
         );
         $principal->syncRoles('headteacher');
 
-        StaffMember::firstOrCreate(['email' => 'principal@school.ac.ke'], [
+        $this->provisionStaff($principal, 'principal@school.ac.ke', [
             'user_id'         => $principal->id,
             'staff_number'    => 'STAFF-002',
             'first_name'      => 'Jane',
@@ -58,7 +58,7 @@ class AdminUserSeeder extends Seeder
         );
         $bursar->assignRole('bursar');
 
-        StaffMember::firstOrCreate(['email' => 'bursar@school.ac.ke'], [
+        $this->provisionStaff($bursar, 'bursar@school.ac.ke', [
             'user_id'         => $bursar->id,
             'staff_number'    => 'STAFF-003',
             'first_name'      => 'Peter',
@@ -80,5 +80,23 @@ class AdminUserSeeder extends Seeder
                 ['bursar',      'bursar@school.ac.ke',    'Bursar@1234'],
             ]
         );
+    }
+
+    private function provisionStaff(User $user, string $email, array $attributes): void
+    {
+        // A previous interrupted seed may have left the staff number behind.
+        $staff = StaffMember::withTrashed()->where('email', $email)->first()
+            ?? StaffMember::withTrashed()->where('staff_number', $attributes['staff_number'])->first()
+            ?? new StaffMember();
+
+        if ($staff->trashed()) {
+            $staff->restore();
+        }
+
+        $staff->fill(array_merge($attributes, [
+            'email' => $email,
+            'user_id' => $user->id,
+        ]));
+        $staff->save();
     }
 }
