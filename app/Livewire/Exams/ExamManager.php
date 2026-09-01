@@ -104,11 +104,17 @@ class ExamManager extends Component
             'selectedExamAreaIds' => ['required', 'array', 'min:1'],
             'selectedExamAreaIds.*' => ['integer', 'exists:learning_areas,id'],
             'examType' => ['required'], 'examTerm' => ['required'],
-            'totalMarks' => ['required', 'numeric', 'min:1'], 'passMark' => ['required', 'numeric', 'min:0'],
+            'totalMarks' => ['required', 'numeric', 'min:1', 'max:100'],
+            'passMark' => ['required', 'numeric', 'min:0', 'lte:totalMarks'],
         ]);
         abort_unless($this->isFullAdmin() || auth()->user()->can('manage exams'), 403);
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         $class = SchoolClass::findOrFail($this->examClassId);
+        $gradingScale = $class->gradingScale()->first();
+        if (! $gradingScale) {
+            $this->addError('examClassId', 'Assign an active grading scale to this class before creating an exam.');
+            return;
+        }
         $classAreaIds = $class->learningAreas()->pluck('learning_areas.id')->map(fn ($id) => (int) $id);
         $selectedAreaIds = collect($this->selectedExamAreaIds)->map(fn ($id) => (int) $id)->unique()->values();
         if ($selectedAreaIds->diff($classAreaIds)->isNotEmpty()) {
@@ -225,6 +231,11 @@ class ExamManager extends Component
             abort(403, 'You are not allocated to this exam class and subject.');
         }
         $teacher = StaffMember::where('user_id', auth()->id())->first();
+        $gradingScale = $exam->schoolClass?->gradingScale()->first();
+        if (! $gradingScale) {
+            $this->addError('marks', 'This class has no active grading scale. Ask an administrator to assign one first.');
+            return;
+        }
         $saved   = 0;
 
         $learnerIds = Learner::where('class_id', $exam->class_id)->where('grade_level', $exam->grade_level)->where('is_active', true)->pluck('id')->map(fn ($id) => (string) $id);
@@ -238,12 +249,11 @@ class ExamManager extends Component
             if ($data['marks'] === '' || $data['marks'] === null) continue;
 
             $marks = (float) $data['marks'];
-            if ($marks < 0 || $marks > (float) $exam->total_marks) {
-                $this->addError('marks', "Marks must be between 0 and {$exam->total_marks}.");
+            if ($marks < 0 || $marks > 100 || $marks > (float) $exam->total_marks) {
+                $this->addError('marks', "Marks must be between 0 and 100 and cannot exceed the exam total of {$exam->total_marks}.");
                 return;
             }
-            $scale = $exam->schoolClass?->gradingScale;
-            $grade = $this->calculateGrade($marks, $exam->total_marks, $scale);
+            $grade = $this->calculateGrade($marks, $exam->total_marks, $gradingScale);
 
             ExamResult::updateOrCreate(
                 ['exam_id' => $exam->id, 'learner_id' => $learnerId],
@@ -251,8 +261,8 @@ class ExamManager extends Component
                     'marks_obtained' => $marks,
                     'total_marks'    => $exam->total_marks,
                     'grade'          => $grade,
-                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $scale),
-                    'remarks'        => $scale?->commentForCode($grade),
+                    'rubric_level'   => $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $gradingScale),
+                    'remarks'        => $gradingScale->commentForCode($grade),
                     'marked_by'      => $teacher?->id ?? 1,
                 ]
             );
@@ -279,6 +289,7 @@ class ExamManager extends Component
             'marks' => $result->marks_obtained,
             'total' => $result->total_marks,
             'grade' => $result->grade,
+            'rubric_level' => $result->rubric_level?->value ?? $result->rubric_level,
             'remarks' => $result->remarks,
         ])->values()->all();
         $this->reviewComment = '';
