@@ -38,4 +38,5 @@ Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.in
 Route::get('/classes', AcademicSetup::class)->name('classes.index');
 Route::get('/subjects', SubjectManager::class)->name('subjects.index');
 Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
+Route::post('/settings/sms-test', [AdminSettingsController::class, 'testSms'])->name('settings.sms-test');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->name('kemis.index');
