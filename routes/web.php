@@ -34,13 +34,13 @@ Route::get('/files/notes/{note}', [StoredFileController::class, 'note'])
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin / Principal / Deputy / HOD
-    Route::middleware(['role:admin|super-admin|principal|deputy-principal|hod'])
+    Route::middleware(['role:admin|super-admin|headteacher|principal|deputy-principal|hod'])
         ->prefix('admin')
         ->name('admin.')
         ->group(base_path('routes/admin.php'));
 
     // Teacher / Class Teacher / HOD
-    Route::middleware(['role:admin|super-admin|teacher|class-teacher|hod|principal|deputy-principal'])
+    Route::middleware(['role:admin|super-admin|teacher|class-teacher|hod|headteacher|principal|deputy-principal'])
         ->prefix('teacher')
         ->name('teacher.')
         ->group(base_path('routes/teacher.php'));
@@ -52,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->group(base_path('routes/parent.php'));
 
     // Finance / Bursar
-    Route::middleware(['role:admin|super-admin|bursar|principal'])
+    Route::middleware(['role:admin|super-admin|bursar|headteacher|principal'])
         ->prefix('finance')
         ->name('finance.')
         ->group(base_path('routes/finance.php'));

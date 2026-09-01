@@ -221,7 +221,7 @@ class ExamManager extends Component
 
     public function sendResults(int $examId): void
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'principal']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']), 403);
 
         $exam = Exam::with(['results.learner.guardians'])->findOrFail($examId);
         abort_unless(in_array($exam->status, ['published', 'completed'], true), 422, 'Only published or completed exams can send results.');

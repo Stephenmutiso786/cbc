@@ -36,9 +36,10 @@ tr:nth-child(even) td{background:#fafafa;}
 .att-box:last-child{border-right:none;}
 .att-num{font-size:16px;font-weight:bold;color:#111827;}
 .att-lbl{font-size:8px;color:#6b7280;text-transform:uppercase;}
+.template-cbc-classic{font-family:DejaVu Serif,serif;}.template-cbc-classic .header{background:#fff;color:#111;border-bottom:2px solid #111;text-align:center;}.template-cbc-classic .header h1{color:#6b3fa0;text-transform:uppercase;}.template-cbc-classic .report-title{background:#fff;color:#6b3fa0;border:0;text-transform:uppercase;}.template-cbc-classic .section-head{background:#fff;color:#c00;border:1px solid #111;}.template-cbc-classic th,.template-cbc-classic td{border-color:#111;}.template-cbc-classic th{color:#c00;background:#fff;}.template-cbc-classic .badge{background:#fff;color:#111;border:0;}.template-cbc-compact{font-size:9px;}.template-cbc-compact th,.template-cbc-compact td{padding:4px 6px;}.template-cbc-compact .header{padding:10px 16px;}.template-cbc-compact .learner-field{padding:6px 10px;}
 </style>
 </head>
-<body>
+<body class="template-{{ $template ?? 'cbc-classic' }}">
 <div class="header">
     @if(config('school.logo_data'))<img class="logo" src="{{ config('school.logo_data') }}" alt="School logo">@endif
     <div>
@@ -48,7 +49,7 @@ tr:nth-child(even) td{background:#fafafa;}
     </div>
 </div>
 
-<div class="report-title">LEARNER PROGRESS REPORT — {{ strtoupper($term) }} {{ $academicYear }}</div>
+<div class="report-title">{{ ($template ?? 'cbc-classic') === 'cbc-classic' ? 'SCHOOL REPORT CARD' : 'LEARNER PROGRESS REPORT' }} — {{ strtoupper($term) }} {{ $academicYear }}</div>
 
 <div class="learner-bar">
     <div class="learner-field"><div class="lf-label">Full Name</div><div class="lf-value">{{ $learner->full_name }}</div></div>
@@ -59,7 +60,7 @@ tr:nth-child(even) td{background:#fafafa;}
     <div class="learner-field"><div class="lf-label">Gender</div><div class="lf-value">{{ ucfirst($learner->gender) }}</div></div>
 </div>
 
-<div class="section-head">Competency Assessment — Learning Areas</div>
+<div class="section-head">{{ ($template ?? 'cbc-classic') === 'cbc-classic' ? 'Learning Areas and Expected Outcomes' : 'Competency Assessment — Learning Areas' }}</div>
 <table>
     <thead>
         <tr>
@@ -93,6 +94,18 @@ tr:nth-child(even) td{background:#fafafa;}
     </tbody>
 </table>
 
+@if(($template ?? 'cbc-classic') === 'cbc-classic')
+<div class="section-head" style="margin-top:8px">Core Competencies, Values and P.C.I.</div>
+<table>
+    <thead><tr><th style="width:30%">Competencies</th><th>Comments</th><th style="width:10%;text-align:center">Sign</th></tr></thead>
+    <tbody>
+        @foreach(['Communication and Collaboration', 'Digital Literacy', 'Self-Efficacy'] as $competency)
+            <tr><td><strong>{{ $competency }}</strong></td><td style="height:25px"></td><td></td></tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
 <div class="section-head" style="margin-top:8px">Attendance Summary</div>
 <div class="attendance-grid">
     <div class="att-box"><div class="att-num">{{ $attendance['total'] }}</div><div class="att-lbl">School Days</div></div>
@@ -110,7 +123,7 @@ tr:nth-child(even) td{background:#fafafa;}
 </div>
 
 <div class="remarks-row">
-    <span class="remarks-label">Principal's Remark</span>
+    <span class="remarks-label">Headteacher's Remark</span>
     <div style="border:1px solid #e5e7eb;border-radius:4px;padding:8px;min-height:32px;font-size:10px;color:#374151">
         ...................................................................................................................................................
     </div>
@@ -118,7 +131,7 @@ tr:nth-child(even) td{background:#fafafa;}
 
 <div class="sig-row">
     <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Class Teacher's Signature &amp; Date</div></div>
-    <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Principal's Signature &amp; Date</div></div>
+    <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Headteacher's Signature &amp; Date</div></div>
     <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Parent/Guardian's Signature &amp; Date</div></div>
 </div>
 

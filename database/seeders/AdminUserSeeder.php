@@ -31,12 +31,12 @@ class AdminUserSeeder extends Seeder
             'date_joined'     => now(),
         ]);
 
-        // Principal
+        // Headteacher
         $principal = User::firstOrCreate(
             ['email' => 'principal@school.ac.ke'],
-            ['name' => 'School Principal', 'password' => Hash::make('Principal@1234'), 'email_verified_at' => now()]
+            ['name' => 'School Headteacher', 'password' => Hash::make('Principal@1234'), 'email_verified_at' => now()]
         );
-        $principal->assignRole('principal');
+        $principal->syncRoles('headteacher');
 
         StaffMember::firstOrCreate(['email' => 'principal@school.ac.ke'], [
             'user_id'         => $principal->id,
@@ -47,7 +47,7 @@ class AdminUserSeeder extends Seeder
             'gender'          => 'female',
             'employment_type' => 'permanent',
             'staff_type'      => 'teaching',
-            'designation'     => 'Principal',
+            'designation'     => 'Headteacher',
             'date_joined'     => now()->subYears(5),
         ]);
 
