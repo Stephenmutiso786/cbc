@@ -64,6 +64,13 @@ class StudentList extends Component
         $this->showImport = true;
     }
 
+    public function updatedImportClassId($classId): void
+    {
+        if ($classId && !$this->importGrade) {
+            $this->importGrade = (string) SchoolClass::find($classId)?->grade_level;
+        }
+    }
+
     public function importLearners(): void
     {
         $this->validate([
@@ -84,13 +91,13 @@ class StudentList extends Component
         foreach ($rows as $index => $row) {
             $line = $index + 1;
             $row['class_id'] = $row['class_id'] ?: $this->importClassId;
-            $row['grade_level'] = $row['grade_level'] ?: $this->importGrade;
+            $row['grade_level'] = $row['grade_level'] ?: ($this->importGrade ?: (string) SchoolClass::find($row['class_id'])?->grade_level);
             $row['admission_date'] = $row['admission_date'] ?: now()->format('Y-m-d');
             $row['date_of_birth'] = $row['date_of_birth'] ?: now()->subYears(6)->format('Y-m-d');
             $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
             $row['gender'] = strtolower($row['gender'] ?: 'male');
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
-            $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber();
+            $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber((int) $row['class_id']);
 
             $validator = Validator::make($row, [
                 'admission_number' => ['required', 'string', 'max:255', 'unique:learners,admission_number'],
@@ -175,10 +182,15 @@ class StudentList extends Component
         return $rows;
     }
 
-    private function newAdmissionNumber(): string
+    private function newAdmissionNumber(int $classId): string
     {
+        $class = SchoolClass::findOrFail($classId);
+        $prefix = strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $class->name));
+        $prefix = trim($prefix, '-') ?: 'CLASS';
+        $next = Learner::withTrashed()->where('class_id', $classId)->count() + 1;
         do {
-            $number = 'IMP-' . now()->format('Ymd') . '-' . random_int(1000, 9999);
+            $number = $prefix . '-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
         } while (Learner::withTrashed()->where('admission_number', $number)->exists());
         return $number;
     }
