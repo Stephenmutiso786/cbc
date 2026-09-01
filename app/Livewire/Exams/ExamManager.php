@@ -11,6 +11,7 @@ use App\Models\StaffMember;
 use App\Models\TeacherSubjectAllocation;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 
 class ExamManager extends Component
 {
@@ -21,6 +22,7 @@ class ExamManager extends Component
 
     // Create Exam form
     public bool   $showCreateModal = false;
+    public ?int   $editingExamId   = null;
     public string $examName       = '';
     public string $examGrade      = '';
     public string $examClassId    = '';
@@ -65,6 +67,7 @@ class ExamManager extends Component
     public function createExam(): void
     {
         $this->validate();
+        abort_unless($this->isFullAdmin() || auth()->user()->can('manage exams'), 403);
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         if (!SchoolClass::findOrFail($this->examClassId)->learningAreas()->whereKey($this->examAreaId)->exists()) {
             $this->addError('examAreaId', 'Assign this subject to the selected class first in Classes.');
@@ -77,7 +80,7 @@ class ExamManager extends Component
             return;
         }
 
-        Exam::create([
+        $attributes = [
             'name'            => $this->examName,
             'grade_level'     => $this->examGrade,
             'class_id'        => $this->examClassId,
@@ -89,11 +92,58 @@ class ExamManager extends Component
             'pass_mark'       => $this->passMark,
             'exam_date'       => $this->examDate,
             'status'          => 'published',
-            'created_by'      => $teacher?->id ?? 1,
-        ]);
+        ];
 
-        $this->dispatch('notify', type: 'success', message: 'Exam created successfully.');
+        if ($this->editingExamId) {
+            $exam = Exam::findOrFail($this->editingExamId);
+            abort_unless($this->isFullAdmin(), 403);
+            abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
+            $exam->update($attributes);
+            $message = 'Exam updated successfully.';
+        } else {
+            $attributes['created_by'] = $teacher?->id ?? 1;
+            Exam::create($attributes);
+            $message = 'Exam created successfully.';
+        }
+
+        $this->dispatch('notify', type: 'success', message: $message);
+        $this->closeExamForm();
+    }
+
+    public function editExam(int $examId): void
+    {
+        abort_unless($this->isFullAdmin(), 403);
+        $exam = Exam::findOrFail($examId);
+        abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
+        $this->editingExamId = $exam->id;
+        $this->examName = $exam->name;
+        $this->examGrade = $exam->grade_level;
+        $this->examClassId = (string) $exam->class_id;
+        $this->examAreaId = $exam->learning_area_id;
+        $this->examType = $exam->exam_type;
+        $this->examTerm = (string) $exam->term;
+        $this->totalMarks = (float) $exam->total_marks;
+        $this->passMark = (float) $exam->pass_mark;
+        $this->examDate = $exam->exam_date?->format('Y-m-d');
+        $this->showCreateModal = true;
+    }
+
+    public function deleteExam(int $examId): void
+    {
+        abort_unless($this->isFullAdmin(), 403);
+        DB::transaction(fn () => Exam::findOrFail($examId)->delete());
+        if ($this->selectedExam === $examId) {
+            $this->selectedExam = null;
+            $this->marks = [];
+            $this->tab = 'exams';
+        }
+        session()->flash('success', 'Exam and its results were deleted successfully.');
+    }
+
+    private function closeExamForm(): void
+    {
         $this->showCreateModal = false;
+        $this->editingExamId = null;
         $this->reset(['examName','examGrade','examClassId','examAreaId','examTerm','examDate']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');

@@ -1,4 +1,5 @@
 <div>
+    @if(session('success'))<div class="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>@endif
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">Exams Management</h2>
         <button wire:click="$set('showCreateModal', true)" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">
@@ -33,8 +34,9 @@
                             {{ ucfirst($exam->status) }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 flex gap-2">
+                    <td class="px-4 py-3 flex flex-wrap gap-2">
                         @if(!$exam->isLocked())<button wire:click="loadMarkEntry({{ $exam->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Enter Marks</button>@else<span class="text-xs font-medium text-gray-500">Locked</span>@endif
+                        @if(auth()->user()->hasAnyRole(['admin', 'super-admin']))<button wire:click="editExam({{ $exam->id }})" class="text-green-600 hover:text-green-800 text-xs font-medium">Edit</button><button wire:click="deleteExam({{ $exam->id }})" wire:confirm="Delete this exam and all its results? This cannot be undone." class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>@endif
                     </td>
                 </tr>
                 @empty
@@ -49,7 +51,7 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
             <div class="mb-5 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-gray-900">Create exam</h3>
+                <h3 class="text-lg font-bold text-gray-900">{{ $editingExamId ? 'Edit exam' : 'Create exam' }}</h3>
                 <button type="button" wire:click="$set('showCreateModal', false)" class="rounded p-2 text-gray-500 hover:bg-gray-100" aria-label="Close">&times;</button>
             </div>
             <form wire:submit="createExam" class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -62,7 +64,7 @@
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Exam date</span><input wire:model="examDate" type="date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total marks</span><input wire:model="totalMarks" type="number" min="1" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
                 <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pass mark</span><input wire:model="passMark" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"></label>
-                <div class="flex justify-end gap-3 md:col-span-2"><button type="button" wire:click="$set('showCreateModal', false)" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-700">Cancel</button><button type="submit" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50">Create exam</button></div>
+                <div class="flex justify-end gap-3 md:col-span-2"><button type="button" wire:click="$set('showCreateModal', false)" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-700">Cancel</button><button type="submit" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50">{{ $editingExamId ? 'Save changes' : 'Create exam' }}</button></div>
             </form>
         </div>
     </div>
