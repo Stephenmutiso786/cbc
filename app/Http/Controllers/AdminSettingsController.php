@@ -7,9 +7,27 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
+use App\Services\OlympusSmsService;
 
 class AdminSettingsController extends Controller
 {
+    public function testSms(Request $request, OlympusSmsService $sms): RedirectResponse
+    {
+        $data = $request->validate([
+            'test_phone' => ['required', 'string', 'max:50'],
+            'test_message' => ['required', 'string', 'max:480'],
+        ]);
+
+        try {
+            $sms->sendSms($data['test_phone'], $data['test_message']);
+        } catch (\Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['test_phone' => $exception->getMessage()])->withInput();
+        }
+
+        return back()->with('success', 'Test SMS accepted by Olympus for delivery.');
+    }
+
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
