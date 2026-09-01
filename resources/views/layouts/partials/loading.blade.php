@@ -22,6 +22,11 @@
             clearTimeout(timer);
             loader?.classList.remove('is-visible');
         };
+        const marksPreviewUpdate = () => {
+            const active = document.activeElement;
+            const binding = active?.getAttribute('wire:model.live') || '';
+            return active?.matches('input[type="number"]') && binding.startsWith('marks.');
+        };
         document.addEventListener('submit', (event) => {
             if (!event.target.hasAttribute('data-no-loading')) show();
         });
@@ -34,6 +39,11 @@
         window.addEventListener('beforeunload', show);
         document.addEventListener('livewire:init', () => {
             Livewire.hook('commit', ({ succeed, fail }) => {
+                if (marksPreviewUpdate()) {
+                    succeed(() => hide());
+                    fail(() => hide());
+                    return;
+                }
                 show();
                 succeed(() => hide());
                 fail(() => hide());
