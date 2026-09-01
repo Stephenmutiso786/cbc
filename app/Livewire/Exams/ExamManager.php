@@ -44,6 +44,7 @@ class ExamManager extends Component
 
     // Mark entry
     public array  $marks          = []; // keyed by learner_id
+    public array  $markSubjectOptions = [];
 
     protected $rules = [
         'examName'  => 'required|string|max:200',
@@ -207,7 +208,27 @@ class ExamManager extends Component
     public function loadMarkEntry(int $examId): void
     {
         $this->selectedExam = $examId;
-        $exam = Exam::findOrFail($examId);
+        $exam = Exam::with(['learningArea', 'groupedSubjects.learningArea'])->findOrFail($examId);
+        if ($exam->isGroupMaster() && $exam->groupedSubjects->isNotEmpty()) {
+            $subjects = collect([$exam])->merge($exam->groupedSubjects);
+            if (! $this->isFullAdmin()) {
+                $subjects = $subjects->filter(fn ($subject) => TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
+                    ->where('class_id', $subject->class_id)->where('learning_area_id', $subject->learning_area_id)
+                    ->where('academic_year', $subject->academic_year)->where('term', (int) $subject->term)
+                    ->where('is_active', true)->exists());
+            }
+            $this->markSubjectOptions = $subjects->map(fn ($subject) => [
+                'id' => $subject->id,
+                'name' => $subject->learningArea?->name ?? 'Learning area',
+                'status' => $subject->marks_status,
+            ])->values()->all();
+            if (count($this->markSubjectOptions) > 1) {
+                $this->tab = 'subject-select';
+                return;
+            }
+            if (count($this->markSubjectOptions) === 1) $examId = $this->markSubjectOptions[0]['id'];
+            $exam = Exam::with(['learningArea', 'groupedSubjects.learningArea'])->findOrFail($examId);
+        }
         abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'These marks are already submitted or published.');
         if (!$this->isFullAdmin() && !TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('class_id', $exam->class_id)->where('learning_area_id', $exam->learning_area_id)->where('academic_year', $exam->academic_year)
@@ -228,6 +249,11 @@ class ExamManager extends Component
         ])->toArray();
 
         $this->tab = 'marks';
+    }
+
+    public function chooseMarkSubject(int $examId): void
+    {
+        $this->loadMarkEntry($examId);
     }
 
     public function saveMarks(): void
