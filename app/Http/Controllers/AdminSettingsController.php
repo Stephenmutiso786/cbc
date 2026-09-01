@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
 use App\Services\OlympusSmsService;
+use Illuminate\Support\Facades\DB;
 
 class AdminSettingsController extends Controller
 {
@@ -86,25 +87,27 @@ class AdminSettingsController extends Controller
         unset($data['logo']);
 
         $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
-        foreach ($data as $key => $value) {
-            $setting = SchoolSetting::firstOrNew(['key' => $key]);
-            $configValue = $value;
-            if (in_array($key, $secretKeys, true)) {
-                if ($value === '' && $setting->exists) continue;
-                $value = $value === '' ? null : 'enc:' . Crypt::encryptString($value);
+        DB::transaction(function () use ($data, $secretKeys): void {
+            foreach ($data as $key => $value) {
+                $setting = SchoolSetting::firstOrNew(['key' => $key]);
+                if (in_array($key, $secretKeys, true) && $value === '' && $setting->exists) continue;
+                $configValue = $value;
+                if (in_array($key, $secretKeys, true)) {
+                    $value = $value === '' ? null : 'enc:' . Crypt::encryptString($value);
+                }
+                $setting->value = $value;
+                $setting->save();
+                $configKey = match (true) {
+                    str_starts_with($key, 'mpesa_') => 'services.mpesa.' . substr($key, 6),
+                    str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
+                    str_starts_with($key, 'olympus_sms_') => 'services.olympus_sms.' . substr($key, 12),
+                    str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
+                    str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
+                    default => 'school.' . $key,
+                };
+                config()->set($configKey, $configValue);
             }
-            $setting->value = $value;
-            $setting->save();
-            $configKey = match (true) {
-                str_starts_with($key, 'mpesa_') => 'services.mpesa.' . substr($key, 6),
-                str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
-                str_starts_with($key, 'olympus_sms_') => 'services.olympus_sms.' . substr($key, 12),
-                str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
-                str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
-                default => 'school.' . $key,
-            };
-            config()->set($configKey, $configValue);
-        }
+        });
 
         return back()->with('success', 'School settings updated successfully.');
     }

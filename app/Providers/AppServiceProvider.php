@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
 
         try {
             foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
+                try {
                 $value = is_string($value) && str_starts_with($value, 'enc:')
                     ? Crypt::decryptString(substr($value, 4))
                     : $value;
@@ -39,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
                     default => 'school.' . $key,
                 };
                 config()->set($configKey, $value);
+                } catch (\Throwable $exception) {
+                    // A corrupt secret must not prevent unrelated settings loading.
+                    report($exception);
+                }
             }
         } catch (\Throwable) {
             // The table is unavailable during a first install or migration.
