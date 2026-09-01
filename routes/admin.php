@@ -30,6 +30,8 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
 Route::get('/staff', StaffManager::class)->name('staff.index');
 Route::get('/timetable', fn() => view('admin.timetable.index'))->name('timetable.index');
 Route::get('/reports', [AnalyticsController::class, 'index'])->name('reports.index');
+Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->name('reports.student');
+Route::get('/reports/export', [AnalyticsController::class, 'export'])->name('reports.export');
 Route::get('/settings', fn() => view('admin.settings.index'))->name('settings.index');
 Route::get('/classes', AcademicSetup::class)->name('classes.index');
 Route::get('/subjects', SubjectManager::class)->name('subjects.index');
