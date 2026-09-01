@@ -9,6 +9,7 @@ use App\Models\TeacherSubjectAllocation;
 use App\Models\GradingScale;
 use Database\Seeders\DefaultClassSubjectsSeeder;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class AcademicSetup extends Component
@@ -19,7 +20,7 @@ class AcademicSetup extends Component
     public bool $showSubjectForm = false;
     public ?int $editingClassId = null;
     public array $classForm = ['name' => '', 'grade_level' => '', 'stream' => '', 'capacity' => 45, 'academic_year' => '', 'class_teacher_id' => ''];
-    public array $allocationForm = ['teacher_id' => '', 'class_id' => '', 'learning_area_id' => '', 'term' => 1, 'academic_year' => ''];
+    public array $allocationForm = ['teacher_id' => '', 'class_id' => '', 'learning_area_ids' => [], 'term' => 1, 'academic_year' => ''];
     public array $subjectForm = ['class_id' => '', 'learning_area_id' => '', 'lessons_per_week' => 5];
     public ?string $notice = null;
 
@@ -75,8 +76,20 @@ class AcademicSetup extends Component
 
     public function openAllocation(): void
     {
-        $this->allocationForm['academic_year'] = (string) config('school.academic_year');
+        $this->allocationForm = [
+            'teacher_id' => '',
+            'class_id' => '',
+            'learning_area_ids' => [],
+            'term' => 1,
+            'academic_year' => (string) config('school.academic_year'),
+        ];
         $this->showAllocationForm = true;
+    }
+
+    public function updatedAllocationFormClassId($classId): void
+    {
+        $this->allocationForm['learning_area_ids'] = [];
+        $this->resetErrorBag(['allocationForm.class_id', 'allocationForm.learning_area_ids']);
     }
 
     public function openSubjectAssignment(?int $classId = null): void
@@ -110,19 +123,29 @@ class AcademicSetup extends Component
         $data = $this->validate([
             'allocationForm.teacher_id' => ['required', 'integer', 'exists:staff_members,id'],
             'allocationForm.class_id' => ['required', 'integer', 'exists:school_classes,id'],
-            'allocationForm.learning_area_id' => ['required', 'integer', 'exists:learning_areas,id'],
+            'allocationForm.learning_area_ids' => ['required', 'array', 'min:1'],
+            'allocationForm.learning_area_ids.*' => ['integer', 'exists:learning_areas,id'],
             'allocationForm.term' => ['required', 'integer', 'between:1,3'],
             'allocationForm.academic_year' => ['required', 'string', 'max:9'],
         ])['allocationForm'];
-        TeacherSubjectAllocation::updateOrCreate(
-            ['teacher_id' => $data['teacher_id'], 'class_id' => $data['class_id'], 'learning_area_id' => $data['learning_area_id'], 'term' => $data['term'], 'academic_year' => $data['academic_year']],
-            ['is_active' => true, 'created_by' => auth()->id()]
-        );
-        SchoolClass::findOrFail($data['class_id'])->learningAreas()->syncWithoutDetaching([
-            $data['learning_area_id'] => ['is_active' => true],
-        ]);
+        $class = SchoolClass::findOrFail($data['class_id']);
+        $classAreaIds = $class->learningAreas()->pluck('learning_areas.id')->map(fn ($id) => (int) $id);
+        $areaIds = collect($data['learning_area_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        if ($areaIds->diff($classAreaIds)->isNotEmpty()) {
+            $this->addError('allocationForm.learning_area_ids', 'Select subjects assigned to this class only.');
+            return;
+        }
+
+        DB::transaction(function () use ($areaIds, $data) {
+            foreach ($areaIds as $areaId) {
+                TeacherSubjectAllocation::updateOrCreate(
+                    ['teacher_id' => $data['teacher_id'], 'class_id' => $data['class_id'], 'learning_area_id' => $areaId, 'term' => $data['term'], 'academic_year' => $data['academic_year']],
+                    ['is_active' => true, 'created_by' => auth()->id()]
+                );
+            }
+        });
         $this->showAllocationForm = false;
-        $this->notice = 'Teacher allocation saved successfully.';
+        $this->notice = $areaIds->count() . ' teacher subject allocation(s) saved successfully.';
     }
 
     public function removeAllocation(int $id): void
@@ -137,6 +160,9 @@ class AcademicSetup extends Component
             'classes' => SchoolClass::forConfiguredGrades()->with(['classTeacher', 'learningAreas'])->orderBy('grade_level')->orderBy('name')->get(),
             'staff' => StaffMember::active()->orderBy('last_name')->get(),
             'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
+            'allocationSubjects' => $this->allocationForm['class_id']
+                ? SchoolClass::find($this->allocationForm['class_id'])?->learningAreas()->where('learning_areas.is_active', true)->orderBy('name')->get() ?? collect()
+                : collect(),
             'allocations' => TeacherSubjectAllocation::with(['teacher', 'schoolClass', 'learningArea'])->latest()->get(),
             'grades' => array_merge(...array_values(config('school.grade_levels'))),
         ])->layout('layouts.admin');
