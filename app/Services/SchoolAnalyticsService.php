@@ -28,7 +28,7 @@ class SchoolAnalyticsService
                 'total' => $total,
                 'possible' => $possible,
                 'percentage' => $percentage,
-                'grade' => $this->grade($percentage),
+                'grade' => $this->grade($percentage, $class->gradingScale),
             ];
         })->sortByDesc('percentage')->values()->map(function (array $row, int $index) {
             $row['position'] = $index + 1;
@@ -47,7 +47,7 @@ class SchoolAnalyticsService
             })->get();
 
         return $results->groupBy(fn (ExamResult $result) => $result->exam->learningArea?->name ?: 'Unknown subject')
-            ->map(function (Collection $items, string $subject) {
+            ->map(function (Collection $items, string $subject) use ($class) {
                 $scores = $items->map(fn (ExamResult $result) => $this->percentage($result));
                 $mean = round($scores->avg() ?: 0, 2);
 
@@ -57,34 +57,36 @@ class SchoolAnalyticsService
                     'mean' => $mean,
                     'highest' => round($scores->max() ?: 0, 2),
                     'lowest' => round($scores->min() ?: 0, 2),
-                    'grade' => $this->grade($mean),
+                    'grade' => $this->grade($mean, $class->gradingScale),
                 ];
             })->sortBy('subject')->values();
     }
 
     public function classTrend(SchoolClass $class, string $year): Collection
     {
-        return ExamResult::with('exam')
+        return ExamResult::with(['exam.schoolClass'])
             ->whereHas('learner', fn ($query) => $query->where('class_id', $class->id)->where('is_active', true))
             ->whereHas('exam', fn ($query) => $query->where('academic_year', $year))
-            ->get()->groupBy('exam_id')->map(function (Collection $items) {
+            ->get()->groupBy('exam_id')->map(function (Collection $items) use ($class) {
                 $possible = $items->sum(fn (ExamResult $result) => (float) $result->total_marks);
+                $mean = round($items->sum(fn (ExamResult $result) => (float) $result->marks_obtained) / max($possible, 1) * 100, 2);
                 return [
                     'exam' => $items->first()->exam->name,
                     'date' => $items->first()->exam->exam_date,
-                    'mean' => round($items->sum(fn (ExamResult $result) => (float) $result->marks_obtained) / max($possible, 1) * 100, 2),
+                    'mean' => $mean,
+                    'grade' => $this->grade($mean, $class->gradingScale),
                 ];
             })->sortBy('date')->values();
     }
 
     public function learnerTrend(Learner $learner, string $year): Collection
     {
-        return $learner->examResults()->with(['exam.learningArea'])
+        return $learner->examResults()->with(['exam.learningArea', 'exam.schoolClass'])
             ->whereHas('exam', fn ($query) => $query->where('academic_year', $year))
             ->get()->groupBy('exam_id')->map(function (Collection $items) {
                 $possible = $items->sum(fn (ExamResult $result) => (float) $result->total_marks);
                 $percentage = round($items->sum(fn (ExamResult $result) => (float) $result->marks_obtained) / max($possible, 1) * 100, 2);
-                return ['exam' => $items->first()->exam->name, 'subject' => $items->first()->exam->learningArea?->name, 'date' => $items->first()->exam->exam_date, 'percentage' => $percentage, 'grade' => $this->grade($percentage)];
+                return ['exam' => $items->first()->exam->name, 'subject' => $items->first()->exam->learningArea?->name, 'date' => $items->first()->exam->exam_date, 'percentage' => $percentage, 'grade' => $this->grade($percentage, $items->first()->exam->schoolClass?->gradingScale)];
             })->sortBy('date')->values();
     }
 
@@ -93,8 +95,11 @@ class SchoolAnalyticsService
         return (float) $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks * 100 : 0;
     }
 
-    public function grade(float $percentage): string
+    public function grade(float $percentage, $scale = null): string
     {
+        if ($scale && ($grade = $scale->gradeForPercent($percentage)) !== null) {
+            return $grade;
+        }
         return match (true) {
             $percentage >= 80 => 'A',
             $percentage >= 70 => 'B',
