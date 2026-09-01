@@ -652,6 +652,13 @@ The production Docker image includes both `pdo_pgsql` and `pdo_mysql`, but Rende
 
 The current Aiven hostname in the old deployment no longer resolves. Existing Aiven data will not appear in Neon automatically. If that data must be preserved, restore/export it from Aiven or a backup before using Neon in production; otherwise Neon will start as a new database and Laravel will create its schema through migrations.
 
+The 11 teacher records shown in the supplied staff screenshot are included in
+`ScreenshotTeachersSeeder`. The seeder is idempotent and uses the displayed
+School IDs as staff numbers, so it can be run safely once on the school
+database. New imported accounts use `ChangeMe@123` unless
+`IMPORTED_TEACHER_TEMP_PASSWORD` is set in Render; change these passwords after
+the first login.
+
 ## 🚢 Production Deployment Checklist
 
 ```bash
