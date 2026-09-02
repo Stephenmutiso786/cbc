@@ -13,13 +13,14 @@ use Throwable;
 
 class ExamReportsController extends Controller
 {
-    public function resultCards(Exam $exam): \Symfony\Component\HttpFoundation\Response
+    public function resultCards(string $exam): \Symfony\Component\HttpFoundation\Response
     {
         if (request()->boolean('diagnose')) {
-            return response()->json(['reached_report_controller' => true, 'exam_id' => $exam->id]);
+            return response()->json(['reached_report_controller' => true, 'exam_id' => $exam]);
         }
 
         try {
+            $exam = Exam::query()->findOrFail($exam);
             $this->authorizeExamReports($exam);
             $this->ensureGroupPublished($exam);
 
@@ -28,7 +29,7 @@ class ExamReportsController extends Controller
             return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
         } catch (Throwable $exception) {
             Log::error('Report-card request failed.', [
-                'exam_id' => $exam->id,
+                'exam_id' => $exam instanceof Exam ? $exam->id : $exam,
                 'user_id' => auth()->id(),
                 'exception' => $exception,
             ]);
