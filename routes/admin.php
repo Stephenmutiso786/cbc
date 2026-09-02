@@ -16,6 +16,7 @@ use App\Livewire\Admin\AcademicPeriods;
 use App\Livewire\Admin\RoleManager;
 use App\Livewire\Admin\PromotionManager;
 use App\Livewire\Admin\TimetableManager;
+use App\Livewire\Admin\ParentManager;
 use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
@@ -41,6 +42,7 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
 })->name('fees.receipt');
 Route::get('/staff', StaffManager::class)->name('staff.index');
 Route::get('/staff/import', StaffManager::class)->name('staff.import');
+Route::get('/parents', ParentManager::class)->name('parents.index');
 Route::get('/timetable', TimetableManager::class)->name('timetable.index');
 Route::get('/reports', [AnalyticsController::class, 'index'])->name('reports.index');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->name('reports.student');

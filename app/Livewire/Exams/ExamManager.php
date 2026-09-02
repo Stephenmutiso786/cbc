@@ -478,12 +478,19 @@ class ExamManager extends Component
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']), 403);
 
-        $exam = Exam::with(['results.learner.guardians'])->findOrFail($examId);
-        abort_unless($exam->status === 'completed' && $exam->marks_status === 'approved', 422, 'Results can only be sent after all marks are reviewed and approved.');
+        $exam = Exam::findOrFail($examId);
+        $group = Exam::whereIn('id', $exam->groupExamIds())->get();
+        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->exam_state === 'published' && $item->status === 'published' && $item->marks_status === 'approved'), 422, 'Results can only be sent after the complete exam is published.');
         abort_if($exam->results_sms_status === 'queued', 422, 'Results are already being sent.');
         abort_if($exam->results_sms_status === 'sent', 422, 'Results have already been sent for this exam.');
 
-        $recipients = $exam->results->flatMap(fn ($result) => $result->learner?->guardians ?? collect())->whereNotNull('phone_number');
+        $recipients = ExamResult::with('learner.guardians')
+            ->whereIn('exam_id', $exam->groupExamIds())
+            ->get()
+            ->flatMap(fn ($result) => $result->learner?->guardians ?? collect())
+            ->whereNotNull('phone_number')
+            ->unique('id')
+            ->values();
         abort_if($recipients->isEmpty(), 422, 'No result guardians have phone numbers.');
 
         $staff = StaffMember::where('user_id', auth()->id())->first();
