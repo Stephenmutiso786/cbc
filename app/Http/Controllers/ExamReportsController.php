@@ -15,10 +15,6 @@ class ExamReportsController extends Controller
 {
     public function resultCards(string $exam): \Symfony\Component\HttpFoundation\Response
     {
-        if (request()->boolean('diagnose')) {
-            return response()->json(['reached_report_controller' => true, 'exam_id' => $exam]);
-        }
-
         try {
             $exam = Exam::query()->findOrFail($exam);
             $this->authorizeExamReports($exam);
