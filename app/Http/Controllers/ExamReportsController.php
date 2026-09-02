@@ -30,13 +30,6 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
-            if (request()->boolean('diagnose')) {
-                return response()->json([
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ], 500);
-            }
-
             throw $exception;
         }
     }
@@ -80,15 +73,12 @@ class ExamReportsController extends Controller
                     }
                     $percentage = $mark->percentage;
                     $grade = $mark->grade ?: $scale?->gradeForPercent($percentage);
-                    $rubric = $mark->rubric_level?->value;
-                    if ($mark->marks_obtained !== null && ! $rubric) {
-                        $rubric = $this->rubricForPercentage($percentage, $scale)->value;
-                    }
+                    $rubric = $this->rubricCodeForResult($mark, $percentage, $scale);
 
                     return [
                         'name' => $mark->exam?->learningArea?->name ?? 'Learning area',
                         'rubric' => $rubric ?: '-',
-                        'points' => RubricLevel::tryFrom((string) $rubric)?->numericValue() ?? '-',
+                        'points' => $this->rubricPoints($rubric),
                         'grade' => $grade ?: '-',
                         'remarks' => $mark->remarks ?: 'Did not sit',
                     ];
@@ -300,6 +290,35 @@ class ExamReportsController extends Controller
             str_starts_with($code, 'AE') || $percentage >= 30 => RubricLevel::ApproachesExpectation,
             default => RubricLevel::BelowExpectation,
         };
+    }
+
+    private function rubricCodeForResult(ExamResult $result, float $percentage, $scale): string
+    {
+        $scaleCode = $scale?->gradeForPercent($percentage);
+        if ($scaleCode) {
+            return $scaleCode;
+        }
+
+        $raw = strtoupper(trim((string) $result->getRawOriginal('rubric_level')));
+        if (preg_match('/^(EE|ME|AE|BE)([12])?$/', $raw)) {
+            return $raw;
+        }
+
+        return $this->rubricForPercentage($percentage, $scale)->value;
+    }
+
+    private function rubricPoints(string $rubric): int|string
+    {
+        return [
+            'EE1' => 8,
+            'EE2' => 7,
+            'ME1' => 6,
+            'ME2' => 5,
+            'AE1' => 4,
+            'AE2' => 3,
+            'BE1' => 2,
+            'BE2' => 1,
+        ][$rubric] ?? RubricLevel::tryFrom($rubric)?->numericValue() ?? '-';
     }
 
     private function authorizeExamReports(Exam $exam): void
