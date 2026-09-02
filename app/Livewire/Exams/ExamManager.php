@@ -15,6 +15,7 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\SendExamResultsSmsJob;
 use App\Models\SchoolNotification;
+use Throwable;
 
 class ExamManager extends Component
 {
@@ -546,7 +547,19 @@ class ExamManager extends Component
         ]);
 
         $exam->update(['results_sms_status' => 'queued', 'results_sms_queued_at' => now()]);
-        SendExamResultsSmsJob::dispatch($exam->id, $notification->id);
+
+        try {
+            SendExamResultsSmsJob::dispatch($exam->id, $notification->id);
+        } catch (Throwable $exception) {
+            // A sync queue executes the provider call during this request. Do
+            // not leave a failed send looking queued or turn it into a generic
+            // Livewire error page.
+            $exam->update(['results_sms_status' => 'failed']);
+            $notification->update(['status' => 'failed', 'failed_count' => $recipients->count()]);
+            report($exception);
+            $this->addError('results', 'Olympus could not send the results: ' . $exception->getMessage());
+            return;
+        }
         session()->flash('success', "Exam results queued for {$recipients->count()} guardian phone number(s).");
     }
 
