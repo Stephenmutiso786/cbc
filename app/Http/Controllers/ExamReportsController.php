@@ -40,31 +40,6 @@ class ExamReportsController extends Controller
                 GenerateExamReportCardsJob::dispatch($export->id);
             }
 
-            // A free Render web service can occasionally restart after the
-            // request has queued the job and before its in-process worker has
-            // claimed it. Do not leave the user on an endless status page.
-            // Only one stale queued row may be claimed, and normal workers
-            // still handle exports first.
-            if ($export->status === 'queued' || ($export->status === 'processing' && $export->updated_at?->lt(now()->subMinutes(5)))) {
-                $claimed = ExamReportExport::whereKey($export->id)
-                    ->whereIn('status', ['queued', 'processing'])
-                    ->update(['status' => 'processing']);
-
-                if ($claimed === 1) {
-                    try {
-                        (new GenerateExamReportCardsJob($export->id))
-                            ->handle($this, app(\App\Services\GoogleDriveStorage::class));
-                        $export->refresh();
-                    } catch (\Throwable $exception) {
-                        Log::warning('Queued report-card export recovery failed.', [
-                            'export_id' => $export->id,
-                            'message' => $exception->getMessage(),
-                        ]);
-                        $export->refresh();
-                    }
-                }
-            }
-
             if ($export->status === 'complete') {
                 try {
                     return response(
