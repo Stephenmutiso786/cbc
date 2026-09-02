@@ -77,7 +77,7 @@ class ExamReportsController extends Controller
             }
 
             if ($export->status === 'failed') {
-                abort(422, 'Report cards could not be generated: ' . $export->error);
+                return response()->view('reports.exam-export-failed', ['export' => $export], 422);
             }
 
             return response()->view('reports.exam-export-queued', [
@@ -108,7 +108,7 @@ class ExamReportsController extends Controller
         }
 
         if ($export->status === 'failed') {
-            abort(422, 'Report cards could not be generated: ' . $export->error);
+            return response()->view('reports.exam-export-failed', ['export' => $export], 422);
         }
 
         return response()->view('reports.exam-export-queued', [
