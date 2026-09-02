@@ -40,7 +40,7 @@ class SendExamResultsSmsJob implements ShouldQueue
             $learner = $learnerResults->first()->learner;
             if (! $learner) continue;
 
-            foreach ($learner->guardians->whereNotNull('phone_number')->unique('id') as $guardian) {
+            foreach ($learner->guardians->filter(fn ($guardian) => trim((string) $guardian->phone_number) !== '')->unique('id') as $guardian) {
                 $message = $this->messageFor($exam, $learnerResults, $scale);
                 try {
                     $providerResult = $sms->sendSms($guardian->phone_number, $message);
