@@ -4,6 +4,7 @@ namespace App\Livewire\Students;
 
 use App\Models\Learner;
 use App\Models\SchoolClass;
+use App\Jobs\GenerateReportCardJob;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -290,7 +291,10 @@ class StudentList extends Component
 
     public function generateReport(int $id): void
     {
-        session()->flash('success', 'Select this learner in the reports section to generate their report card.');
+        abort_unless($this->canDelete(), 403);
+        Learner::findOrFail($id);
+        GenerateReportCardJob::dispatch($id, (string) config('school.current_term'), (string) config('school.academic_year'));
+        session()->flash('success', 'The report card was queued for generation. It will be saved to the configured report storage.');
     }
 
     public function render()

@@ -123,7 +123,7 @@ class ExamReportsController extends Controller
 
     private function authorizeExamReports(Exam $exam): void
     {
-        if (auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher'])) {
+        if (auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal'])) {
             return;
         }
 
