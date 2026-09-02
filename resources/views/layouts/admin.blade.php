@@ -17,7 +17,7 @@
             <span class="truncate font-bold">{{ config('school.name') }}</span>
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
         </div>
-        <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 text-sm">
+        <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 pb-28 text-sm">
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard']],
                 'People' => [['admin.students.index', 'Learners'], ['admin.students.import', 'Import Learners'], ['admin.staff.index', 'Staff'], ['admin.staff.import', 'Import Staff']],
@@ -34,7 +34,7 @@
                 </div>
             @endforeach
         </nav>
-        <div class="absolute inset-x-0 bottom-0 border-t border-green-700 px-4 py-3">
+        <div class="shrink-0 border-t border-green-700 bg-green-900 px-4 py-3">
             <p class="truncate text-xs text-green-200">{{ auth()->user()->name }}</p>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
