@@ -19,13 +19,7 @@ class ExamReportsController extends Controller
             $this->authorizeExamReports($exam);
             $this->ensureGroupPublished($exam);
 
-            // Use one browser-print path for every class size. This avoids
-            // sending identical report requests through two renderers with
-            // different memory and timeout behaviour.
-            $html = view('pdf.exam-result-cards', [
-                'exam' => $exam,
-                'results' => $this->buildResultCardResults($exam),
-            ])->render();
+            $html = view('reports.exam-report-cards-print', $this->buildPrintableReport($exam))->render();
 
             return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
         } catch (Throwable $exception) {
@@ -37,6 +31,58 @@ class ExamReportsController extends Controller
 
             throw $exception;
         }
+    }
+
+    private function buildPrintableReport(Exam $exam): array
+    {
+        $exam->load(['schoolClass', 'learningArea']);
+        $scale = $exam->schoolClass?->gradingScale()->first();
+        $examIds = $exam->groupExamIds();
+        $subjectExams = Exam::with('learningArea')->whereIn('id', $examIds)->orderBy('id')->get();
+        $marks = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
+            ->whereIn('exam_id', $examIds)
+            ->whereHas('learner')
+            ->get();
+
+        abort_if($marks->isEmpty(), 422, 'No marks have been entered for this exam.');
+
+        $cards = $marks->groupBy('learner_id')->map(function ($learnerMarks) use ($scale): array {
+            $first = $learnerMarks->first();
+            $totalPossible = $learnerMarks->sum(fn ($mark) => (float) $mark->total_marks);
+            $totalObtained = $learnerMarks->sum(fn ($mark) => (float) ($mark->marks_obtained ?? 0));
+            $overallPercentage = $totalPossible > 0 ? ($totalObtained / $totalPossible) * 100 : 0;
+
+            return [
+                'learner' => [
+                    'name' => $first->learner->full_name,
+                    'admission_number' => $first->learner->admission_number,
+                    'class' => $first->learner->schoolClass?->name ?? (string) $first->learner->grade_level,
+                ],
+                'subjects' => $learnerMarks->map(function ($mark) use ($scale): array {
+                    $percentage = $mark->percentage;
+                    $grade = $mark->grade ?: $scale?->gradeForPercent($percentage);
+                    $rubric = $mark->rubric_level?->value;
+                    if ($mark->marks_obtained !== null && ! $rubric) {
+                        $rubric = $this->rubricForPercentage($percentage, $scale)->value;
+                    }
+
+                    return [
+                        'name' => $mark->exam?->learningArea?->name ?? 'Learning area',
+                        'rubric' => $rubric ?: '-',
+                        'points' => RubricLevel::tryFrom((string) $rubric)?->numericValue() ?? '-',
+                        'grade' => $grade ?: '-',
+                        'remarks' => $mark->remarks ?: 'Did not sit',
+                    ];
+                })->values()->all(),
+                'subject_count' => $learnerMarks->count(),
+                'total_obtained' => $totalObtained,
+                'total_possible' => $totalPossible,
+                'overall_percentage' => round($overallPercentage, 2),
+                'overall_grade' => $this->gradeForPercentage($overallPercentage, $scale),
+            ];
+        })->sortBy(fn (array $card) => $card['learner']['name'])->values()->all();
+
+        return compact('exam', 'subjectExams', 'cards');
     }
 
     public function downloadExport(ExamReportExport $export): Response
