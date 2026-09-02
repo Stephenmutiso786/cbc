@@ -17,4 +17,26 @@ class User extends Authenticatable
 
     public function staffMember() { return $this->hasOne(StaffMember::class); }
     public function guardian()    { return $this->hasOne(Guardian::class); }
+
+    public function levelPortal(): ?array
+    {
+        foreach (config('school.level_teacher_roles', []) as $role => $portal) {
+            if ($this->hasRole($role)) {
+                return ['role' => $role] + $portal;
+            }
+        }
+
+        return null;
+    }
+
+    public function gradeBandLevels(): array
+    {
+        $portal = $this->levelPortal();
+        return $portal ? (array) config('school.grade_levels.' . $portal['band'], []) : [];
+    }
+
+    public function gradeBandLabel(): ?string
+    {
+        return $this->levelPortal()['label'] ?? null;
+    }
 }

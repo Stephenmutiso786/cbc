@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('school.name') }} — Teacher Portal</title>
+    <title>{{ config('school.name') }} — {{ auth()->user()->gradeBandLabel() ?? 'Teacher Portal' }}</title>
     @include('layouts.partials.pwa')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
@@ -13,7 +13,7 @@
     <div data-sidebar-overlay class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-blue-900 transition-transform duration-300 md:translate-x-0">
         <div class="h-16 flex items-center px-5 bg-blue-950">
-            <span class="text-white font-bold text-sm">Teacher Portal</span>
+            <span class="text-white font-bold text-sm">{{ auth()->user()->gradeBandLabel() ?? 'Teacher Portal' }}</span>
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-blue-100 hover:bg-blue-800 md:hidden" aria-label="Close menu">&times;</button>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1">
@@ -33,7 +33,7 @@
     <div class="min-h-screen md:ml-60">
         <header class="bg-white h-14 flex items-center gap-3 px-4 shadow-sm md:px-6">
             <button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
-            <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? 'Teacher Portal' }}</h1>
+            <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? auth()->user()->gradeBandLabel() ?? 'Teacher Portal' }}</h1>
             <form method="POST" action="{{ route('logout') }}" class="ml-auto">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form>
         </header>
         <main class="min-w-0 overflow-x-hidden p-4 md:p-6">

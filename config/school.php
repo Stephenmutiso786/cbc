@@ -15,9 +15,17 @@ return [
     'current_term'  => (int) env('CURRENT_TERM', 1),
 
     'grade_levels' => [
+        'pre_primary'      => ['PP1', 'PP2'],
         'lower_primary'    => ['Grade 1', 'Grade 2', 'Grade 3'],
         'upper_primary'    => ['Grade 4', 'Grade 5', 'Grade 6'],
         'junior_secondary' => ['Grade 7', 'Grade 8', 'Grade 9'],
+    ],
+
+    'level_teacher_roles' => [
+        'pre-primary-teacher' => ['band' => 'pre_primary', 'label' => 'Pre-Primary Portal'],
+        'lower-primary-teacher' => ['band' => 'lower_primary', 'label' => 'Lower Primary Portal'],
+        'upper-primary-teacher' => ['band' => 'upper_primary', 'label' => 'Upper Primary Portal'],
+        'junior-secondary-teacher' => ['band' => 'junior_secondary', 'label' => 'Junior Secondary Portal'],
     ],
 
     'rubric_levels' => [
