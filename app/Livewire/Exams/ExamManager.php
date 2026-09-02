@@ -503,21 +503,36 @@ class ExamManager extends Component
 
         $exam = Exam::findOrFail($examId);
         $group = Exam::whereIn('id', $exam->groupExamIds())->get();
-        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->exam_state === 'published' && $item->status === 'published' && $item->marks_status === 'approved'), 422, 'Results can only be sent after the complete exam is published.');
-        abort_if($exam->results_sms_status === 'queued', 422, 'Results are already being sent.');
-        abort_if($exam->results_sms_status === 'sent', 422, 'Results have already been sent for this exam.');
+        if ($group->isEmpty() || ! $group->every(fn (Exam $item) => $item->isFullyPublished())) {
+            $this->addError('results', 'Results can only be sent after every subject is reviewed and the complete exam is published.');
+            return;
+        }
+        if ($exam->results_sms_status === 'queued') {
+            $this->addError('results', 'Results are already being sent.');
+            return;
+        }
+        if (in_array($exam->results_sms_status, ['sent', 'partial'], true)) {
+            $this->addError('results', 'Results have already been sent for this exam.');
+            return;
+        }
 
         $recipients = ExamResult::with('learner.guardians')
             ->whereIn('exam_id', $exam->groupExamIds())
             ->get()
             ->flatMap(fn ($result) => $result->learner?->guardians ?? collect())
-            ->whereNotNull('phone_number')
+            ->whereNotNull('phone_number')->filter(fn ($guardian) => trim((string) $guardian->phone_number) !== '')
             ->unique('id')
             ->values();
-        abort_if($recipients->isEmpty(), 422, 'No result guardians have phone numbers.');
+        if ($recipients->isEmpty()) {
+            $this->addError('results', 'No linked parent or guardian has a valid phone number for these learners.');
+            return;
+        }
 
         $staff = StaffMember::where('user_id', auth()->id())->first();
-        abort_unless($staff, 422, 'This account is not linked to a staff profile.');
+        if (! $staff) {
+            $this->addError('results', 'This account is not linked to a staff profile.');
+            return;
+        }
 
         $notification = SchoolNotification::create([
             'sender_id' => $staff->id,
