@@ -36,7 +36,7 @@ class ExamReportsController extends Controller
 
     private function buildPrintableReport(Exam $exam): array
     {
-        $exam->load('schoolClass');
+        $exam->load('schoolClass.classTeacher');
         $scale = $exam->schoolClass?->gradingScale()->first();
         $merit = $this->buildPrintableMeritList($exam);
         $subjects = collect($merit['subjects']);
@@ -91,7 +91,20 @@ class ExamReportsController extends Controller
             ];
         })->sortBy(fn (array $card) => $card['learner']['name'])->values()->all();
 
-        return compact('exam', 'cards');
+        return [
+            'exam' => $exam,
+            'cards' => $cards,
+            'classTeacherName' => $exam->schoolClass?->classTeacher?->full_name,
+            'classTeacherSignatureUrl' => $exam->schoolClass?->class_teacher_id
+                ? route('staff.signature', $exam->schoolClass->class_teacher_id)
+                : null,
+            'officialSignatureUrl' => config('school.official_signature_data')
+                ? route('school.official-asset', ['asset' => 'signature'])
+                : null,
+            'officialStampUrl' => config('school.official_stamp_data')
+                ? route('school.official-asset', ['asset' => 'stamp'])
+                : null,
+        ];
     }
 
     public function downloadExport(ExamReportExport $export): Response
@@ -130,8 +143,16 @@ class ExamReportsController extends Controller
     public function buildResultCardsPdf(Exam $exam): string
     {
         $results = $this->buildResultCardResults($exam);
+        $exam->load('schoolClass.classTeacher');
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.exam-result-cards', [
+            'exam' => $exam,
+            'results' => $results,
+            'classTeacherSignature' => $exam->schoolClass?->classTeacher?->signature_data,
+            'classTeacherName' => $exam->schoolClass?->classTeacher?->full_name,
+            'officialSignature' => config('school.official_signature_data'),
+            'officialStamp' => config('school.official_stamp_data'),
+        ])
             ->setPaper('a4', 'portrait')
             ->output();
     }
