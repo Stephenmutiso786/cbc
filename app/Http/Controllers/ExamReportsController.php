@@ -30,15 +30,6 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
-            if (request()->boolean('diagnose') && auth()->user()?->hasAnyRole([
-                'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy', 'hod',
-            ])) {
-                return response()->json([
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ], 500);
-            }
-
             throw $exception;
         }
     }
