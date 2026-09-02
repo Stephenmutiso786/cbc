@@ -14,10 +14,6 @@ use App\Http\Controllers\SchoolAssetController;
 Route::get('/', fn() => redirect()->route('login'));
 Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
 Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school.logo');
-Route::get('/school-official-asset/{asset}', [SchoolAssetController::class, 'official'])
-    ->middleware(['auth', 'verified'])->name('school.official-asset');
-Route::get('/staff-signature/{staff}', [SchoolAssetController::class, 'staffSignature'])
-    ->middleware(['auth', 'verified'])->name('staff.signature');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
