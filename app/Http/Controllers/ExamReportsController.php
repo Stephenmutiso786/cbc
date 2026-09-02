@@ -46,9 +46,10 @@ class ExamReportsController extends Controller
 
         abort_if($marks->isEmpty(), 422, 'No marks have been entered for this exam.');
 
-        $cards = $marks->groupBy('learner_id')->map(function ($learnerMarks) use ($scale): array {
+        $cards = $marks->groupBy('learner_id')->map(function ($learnerMarks) use ($scale, $subjectExams): array {
             $first = $learnerMarks->first();
-            $totalPossible = $learnerMarks->sum(fn ($mark) => (float) $mark->total_marks);
+            $marksByExam = $learnerMarks->keyBy('exam_id');
+            $totalPossible = $subjectExams->sum(fn ($subject) => (float) $subject->total_marks);
             $totalObtained = $learnerMarks->sum(fn ($mark) => (float) ($mark->marks_obtained ?? 0));
             $overallPercentage = $totalPossible > 0 ? ($totalObtained / $totalPossible) * 100 : 0;
 
@@ -58,7 +59,17 @@ class ExamReportsController extends Controller
                     'admission_number' => $first->learner->admission_number,
                     'class' => $first->learner->schoolClass?->name ?? (string) $first->learner->grade_level,
                 ],
-                'subjects' => $learnerMarks->map(function ($mark) use ($scale): array {
+                'subjects' => $subjectExams->map(function ($subject) use ($marksByExam, $scale): array {
+                    $mark = $marksByExam->get($subject->id);
+                    if (! $mark) {
+                        return [
+                            'name' => $subject->learningArea?->name ?? 'Learning area',
+                            'rubric' => '-',
+                            'points' => '-',
+                            'grade' => '-',
+                            'remarks' => 'Did not sit',
+                        ];
+                    }
                     $percentage = $mark->percentage;
                     $grade = $mark->grade ?: $scale?->gradeForPercent($percentage);
                     $rubric = $mark->rubric_level?->value;
@@ -74,7 +85,7 @@ class ExamReportsController extends Controller
                         'remarks' => $mark->remarks ?: 'Did not sit',
                     ];
                 })->values()->all(),
-                'subject_count' => $learnerMarks->count(),
+                'subject_count' => $subjectExams->count(),
                 'total_obtained' => $totalObtained,
                 'total_possible' => $totalPossible,
                 'overall_percentage' => round($overallPercentage, 2),
@@ -172,63 +183,86 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
+        $html = view('reports.exam-merit-list-print', $this->buildPrintableMeritList($exam))->render();
+
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+    }
+
+    private function buildPrintableMeritList(Exam $exam): array
+    {
         $exam->load('schoolClass');
         $scale = $exam->schoolClass?->gradingScale()->first();
         $examIds = $exam->groupExamIds();
         $subjects = Exam::with('learningArea')->whereIn('id', $examIds)->orderBy('id')->get();
-        $subjectResults = ExamResult::with(['learner.schoolClass'])
+        $subjectResults = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
             ->whereIn('exam_id', $examIds)
             ->whereHas('learner')
             ->get();
+
+        abort_if($subjectResults->isEmpty(), 422, 'No marks have been entered for this exam.');
+
         $subjectMeans = $subjects->map(function ($subject) use ($subjectResults): array {
             $scores = $subjectResults->where('exam_id', $subject->id)
                 ->filter(fn ($result) => $result->marks_obtained !== null)
-                ->map(fn ($result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks * 100 : 0);
-            return ['name' => $subject->learningArea?->name ?? 'Learning area', 'mean' => round($scores->avg() ?: 0, 2), 'entries' => $scores->count()];
-        })->values();
-        $results = $subjectResults
-            ->groupBy('learner_id')
-            ->map(function ($learnerResults) use ($scale) {
-                $first = $learnerResults->first();
-                $first->marks_obtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
-                $first->total_marks = $learnerResults->sum(fn ($result) => (float) $result->total_marks);
-                $percentage = $first->total_marks > 0
-                    ? ((float) $first->marks_obtained / (float) $first->total_marks) * 100
-                    : 0;
-                $first->grade = $this->gradeForPercentage($percentage, $scale);
-                $first->rubric_level = null;
-                $first->remarks = 'Combined results across ' . $learnerResults->count() . ' learning areas.';
-                $first->subject_scores = $learnerResults->mapWithKeys(fn ($result) => [$result->exam_id => [
-                    'marks' => $result->marks_obtained, 'total' => $result->total_marks, 'grade' => $result->grade,
-                ]])->all();
-                return $first;
-            })
-            ->sortByDesc(fn ($result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks : 0)
-            ->values();
+                ->map(fn ($result) => (float) $result->total_marks > 0
+                    ? ((float) $result->marks_obtained / (float) $result->total_marks) * 100
+                    : 0);
 
-        abort_if($results->isEmpty(), 422, 'No marks have been entered for this exam.');
+            return [
+                'name' => $subject->learningArea?->name ?? 'Learning area',
+                'mean' => round($scores->avg() ?: 0, 2),
+                'entries' => $scores->count(),
+            ];
+        })->values()->all();
+
+        $rows = $subjectResults->groupBy('learner_id')->map(function ($learnerResults) use ($scale): array {
+            $first = $learnerResults->first();
+            $totalPossible = $learnerResults->sum(fn ($result) => (float) $result->total_marks);
+            $totalObtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
+            $percentage = $totalPossible > 0 ? ($totalObtained / $totalPossible) * 100 : 0;
+
+            return [
+                'learner' => [
+                    'name' => $first->learner->full_name,
+                    'admission_number' => $first->learner->admission_number,
+                ],
+                'subject_scores' => $learnerResults->mapWithKeys(function ($result): array {
+                    return [$result->exam_id => [
+                        'marks' => $result->marks_obtained,
+                        'total' => $result->total_marks,
+                        'grade' => $result->grade ?: '-',
+                    ]];
+                })->all(),
+                'total_obtained' => $totalObtained,
+                'total_possible' => $totalPossible,
+                'percentage' => round($percentage, 1),
+                'grade' => $this->gradeForPercentage($percentage, $scale),
+            ];
+        })->sortByDesc(fn (array $row) => $row['total_possible'] > 0
+            ? $row['total_obtained'] / $row['total_possible']
+            : 0)->values();
 
         $position = 0;
         $previousPercentage = null;
-        $ranked = $results->map(function ($result, $index) use (&$position, &$previousPercentage) {
-            $percentage = $result->total_marks > 0
-                ? round((float) $result->marks_obtained / (float) $result->total_marks * 100, 1)
-                : 0;
-            if ($previousPercentage === null || $percentage < $previousPercentage) {
+        $rows = $rows->map(function (array $row, int $index) use (&$position, &$previousPercentage): array {
+            if ($previousPercentage === null || $row['percentage'] < $previousPercentage) {
                 $position = $index + 1;
             }
-            $previousPercentage = $percentage;
-            $result->merit_position = $position;
-            $result->merit_percentage = $percentage;
-            return $result;
-        });
+            $previousPercentage = $row['percentage'];
+            $row['position'] = $position;
+            return $row;
+        })->values()->all();
 
-        return Pdf::loadView('pdf.exam-merit-list', [
-            'exam' => $exam, 'results' => $ranked, 'subjects' => $subjects,
-            'subjectMeans' => $subjectMeans, 'topFive' => $ranked->take(5),
-        ])
-            ->setPaper('a4', 'landscape')
-            ->download('merit-list-' . $exam->id . '.pdf');
+        return [
+            'exam' => $exam,
+            'subjects' => $subjects->map(fn ($subject): array => [
+                'id' => $subject->id,
+                'name' => $subject->learningArea?->name ?? 'Subject',
+            ])->values()->all(),
+            'subjectMeans' => $subjectMeans,
+            'rows' => $rows,
+            'topFive' => array_slice($rows, 0, 5),
+        ];
     }
 
     private function gradeForPercentage(float $percentage, $scale): string
