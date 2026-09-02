@@ -40,9 +40,14 @@
                 const examTotal = Number(field.dataset.totalMarks || 100);
                 const marks = Number(raw);
                 if (!Number.isFinite(marks) || marks < 0 || marks > 100 || marks > examTotal || examTotal <= 0) { cell.textContent = '-'; return; }
-                const percent = (marks / examTotal) * 100;
-                const band = bands.find((item) => percent >= Number(item.min ?? 0) && percent <= Number(item.max ?? 100));
-                cell.textContent = band?.code || '-';
+                const percent = Math.max(0, Math.min(100, (marks / examTotal) * 100));
+                const band = bands.find((item) => percent >= Number(item.min ?? 0) - 0.000001 && percent <= Number(item.max ?? 100) + 0.000001);
+                if (band?.code) {
+                    cell.textContent = band.code;
+                    return;
+                }
+                // Keep the preview useful even when a class has no custom scale yet.
+                cell.textContent = percent >= 75 ? 'EE' : percent >= 50 ? 'ME' : percent >= 30 ? 'AE' : 'BE';
             };
             if (input) update(input);
             else document.querySelectorAll('input[type="number"][wire\\:model^="marks."]').forEach(update);

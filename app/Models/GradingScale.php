@@ -17,8 +17,10 @@ class GradingScale extends Model
 
     public function gradeForPercent(float $percent): ?string
     {
+        // Keep the upper boundary stable when percentages are produced from decimals.
+        $percent = max(0, min(100, $percent));
         foreach ($this->bands ?? [] as $band) {
-            if ($percent >= (float) ($band['min'] ?? 0) && $percent <= (float) ($band['max'] ?? 100)) {
+            if ($percent >= ((float) ($band['min'] ?? 0) - 0.000001) && $percent <= ((float) ($band['max'] ?? 100) + 0.000001)) {
                 return $band['code'] ?? null;
             }
         }
