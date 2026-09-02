@@ -30,67 +30,60 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
-            if (request()->boolean('diagnose')) {
-                return response()->json([
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ], 500);
-            }
-
             throw $exception;
         }
     }
 
     private function buildPrintableReport(Exam $exam): array
     {
-        $exam->load(['schoolClass', 'learningArea']);
+        $exam->load('schoolClass');
         $scale = $exam->schoolClass?->gradingScale()->first();
-        $examIds = $exam->groupExamIds();
-        $subjectExams = Exam::with('learningArea')->whereIn('id', $examIds)->orderBy('id')->get();
-        $marks = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
-            ->whereIn('exam_id', $examIds)
-            ->whereHas('learner')
-            ->get();
+        $merit = $this->buildPrintableMeritList($exam);
+        $subjects = collect($merit['subjects']);
+        $totalPossible = $subjects->sum(fn (array $subject) => (float) $subject['total']);
 
-        abort_if($marks->isEmpty(), 422, 'No marks have been entered for this exam.');
+        $cards = collect($merit['rows'])->map(function (array $row) use ($exam, $scale, $subjects, $totalPossible): array {
+            $totalObtained = 0.0;
+            $subjectRows = $subjects->map(function (array $subject) use ($row, $scale, &$totalObtained): array {
+                $score = $row['subject_scores'][$subject['id']] ?? null;
+                $marks = $score['marks'] ?? null;
+                $total = (float) ($score['total'] ?? $subject['total']);
 
-        $cards = $marks->groupBy('learner_id')->map(function ($learnerMarks) use ($scale, $subjectExams): array {
-            $first = $learnerMarks->first();
-            $marksByExam = $learnerMarks->keyBy('exam_id');
-            $totalPossible = $subjectExams->sum(fn ($subject) => (float) $subject->total_marks);
-            $totalObtained = $learnerMarks->sum(fn ($mark) => (float) ($mark->marks_obtained ?? 0));
+                if ($marks === null) {
+                    return [
+                        'name' => $subject['name'],
+                        'rubric' => '-',
+                        'points' => '-',
+                        'grade' => '-',
+                        'remarks' => 'Did not sit',
+                    ];
+                }
+
+                $marks = (float) $marks;
+                $totalObtained += $marks;
+                $percentage = $total > 0 ? ($marks / $total) * 100 : 0;
+                $rubric = $scale?->gradeForPercent($percentage)
+                    ?: $this->rubricForPercentage($percentage, $scale)->value;
+
+                return [
+                    'name' => $subject['name'],
+                    'rubric' => $rubric,
+                    'points' => $this->rubricPoints($rubric),
+                    'grade' => $score['grade'] ?: $rubric,
+                    'remarks' => $score['remarks'] ?: 'Keep working consistently.',
+                ];
+            })->values()->all();
+
             $overallPercentage = $totalPossible > 0 ? ($totalObtained / $totalPossible) * 100 : 0;
 
             return [
                 'learner' => [
-                    'name' => $first->learner->full_name,
-                    'admission_number' => $first->learner->admission_number,
-                    'class' => $first->learner->schoolClass?->name ?? (string) $first->learner->grade_level,
+                    'name' => $row['learner']['name'],
+                    'admission_number' => $row['learner']['admission_number'],
+                    'class' => $exam->schoolClass?->name ?? (string) $exam->grade_level,
                 ],
-                'subjects' => $subjectExams->map(function ($subject) use ($marksByExam, $scale): array {
-                    $mark = $marksByExam->get($subject->id);
-                    if (! $mark) {
-                        return [
-                            'name' => $subject->learningArea?->name ?? 'Learning area',
-                            'rubric' => '-',
-                            'points' => '-',
-                            'grade' => '-',
-                            'remarks' => 'Did not sit',
-                        ];
-                    }
-                    $percentage = $mark->percentage;
-                    $grade = $mark->grade ?: $scale?->gradeForPercent($percentage);
-                    $rubric = $this->rubricCodeForResult($mark, $percentage, $scale);
-
-                    return [
-                        'name' => $mark->exam?->learningArea?->name ?? 'Learning area',
-                        'rubric' => $rubric ?: '-',
-                        'points' => $this->rubricPoints($rubric),
-                        'grade' => $grade ?: '-',
-                        'remarks' => $mark->remarks ?: 'Did not sit',
-                    ];
-                })->values()->all(),
-                'subject_count' => $subjectExams->count(),
+                'subjects' => $subjectRows,
+                'subject_count' => $subjects->count(),
                 'total_obtained' => $totalObtained,
                 'total_possible' => $totalPossible,
                 'overall_percentage' => round($overallPercentage, 2),
@@ -98,7 +91,7 @@ class ExamReportsController extends Controller
             ];
         })->sortBy(fn (array $card) => $card['learner']['name'])->values()->all();
 
-        return compact('exam', 'subjectExams', 'cards');
+        return compact('exam', 'cards');
     }
 
     public function downloadExport(ExamReportExport $export): Response
@@ -236,6 +229,7 @@ class ExamReportsController extends Controller
                         'marks' => $result->marks_obtained,
                         'total' => $result->total_marks,
                         'grade' => $result->grade ?: '-',
+                        'remarks' => $result->remarks,
                     ]];
                 })->all(),
                 'total_obtained' => $totalObtained,
@@ -263,6 +257,7 @@ class ExamReportsController extends Controller
             'subjects' => $subjects->map(fn ($subject): array => [
                 'id' => $subject->id,
                 'name' => $subject->learningArea?->name ?? 'Subject',
+                'total' => $subject->total_marks,
             ])->values()->all(),
             'subjectMeans' => $subjectMeans,
             'rows' => $rows,
