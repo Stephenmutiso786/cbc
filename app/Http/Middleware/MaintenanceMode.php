@@ -31,7 +31,7 @@ class MaintenanceMode
     private function allowed(Request $request): bool
     {
         $path = trim($request->path(), '/');
-        if (in_array($path, ['up', 'login', 'maintenance/login', 'school-logo', 'forgot-password', 'logout'], true) || str_starts_with($path, 'password/')) {
+        if (in_array($path, ['up', 'login', 'maintenance/login', 'school-logo', 'forgot-password', 'logout'], true) || str_starts_with($path, 'password/') || str_starts_with($path, 'reports/verify/')) {
             return true;
         }
 

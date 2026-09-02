@@ -9,6 +9,8 @@ use App\Models\ExamReportExport;
 use App\Models\TeacherSubjectAllocation;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Throwable;
 
 class ExamReportsController extends Controller
@@ -76,8 +78,14 @@ class ExamReportsController extends Controller
 
             $overallPercentage = $totalPossible > 0 ? ($totalObtained / $totalPossible) * 100 : 0;
 
+            $verificationUrl = URL::signedRoute('reports.verify', [
+                'exam' => $exam->id,
+                'learner' => $row['learner']['id'],
+            ]);
+
             return [
                 'learner' => [
+                    'id' => $row['learner']['id'],
                     'name' => $row['learner']['name'],
                     'admission_number' => $row['learner']['admission_number'],
                     'class' => $exam->schoolClass?->name ?? (string) $exam->grade_level,
@@ -88,6 +96,8 @@ class ExamReportsController extends Controller
                 'total_possible' => $totalPossible,
                 'overall_percentage' => round($overallPercentage, 2),
                 'overall_grade' => $this->gradeForPercentage($overallPercentage, $scale),
+                'verificationUrl' => $verificationUrl,
+                'verificationQr' => QrCode::format('svg')->size(82)->margin(1)->generate($verificationUrl),
             ];
         })->sortBy(fn (array $card) => $card['learner']['name'])->values()->all();
 
@@ -144,6 +154,17 @@ class ExamReportsController extends Controller
     {
         $results = $this->buildResultCardResults($exam);
         $exam->load('schoolClass.classTeacher');
+        $verificationQrs = $results->groupBy('learner_id')->keys()->mapWithKeys(function ($learnerId) use ($exam): array {
+            $url = URL::signedRoute('reports.verify', [
+                'exam' => $exam->id,
+                'learner' => $learnerId,
+            ]);
+
+            return [$learnerId => [
+                'url' => $url,
+                'svg' => QrCode::format('svg')->size(82)->margin(1)->generate($url),
+            ]];
+        })->all();
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.exam-result-cards', [
             'exam' => $exam,
@@ -152,6 +173,7 @@ class ExamReportsController extends Controller
             'classTeacherName' => $exam->schoolClass?->classTeacher?->full_name,
             'officialSignature' => config('school.official_signature_data'),
             'officialStamp' => config('school.official_stamp_data'),
+            'verificationQrs' => $verificationQrs,
         ])
             ->setPaper('a4', 'portrait')
             ->output();
@@ -246,6 +268,7 @@ class ExamReportsController extends Controller
 
             return [
                 'learner' => [
+                    'id' => $first->learner->id,
                     'name' => $first->learner->full_name,
                     'admission_number' => $first->learner->admission_number,
                 ],
