@@ -97,10 +97,7 @@ class ExamReportsController extends Controller
                 'overall_percentage' => round($overallPercentage, 2),
                 'overall_grade' => $this->gradeForPercentage($overallPercentage, $scale),
                 'verificationUrl' => $verificationUrl,
-                'verificationQrUrl' => URL::signedRoute('reports.verify.qr', [
-                    'exam' => $exam->id,
-                    'learner' => $row['learner']['id'],
-                ]),
+                'verificationQr' => QrCode::format('svg')->size(82)->margin(1)->generate($verificationUrl),
             ];
         })->sortBy(fn (array $card) => $card['learner']['name'])->values()->all();
 
