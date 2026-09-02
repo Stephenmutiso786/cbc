@@ -15,7 +15,8 @@ class ParentManager extends Component
     public string $lastName = '';
     public string $phoneNumber = '';
     public string $email = '';
-    public string $relationship = 'Parent';
+    public string $relationship = 'guardian';
+    public string $learnerSearch = '';
     public array $learnerIds = [];
 
     public function create(): void
@@ -32,7 +33,7 @@ class ParentManager extends Component
         $this->lastName = $parent->last_name;
         $this->phoneNumber = $parent->phone_number;
         $this->email = (string) $parent->email;
-        $this->relationship = (string) ($parent->relationship ?: 'Parent');
+        $this->relationship = (string) ($parent->relationship ?: 'guardian');
         $this->learnerIds = $parent->learners->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->showForm = true;
     }
@@ -44,7 +45,7 @@ class ParentManager extends Component
             'lastName' => ['required', 'string', 'max:100'],
             'phoneNumber' => ['required', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'relationship' => ['required', 'string', 'max:50'],
+            'relationship' => ['required', 'in:father,mother,guardian,other'],
             'learnerIds' => ['required', 'array', 'min:1'],
             'learnerIds.*' => ['integer', 'exists:learners,id'],
         ]);
@@ -79,13 +80,23 @@ class ParentManager extends Component
     {
         return view('livewire.admin.parent-manager', [
             'parents' => Guardian::withCount('learners')->with('learners.schoolClass')->orderBy('last_name')->paginate(25),
-            'learners' => Learner::active()->with('schoolClass')->orderBy('last_name')->orderBy('first_name')->get(),
+            'learners' => Learner::active()->with('schoolClass')
+                ->when(trim($this->learnerSearch) !== '', function ($query): void {
+                    $term = '%' . trim($this->learnerSearch) . '%';
+                    $query->where(function ($nested) use ($term): void {
+                        $nested->where('first_name', 'like', $term)
+                            ->orWhere('middle_name', 'like', $term)
+                            ->orWhere('last_name', 'like', $term)
+                            ->orWhere('admission_number', 'like', $term);
+                    });
+                })
+                ->orderBy('last_name')->orderBy('first_name')->get(),
         ])->layout('layouts.admin');
     }
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'firstName', 'lastName', 'phoneNumber', 'email', 'learnerIds']);
-        $this->relationship = 'Parent';
+        $this->reset(['editingId', 'firstName', 'lastName', 'phoneNumber', 'email', 'learnerIds', 'learnerSearch']);
+        $this->relationship = 'guardian';
     }
 }
