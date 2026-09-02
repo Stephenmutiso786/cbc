@@ -15,6 +15,12 @@ class ExamReportsController extends Controller
 {
     public function resultCards(Exam $exam): Response
     {
+        if (request()->boolean('diagnose') && auth()->user()?->hasAnyRole([
+            'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy', 'hod',
+        ])) {
+            return response()->json(['reached_report_controller' => true, 'exam_id' => $exam->id]);
+        }
+
         try {
             $this->authorizeExamReports($exam);
             $this->ensureGroupPublished($exam);
