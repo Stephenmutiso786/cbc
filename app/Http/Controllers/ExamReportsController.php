@@ -14,6 +14,8 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
+        $exam->load('schoolClass');
+        $scale = $exam->schoolClass?->gradingScale()->first();
         $results = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
             ->whereIn('exam_id', $exam->groupExamIds())
             ->whereHas('learner')
@@ -22,6 +24,18 @@ class ExamReportsController extends Controller
             ->values();
 
         abort_if($results->isEmpty(), 422, 'No marks have been entered for this exam.');
+
+        $results = $results->groupBy('learner_id')->flatMap(function ($learnerResults) use ($scale) {
+            $possible = $learnerResults->sum(fn ($result) => (float) $result->total_marks);
+            $obtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
+            $percentage = $possible > 0 ? ($obtained / $possible) * 100 : 0;
+            $overallGrade = $this->gradeForPercentage($percentage, $scale);
+            return $learnerResults->map(function ($result) use ($percentage, $overallGrade) {
+                $result->overall_percentage = round($percentage, 2);
+                $result->overall_grade = $overallGrade;
+                return $result;
+            });
+        })->values();
 
         return Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
             ->setPaper('a4', 'portrait')
@@ -32,16 +46,21 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
+        $exam->load('schoolClass');
+        $scale = $exam->schoolClass?->gradingScale()->first();
         $results = ExamResult::with(['learner.schoolClass'])
             ->whereIn('exam_id', $exam->groupExamIds())
             ->whereHas('learner')
             ->get()
             ->groupBy('learner_id')
-            ->map(function ($learnerResults) {
+            ->map(function ($learnerResults) use ($scale) {
                 $first = $learnerResults->first();
                 $first->marks_obtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
                 $first->total_marks = $learnerResults->sum(fn ($result) => (float) $result->total_marks);
-                $first->grade = null;
+                $percentage = $first->total_marks > 0
+                    ? ((float) $first->marks_obtained / (float) $first->total_marks) * 100
+                    : 0;
+                $first->grade = $this->gradeForPercentage($percentage, $scale);
                 $first->rubric_level = null;
                 $first->remarks = 'Combined results across ' . $learnerResults->count() . ' learning areas.';
                 return $first;
@@ -69,6 +88,22 @@ class ExamReportsController extends Controller
         return Pdf::loadView('pdf.exam-merit-list', ['exam' => $exam, 'results' => $ranked])
             ->setPaper('a4', 'portrait')
             ->download('merit-list-' . $exam->id . '.pdf');
+    }
+
+    private function gradeForPercentage(float $percentage, $scale): string
+    {
+        $percentage = max(0, min(100, $percentage));
+        if ($scale && ($grade = $scale->gradeForPercent($percentage)) !== null) {
+            return $grade;
+        }
+
+        return match (true) {
+            $percentage >= 80 => 'A',
+            $percentage >= 70 => 'B',
+            $percentage >= 60 => 'C',
+            $percentage >= 50 => 'D',
+            default => 'E',
+        };
     }
 
     private function authorizeExamReports(Exam $exam): void
