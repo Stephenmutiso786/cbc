@@ -46,6 +46,14 @@ class ExamReportsController extends Controller
                 GenerateExamReportCardsJob::dispatch($export->id);
             }
 
+            if ($export->status === 'processing' && $export->updated_at?->lt(now()->subMinutes(2))) {
+                Log::warning('Report-card export exceeded the worker window; serving printable HTML.', ['export_id' => $export->id]);
+                return response()->view('pdf.exam-result-cards', [
+                    'exam' => $exam,
+                    'results' => $this->buildResultCardResults($exam),
+                ]);
+            }
+
             if ($export->status === 'complete') {
                 try {
                     return response(
@@ -112,6 +120,15 @@ class ExamReportsController extends Controller
 
     public function buildResultCardsPdf(Exam $exam): string
     {
+        $results = $this->buildResultCardResults($exam);
+
+        return Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
+            ->setPaper('a4', 'portrait')
+            ->output();
+    }
+
+    private function buildResultCardResults(Exam $exam)
+    {
         $exam->load('schoolClass');
         $scale = $exam->schoolClass?->gradingScale()->first();
         $results = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
@@ -141,9 +158,7 @@ class ExamReportsController extends Controller
             });
         })->values();
 
-        return Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
-            ->setPaper('a4', 'portrait')
-            ->output();
+        return $results;
     }
 
     private function downloadResultCards(Exam $exam): Response
