@@ -29,6 +29,13 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
+            if (request()->boolean('diagnose') && auth()->user()?->can('manage exams')) {
+                return response()->json([
+                    'exception' => get_class($exception),
+                    'message' => $exception->getMessage(),
+                ], 500);
+            }
+
             throw $exception;
         }
     }
