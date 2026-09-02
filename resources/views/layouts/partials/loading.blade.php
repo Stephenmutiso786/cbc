@@ -24,7 +24,7 @@
         };
         const marksPreviewUpdate = () => {
             const active = document.activeElement;
-            const binding = active?.getAttribute('wire:model.live') || '';
+            const binding = active?.getAttribute('wire:model') || active?.getAttribute('wire:model.live') || '';
             return active?.matches('input[type="number"]') && binding.startsWith('marks.');
         };
         const refreshRubrics = (input) => {
@@ -54,7 +54,7 @@
         }, true);
         document.addEventListener('input', (event) => {
             const input = event.target;
-            const binding = input?.getAttribute?.('wire:model.live') || '';
+            const binding = input?.getAttribute?.('wire:model') || input?.getAttribute?.('wire:model.live') || '';
             if (!input?.matches?.('input[type="number"]') || !binding.startsWith('marks.') || input.value === '') return;
             const value = Number(input.value);
             if (Number.isFinite(value) && value > 100) input.value = '100';
