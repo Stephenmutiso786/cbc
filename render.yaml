@@ -39,6 +39,10 @@ services:
         value: database
       - key: QUEUE_WORKER
         value: "true"
+      - key: USE_REDIS
+        value: "false"
+      - key: REDIS_CLIENT
+        value: predis
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_URL
