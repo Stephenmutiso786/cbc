@@ -233,14 +233,6 @@ class ExamReportsController extends Controller
         ]);
     }
 
-    public function printMeritList(Exam $exam): \Symfony\Component\HttpFoundation\Response
-    {
-        $this->authorizeExamReports($exam);
-        $this->ensureGroupPublished($exam);
-
-        return response()->view('reports.exam-merit-list-print', $this->buildPrintableMeritList($exam));
-    }
-
     private function buildPrintableMeritList(Exam $exam): array
     {
         $exam->load('schoolClass');
