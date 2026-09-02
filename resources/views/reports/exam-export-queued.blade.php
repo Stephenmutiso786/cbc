@@ -4,6 +4,7 @@
 <body style="font-family: sans-serif; padding: 3rem; text-align: center; color: #172033">
     <h1>Preparing report cards</h1>
     <p>The complete exam report is being generated. This page will open the download automatically when it is ready.</p>
+    <p>Status: <strong>{{ ucfirst($export->status) }}</strong></p>
     <p><a href="{{ route($routeName, [$export->id]) }}">Check again</a></p>
 </body>
 </html>
