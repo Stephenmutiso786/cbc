@@ -39,6 +39,8 @@ services:
         value: database
       - key: QUEUE_WORKER
         value: "true"
+      - key: QUEUE_REPORTS_WORKER
+        value: "true"
       - key: USE_REDIS
         value: "false"
       - key: REDIS_CLIENT

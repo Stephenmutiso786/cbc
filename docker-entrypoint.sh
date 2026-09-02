@@ -60,8 +60,11 @@ php artisan storage:link || true
 # Render's web service can host this worker while the app is small; move it to
 # a dedicated worker service when the deployment is scaled horizontally.
 if [ "${QUEUE_CONNECTION:-sync}" != "sync" ] && [ "${QUEUE_WORKER:-true}" = "true" ]; then
-    php artisan queue:work "${QUEUE_CONNECTION}" --sleep=2 --tries=3 --timeout="${QUEUE_TIMEOUT:-300}" --no-interaction &
-    echo "Queue worker started using ${QUEUE_CONNECTION} connection."
+    php artisan queue:work "${QUEUE_CONNECTION}" --queue=default --sleep=2 --tries=3 --timeout="${QUEUE_TIMEOUT:-300}" --no-interaction &
+    if [ "${QUEUE_REPORTS_WORKER:-true}" = "true" ]; then
+        php artisan queue:work "${QUEUE_CONNECTION}" --queue=reports --sleep=2 --tries=2 --timeout="${QUEUE_TIMEOUT:-300}" --no-interaction &
+    fi
+    echo "Queue workers started using ${QUEUE_CONNECTION} connection."
 fi
 
 # PHP's CLI server supports multiple worker processes. Override
