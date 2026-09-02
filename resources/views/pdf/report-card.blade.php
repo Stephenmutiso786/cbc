@@ -40,8 +40,13 @@ tr:nth-child(even) td{background:#fafafa;}
 </style>
 </head>
 <body class="template-{{ $template ?? 'cbc-classic' }}">
+@php
+    $logo = config('school.logo_data');
+    $grade = $learner->grade_level;
+    $gradeLabel = $grade instanceof \BackedEnum ? $grade->value : ((string) $grade ?: '-');
+@endphp
 <div class="header">
-    @if(config('school.logo_data'))<img class="logo" src="{{ config('school.logo_data') }}" alt="School logo">@endif
+    @if(is_string($logo) && str_starts_with($logo, 'data:image/'))<img class="logo" src="{{ $logo }}" alt="School logo">@endif
     <div>
         <h1>{{ config('school.name') }}</h1>
         <p>{{ config('school.address') }} &nbsp;|&nbsp; {{ config('school.phone') }}</p>
@@ -55,7 +60,7 @@ tr:nth-child(even) td{background:#fafafa;}
     <div class="learner-field"><div class="lf-label">Full Name</div><div class="lf-value">{{ $learner->full_name }}</div></div>
     <div class="learner-field"><div class="lf-label">Admission No.</div><div class="lf-value">{{ $learner->admission_number }}</div></div>
     <div class="learner-field"><div class="lf-label">KEMIS UPI</div><div class="lf-value">{{ $learner->kemis_upi ?? 'N/A' }}</div></div>
-    <div class="learner-field"><div class="lf-label">Grade</div><div class="lf-value">{{ $learner->grade_level->value }}</div></div>
+    <div class="learner-field"><div class="lf-label">Grade</div><div class="lf-value">{{ $gradeLabel }}</div></div>
     <div class="learner-field"><div class="lf-label">Class</div><div class="lf-value">{{ $learner->schoolClass->name ?? '—' }}</div></div>
 </div>
 
@@ -73,17 +78,22 @@ tr:nth-child(even) td{background:#fafafa;}
     </thead>
     <tbody>
         @forelse($assessments as $area => $data)
+        @php
+            $formative = $data['formative'] instanceof \BackedEnum ? $data['formative']->value : $data['formative'];
+            $summative = $data['summative'] instanceof \BackedEnum ? $data['summative']->value : $data['summative'];
+            $overall = $data['overall'] instanceof \BackedEnum ? $data['overall']->value : $data['overall'];
+        @endphp
         <tr>
             <td><strong>{{ $area }}</strong></td>
             <td style="font-size:9px;color:#6b7280">{{ $data['strand'] ?? '—' }}</td>
             <td style="text-align:center">
-                @if($data['formative'])<span class="badge {{ $data['formative'] }}">{{ $data['formative'] }}</span>@else <span style="color:#d1d5db">—</span>@endif
+                @if($formative)<span class="badge {{ $formative }}">{{ $formative }}</span>@else <span style="color:#d1d5db">—</span>@endif
             </td>
             <td style="text-align:center">
-                @if($data['summative'])<span class="badge {{ $data['summative'] }}">{{ $data['summative'] }}</span>@else <span style="color:#d1d5db">—</span>@endif
+                @if($summative)<span class="badge {{ $summative }}">{{ $summative }}</span>@else <span style="color:#d1d5db">—</span>@endif
             </td>
             <td style="text-align:center">
-                @if($data['overall'])<span class="badge {{ $data['overall'] }}">{{ $data['overall'] }}</span>@else <span style="color:#d1d5db">—</span>@endif
+                @if($overall)<span class="badge {{ $overall }}">{{ $overall }}</span>@else <span style="color:#d1d5db">—</span>@endif
             </td>
             <td style="font-size:9px;color:#4b5563">{{ $data['remarks'] ?? '' }}</td>
         </tr>
@@ -129,8 +139,8 @@ tr:nth-child(even) td{background:#fafafa;}
 </div>
 
 <div class="sig-row">
-    <div class="sig-block">@if($classTeacherSignature)<img src="{{ $classTeacherSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Class Teacher's Signature &amp; Date</div></div>
-    <div class="sig-block">@if($officialSignature)<img src="{{ $officialSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Headteacher's Signature &amp; Date</div>@if($officialStamp)<img src="{{ $officialStamp }}" style="height:34px;max-width:70px;object-fit:contain;margin-top:2px">@endif</div>
+    <div class="sig-block">@if(is_string($classTeacherSignature) && str_starts_with($classTeacherSignature, 'data:image/'))<img src="{{ $classTeacherSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Class Teacher's Signature &amp; Date</div></div>
+    <div class="sig-block">@if(is_string($officialSignature) && str_starts_with($officialSignature, 'data:image/'))<img src="{{ $officialSignature }}" style="height:20px;max-width:150px;object-fit:contain;display:block">@else<div class="sig-line"></div>@endif<div class="sig-name">Headteacher's Signature &amp; Date</div>@if(is_string($officialStamp) && str_starts_with($officialStamp, 'data:image/'))<img src="{{ $officialStamp }}" style="height:34px;max-width:70px;object-fit:contain;margin-top:2px">@endif</div>
     <div class="sig-block"><div class="sig-line"></div><div class="sig-name">Parent/Guardian's Signature &amp; Date</div></div>
 </div>
 
