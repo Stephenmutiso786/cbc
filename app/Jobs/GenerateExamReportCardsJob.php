@@ -11,6 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class GenerateExamReportCardsJob implements ShouldQueue
@@ -30,12 +32,20 @@ class GenerateExamReportCardsJob implements ShouldQueue
         try {
             $exam = Exam::findOrFail($export->exam_id);
             $pdf = $reports->buildResultCardsPdf($exam);
-            $path = $storage->store(
-                $pdf,
-                'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams',
-                'exam-' . $exam->id . '-report-cards.pdf',
-                'application/pdf'
-            );
+            $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
+            $filename = 'exam-' . $exam->id . '-report-cards.pdf';
+            try {
+                $path = $storage->store($pdf, $folder, $filename, 'application/pdf');
+            } catch (Throwable $storageException) {
+                // A Drive outage or invalid optional credentials must not
+                // turn a valid report into a failed export.
+                Log::warning('Google Drive report upload failed; using local storage.', [
+                    'exam_id' => $exam->id,
+                    'message' => $storageException->getMessage(),
+                ]);
+                $path = $folder . '/' . $filename;
+                Storage::disk('public')->put($path, $pdf);
+            }
 
             $export->update(['status' => 'complete', 'path' => $path, 'finished_at' => now()]);
         } catch (Throwable $exception) {
