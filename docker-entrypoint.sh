@@ -23,7 +23,14 @@ if [ "${USE_REDIS:-false}" = "true" ]; then
         echo "USE_REDIS=true requires REDIS_URL. Add the Render Key Value internal URL or disable USE_REDIS." >&2
         exit 1
     fi
-    export REDIS_CLIENT="${REDIS_CLIENT:-predis}"
+    # Render may retain an older REDIS_CLIENT=phpredis variable. The image
+    # uses Predis, so fall back automatically when the PHP extension is absent.
+    if [ "${REDIS_CLIENT:-predis}" = "phpredis" ] && ! php -r 'exit(class_exists("Redis") ? 0 : 1);'; then
+        export REDIS_CLIENT=predis
+        echo "PhpRedis is unavailable; using the bundled Predis client."
+    else
+        export REDIS_CLIENT="${REDIS_CLIENT:-predis}"
+    fi
     export QUEUE_CONNECTION=redis
     export CACHE_STORE=redis
     export SESSION_DRIVER=redis
