@@ -36,7 +36,15 @@ fi
 php artisan optimize:clear
 php artisan storage:link || true
 
-# PHP's CLI server supports multiple worker processes; use the instance's
-# configured concurrency instead of forcing every request through one worker.
-export PHP_CLI_SERVER_WORKERS="${WEB_CONCURRENCY:-4}"
+# Run queued SMS, reports, backups, and integrations outside the web request.
+# Render's web service can host this worker while the app is small; move it to
+# a dedicated worker service when the deployment is scaled horizontally.
+if [ "${QUEUE_CONNECTION:-sync}" != "sync" ] && [ "${QUEUE_WORKER:-true}" = "true" ]; then
+    php artisan queue:work "${QUEUE_CONNECTION}" --sleep=2 --tries=3 --timeout=120 --no-interaction &
+    echo "Queue worker started using ${QUEUE_CONNECTION} connection."
+fi
+
+# PHP's CLI server supports multiple worker processes. Override
+# PHP_CLI_SERVER_WORKERS when sizing a larger Render instance.
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-4}}"
 exec php artisan serve --host 0.0.0.0 --port "${PORT:-10000}"
