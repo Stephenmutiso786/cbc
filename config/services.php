@@ -38,5 +38,6 @@ return [
         'enabled' => filter_var(env('GOOGLE_DRIVE_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
         'credentials' => env('GOOGLE_DRIVE_CREDENTIALS'),
+        'report_backup' => filter_var(env('GOOGLE_DRIVE_REPORT_BACKUP', false), FILTER_VALIDATE_BOOLEAN),
     ],
 ];
