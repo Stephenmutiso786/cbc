@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RubricLevel;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\TeacherSubjectAllocation;
@@ -30,9 +31,15 @@ class ExamReportsController extends Controller
             $obtained = $learnerResults->sum(fn ($result) => (float) ($result->marks_obtained ?? 0));
             $percentage = $possible > 0 ? ($obtained / $possible) * 100 : 0;
             $overallGrade = $this->gradeForPercentage($percentage, $scale);
-            return $learnerResults->map(function ($result) use ($percentage, $overallGrade) {
+            return $learnerResults->map(function ($result) use ($percentage, $overallGrade, $scale) {
                 $result->overall_percentage = round($percentage, 2);
                 $result->overall_grade = $overallGrade;
+                if ($result->marks_obtained !== null && $result->rubric_level === null) {
+                    $result->rubric_level = $this->rubricForPercentage($result->percentage, $scale);
+                }
+                if ($result->marks_obtained !== null && ! $result->grade) {
+                    $result->grade = $scale?->gradeForPercent($result->percentage) ?: $overallGrade;
+                }
                 return $result;
             });
         })->values();
@@ -118,6 +125,19 @@ class ExamReportsController extends Controller
             $percentage >= 60 => 'C',
             $percentage >= 50 => 'D',
             default => 'E',
+        };
+    }
+
+    private function rubricForPercentage(float $percentage, $scale): RubricLevel
+    {
+        $grade = $scale?->gradeForPercent($percentage);
+        $code = strtoupper((string) $grade);
+
+        return match (true) {
+            str_starts_with($code, 'EE') || $percentage >= 80 => RubricLevel::ExceedsExpectation,
+            str_starts_with($code, 'ME') || $percentage >= 50 => RubricLevel::MeetsExpectation,
+            str_starts_with($code, 'AE') || $percentage >= 30 => RubricLevel::ApproachesExpectation,
+            default => RubricLevel::BelowExpectation,
         };
     }
 
