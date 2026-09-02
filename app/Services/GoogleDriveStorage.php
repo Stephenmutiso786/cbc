@@ -19,7 +19,9 @@ class GoogleDriveStorage
     {
         if (!$this->enabled()) {
             if ($file instanceof UploadedFile) return $file->store($folder, 'public');
-            throw new \RuntimeException('Google Drive storage is not configured.');
+            $path = trim($folder, '/') . '/' . ($name ?? uniqid('file_', true));
+            Storage::disk('public')->put($path, $file);
+            return $path;
         }
 
         $contents = $file instanceof UploadedFile ? file_get_contents($file->getRealPath()) : $file;
