@@ -66,14 +66,19 @@ class ExamReportsController extends Controller
             }
 
             if ($export->status === 'complete') {
-                return response(
-                    app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
-                    200,
-                    [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'attachment; filename="results-report-cards-' . $exam->id . '.pdf"',
-                    ]
-                );
+                try {
+                    return response(
+                        app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
+                        200,
+                        [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'attachment; filename="results-report-cards-' . $exam->id . '.pdf"',
+                        ]
+                    );
+                } catch (\Throwable $exception) {
+                    $export->update(['status' => 'failed', 'error' => 'The generated report could not be read. Please generate it again.']);
+                    Log::warning('Completed report-card export could not be read.', ['export_id' => $export->id, 'message' => $exception->getMessage()]);
+                }
             }
 
             if ($export->status === 'failed') {
@@ -97,14 +102,19 @@ class ExamReportsController extends Controller
         $this->ensureGroupPublished($export->exam);
 
         if ($export->status === 'complete' && $export->path) {
-            return response(
-                app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
-                200,
-                [
-                    'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'attachment; filename="results-report-cards-' . $export->exam_id . '.pdf"',
-                ]
-            );
+            try {
+                return response(
+                    app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
+                    200,
+                    [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'attachment; filename="results-report-cards-' . $export->exam_id . '.pdf"',
+                    ]
+                );
+            } catch (\Throwable $exception) {
+                $export->update(['status' => 'failed', 'error' => 'The generated report could not be read. Please generate it again.']);
+                Log::warning('Completed report-card export could not be read.', ['export_id' => $export->id, 'message' => $exception->getMessage()]);
+            }
         }
 
         if ($export->status === 'failed') {

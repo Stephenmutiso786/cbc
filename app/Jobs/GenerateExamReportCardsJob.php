@@ -34,17 +34,18 @@ class GenerateExamReportCardsJob implements ShouldQueue
             $pdf = $reports->buildResultCardsPdf($exam);
             $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
             $filename = 'exam-' . $exam->id . '-report-cards.pdf';
+            $path = $folder . '/' . $filename;
+            Storage::disk('public')->put($path, $pdf);
+
             try {
-                $path = $storage->store($pdf, $folder, $filename, 'application/pdf');
+                // Keep the local copy as the download source. Drive is an
+                // optional backup and must not make report cards unavailable.
+                $storage->store($pdf, $folder, $filename, 'application/pdf');
             } catch (Throwable $storageException) {
-                // A Drive outage or invalid optional credentials must not
-                // turn a valid report into a failed export.
                 Log::warning('Google Drive report upload failed; using local storage.', [
                     'exam_id' => $exam->id,
                     'message' => $storageException->getMessage(),
                 ]);
-                $path = $folder . '/' . $filename;
-                Storage::disk('public')->put($path, $pdf);
             }
 
             $export->update(['status' => 'complete', 'path' => $path, 'finished_at' => now()]);
