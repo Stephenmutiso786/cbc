@@ -146,6 +146,6 @@ class ExamReportsController extends Controller
     private function ensureGroupPublished(Exam $exam): void
     {
         $group = Exam::whereIn('id', $exam->groupExamIds())->get();
-        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->exam_state === 'published' && $item->status === 'published' && $item->marks_status === 'approved'), 422, 'Results are not published. The complete exam must be finalized and published first.');
+        abort_unless($group->isNotEmpty() && $group->every(fn (Exam $item) => $item->isFullyPublished()), 422, 'Results are not published. The complete exam must be finalized and published first.');
     }
 }

@@ -591,7 +591,7 @@ class ExamManager extends Component
             ->pluck('id');
         $allocatedGroupMasterIds = $fullAdmin ? collect() : Exam::whereIn('id', $allocatedExamIds)
             ->pluck('exam_group_id')->filter()->values();
-        $exams = Exam::with(['learningArea', 'schoolClass', 'groupedSubjects.learningArea'])
+        $exams = Exam::with(['learningArea', 'schoolClass', 'results', 'groupedSubjects.learningArea', 'groupedSubjects.results'])
             ->whereNull('exam_group_id')
             ->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
@@ -608,8 +608,10 @@ class ExamManager extends Component
             $exam->setAttribute('subjects_approved', $subjects->where('marks_status', 'approved')->count());
             $exam->setAttribute('subjects_awaiting_review', $subjects->where('marks_status', 'submitted')->count());
             $exam->setAttribute('all_subjects_approved', $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
-            $exam->setAttribute('all_subjects_published', $subjects->every(fn ($subject) => $subject->exam_state === 'published'));
-            $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => $subject->exam_state === 'finalized'));
+            $exam->setAttribute('all_subjects_published', $subjects->every(fn ($subject) => $subject->isFullyPublished()));
+            $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => in_array($subject->exam_state, ['finalized', 'published'], true)));
+            // The grouped row represents the complete exam, so expose all subject results to the view.
+            $exam->setRelation('results', $subjects->flatMap(fn ($subject) => $subject->results)->values());
             $exam->setAttribute('has_editable_subjects', $subjects->contains(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true) && ! $subject->isLocked()));
             $exam->setAttribute('missing_subjects', $subjects->filter(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true))->map(fn ($subject) => $subject->learningArea?->name)->filter()->values()->all());
         });
