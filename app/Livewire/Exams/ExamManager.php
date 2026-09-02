@@ -512,8 +512,9 @@ class ExamManager extends Component
             $this->addError('results', 'Results are already being sent.');
             return;
         }
-        if (in_array($exam->results_sms_status, ['sent', 'partial'], true)) {
-            $this->addError('results', 'Results have already been sent for this exam.');
+        $sendCount = (int) ($exam->results_sms_send_count ?? 0);
+        if ($sendCount >= 3) {
+            $this->addError('results', 'Results SMS sending is limited to three attempts for this exam.');
             return;
         }
 
@@ -546,7 +547,24 @@ class ExamManager extends Component
             'scheduled_at' => now(),
         ]);
 
-        $exam->update(['results_sms_status' => 'queued', 'results_sms_queued_at' => now()]);
+        // Reserve the attempt atomically so two rapid requests cannot exceed
+        // the three-send limit before either request refreshes the exam.
+        $reserved = Exam::whereKey($exam->id)
+            ->whereRaw('COALESCE(results_sms_send_count, 0) < 3')
+            ->where(function ($query): void {
+                $query->whereNull('results_sms_status')->orWhere('results_sms_status', '!=', 'queued');
+            })
+            ->update([
+                'results_sms_status' => 'queued',
+                'results_sms_send_count' => DB::raw('COALESCE(results_sms_send_count, 0) + 1'),
+                'results_sms_queued_at' => now(),
+            ]);
+
+        if ($reserved !== 1) {
+            $notification->update(['status' => 'failed', 'failed_count' => $recipients->count()]);
+            $this->addError('results', 'Results SMS has reached its three-attempt limit or is already being sent.');
+            return;
+        }
 
         try {
             SendExamResultsSmsJob::dispatch($exam->id, $notification->id);
