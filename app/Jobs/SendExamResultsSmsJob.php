@@ -82,6 +82,7 @@ class SendExamResultsSmsJob implements ShouldQueue
     {
         $learnerName = Str::limit($results->first()->learner->full_name, 34, '');
         $examName = Str::limit($exam->typeLabel() . ' - ' . $exam->name, 42, '');
+        $classGrade = Str::limit((string) ($exam->grade_level ?: $results->first()->learner->grade_level?->value ?? $results->first()->learner->grade_level), 12, '');
         $subjects = $results->map(function ($result): string {
             $subject = Str::limit($result->exam?->learningArea?->name ?? 'Subject', 12, '');
             $rubric = $result->rubric_level?->value ?? '-';
@@ -89,7 +90,7 @@ class SendExamResultsSmsJob implements ShouldQueue
             $grade = $result->grade ?: '-';
             return "{$subject}:{$rubric}/{$points}/{$grade}";
         })->implode(', ');
-        $message = "{$learnerName}: {$examName} {$subjects}. @KYANDULU SCHOOL";
+        $message = "{$learnerName}, {$classGrade}: {$examName} {$subjects}. @KYANDULU SCHOOL";
 
         return Str::limit($message, 160, '');
     }
