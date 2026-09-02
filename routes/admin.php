@@ -34,6 +34,7 @@ Route::get('/exams', ExamManager::class)->name('exams.index');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
 Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->name('exams.report-cards.export');
 Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->name('exams.merit-list');
+Route::get('/exams/{exam}/merit-list/print', [ExamReportsController::class, 'printMeritList'])->name('exams.merit-list.print');
 Route::get('/inventory', InventoryList::class)->name('inventory.index');
 Route::get('/notes', LearningNotesList::class)->name('notes.index');
 Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
