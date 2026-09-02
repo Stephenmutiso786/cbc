@@ -75,7 +75,7 @@ class SendExamResultsSmsJob implements ShouldQueue
     private function messageFor(Exam $exam, $result): string
     {
         $learnerName = Str::limit($result->learner->full_name, 48, '');
-        $examName = Str::limit($exam->name, 42, '');
+        $examName = Str::limit($exam->typeLabel() . ' - ' . $exam->name, 42, '');
         $marks = rtrim(rtrim(number_format((float) $result->marks_obtained, 2, '.', ''), '0'), '.');
         $total = rtrim(rtrim(number_format((float) $result->total_marks, 2, '.', ''), '0'), '.');
         $message = "{$learnerName}: {$examName} {$marks}/{$total} ({$result->grade}). @KYANDULU SCHOOL";

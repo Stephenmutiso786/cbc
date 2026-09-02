@@ -12,6 +12,19 @@ class Exam extends Model {
     public function creator()      { return $this->belongsTo(StaffMember::class, 'created_by'); }
     public function lockedBy()     { return $this->belongsTo(StaffMember::class, 'locked_by'); }
     public function isPublished(): bool { return $this->status === 'published'; }
+    public function typeLabel(): string
+    {
+        return match ($this->exam_type) {
+            'cat' => 'CAT',
+            'opener' => 'Opener Exam',
+            'mid_term' => 'Mid-Term Exam',
+            'end_term' => 'End-Term Exam',
+            'mock' => 'Mock Exam',
+            'kpsea' => 'KPSEA',
+            'kcse' => 'KCSE',
+            default => ucwords(str_replace('_', ' ', (string) $this->exam_type)),
+        };
+    }
     public function isLocked(): bool { return $this->results_locked_at !== null; }
     public function groupExamIds()
     {
