@@ -31,12 +31,13 @@ class MaintenanceMode
     private function allowed(Request $request): bool
     {
         $path = trim($request->path(), '/');
-        if (in_array($path, ['up', 'login', 'maintenance/login', 'forgot-password'], true) || str_starts_with($path, 'password/')) {
+        if (in_array($path, ['up', 'login', 'maintenance/login', 'forgot-password', 'logout'], true) || str_starts_with($path, 'password/')) {
             return true;
         }
 
-        return $request->user()?->hasAnyRole([
-            'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy',
-        ]) ?? false;
+        $user = $request->user();
+        return $user?->hasAnyRole([
+            'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy', 'hod',
+        ]) || $user?->can('manage system settings') ?? false;
     }
 }

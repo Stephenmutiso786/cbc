@@ -14,6 +14,15 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
+    public function maintenanceLogin(Request $request)
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
     public function store(Request $request)
     {
         $credentials = $request->validate([
