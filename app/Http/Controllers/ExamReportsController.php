@@ -13,7 +13,7 @@ use Throwable;
 
 class ExamReportsController extends Controller
 {
-    public function resultCards(Exam $exam): Response
+    public function resultCards(Exam $exam): \Symfony\Component\HttpFoundation\Response
     {
         if (request()->boolean('diagnose') && auth()->user()?->hasAnyRole([
             'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy', 'hod',
