@@ -52,7 +52,10 @@ class OlympusSmsService
         $payload = [
             'recipient' => $phones,
             'sender_id' => (string) config('services.olympus_sms.sender_id', 'SCHOOL'),
-            'type' => 'plain',
+            // Olympus requires the voice value for text messages on this endpoint.
+            'type' => 'voice',
+            'language' => 'en-gb',
+            'gender' => 'female',
             'message' => $message,
         ];
 
