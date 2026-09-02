@@ -34,7 +34,7 @@
         .signature { padding-top: 5px; border-top: 1px solid #374151; color: #5b6472; font-size: 9px; }
         .signature img { display: block; width: 150px; height: 34px; margin-bottom: 4px; object-fit: contain; object-position: left bottom; }
         .verification { position: absolute; right: 0; bottom: 20px; left: 0; color: #5b6472; font-size: 7px; text-align: center; }
-        .verification svg { display: block; width: 72px; height: 72px; margin: 0 auto 2px; }
+        .verification img { display: block; width: 72px; height: 72px; margin: 0 auto 2px; }
         .footer { position: absolute; bottom: 0; width: 100%; padding-top: 6px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 8px; text-align: center; }
         @media print { .toolbar { display: none; } }
     </style>
@@ -58,7 +58,7 @@
         <div class="summary"><div><span class="label">Subjects</span><span class="big">{{ $card['subject_count'] }}</span></div><div><span class="label">Total marks</span><span class="big">{{ rtrim(rtrim(number_format($card['total_obtained'], 2, '.', ''), '0'), '.') }} / {{ rtrim(rtrim(number_format($card['total_possible'], 2, '.', ''), '0'), '.') }}</span></div><div><span class="label">Mean</span><span class="big">{{ $card['overall_percentage'] }}%</span></div><div><span class="label">Overall grade</span><span class="big">{{ $card['overall_grade'] }}</span></div></div>
         <div class="remark"><span class="label">Official comment</span>Keep working consistently and use the teacher's feedback to strengthen the next competency.</div>
         <div class="signatures"><div class="signature">@if($classTeacherSignatureUrl)<img src="{{ $classTeacherSignatureUrl }}" alt="Class teacher signature">@endif{{ $classTeacherName ? $classTeacherName . ' - ' : '' }}Class teacher signature and date</div><div class="signature">@if($officialSignatureUrl)<img src="{{ $officialSignatureUrl }}" alt="Headteacher signature">@endif@if($officialStampUrl)<img src="{{ $officialStampUrl }}" alt="Official school stamp" style="width:70px;height:34px;object-position:left center">@endifHeadteacher signature and date</div></div>
-        <div class="verification">{!! $card['verificationQr'] !!}<div>Scan to verify this report card</div></div>
+        <div class="verification"><img src="{{ $card['verificationQrUrl'] }}" alt="QR code for report verification"><div>Scan to verify this report card</div></div>
         <div class="footer">{{ config('school.name') }} | Official examination result | {{ now()->format('d M Y') }}</div>
     </section>
 @endforeach

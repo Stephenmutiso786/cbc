@@ -21,6 +21,8 @@ Route::get('/staff-signature/{staff}', [SchoolAssetController::class, 'staffSign
     ->middleware(['auth', 'verified'])->name('staff.signature');
 Route::get('/reports/verify/{exam}/{learner}', [ReportVerificationController::class, 'show'])
     ->middleware('signed')->name('reports.verify');
+Route::get('/reports/verify/qr/{exam}/{learner}', [ReportVerificationController::class, 'qr'])
+    ->middleware('signed')->name('reports.verify.qr');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
