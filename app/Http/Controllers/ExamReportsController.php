@@ -9,7 +9,6 @@ use App\Models\ExamReportExport;
 use App\Models\TeacherSubjectAllocation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
-use App\Jobs\GenerateExamReportCardsJob;
 use Illuminate\Support\Facades\Log;
 
 class ExamReportsController extends Controller
@@ -24,61 +23,14 @@ class ExamReportsController extends Controller
             ->distinct('learner_id')
             ->count('learner_id');
 
-        // Large classes must be rendered by the queue worker, otherwise the
-        // browser request can exceed Render's request timeout.
+        // Keep printing reliable on the free web instance. Large classes are
+        // served as the same print-ready HTML used by the PDF template rather
+        // than waiting for a background worker that may be asleep after a
+        // deployment. The browser's print dialog produces the report cards.
         if ($learnerCount > 20) {
-            $export = ExamReportExport::where('exam_id', $exam->id)
-                ->where(function ($query): void {
-                    $query->where('status', 'complete')
-                        ->orWhere(function ($query): void {
-                            $query->whereIn('status', ['queued', 'processing'])
-                                ->where('updated_at', '>=', now()->subMinutes(5));
-                        });
-                })
-                ->latest('id')->first();
-
-            if (! $export) {
-                $export = ExamReportExport::create([
-                    'exam_id' => $exam->id,
-                    'requested_by' => auth()->id(),
-                    'status' => 'queued',
-                ]);
-                GenerateExamReportCardsJob::dispatch($export->id);
-            }
-
-            if ($export->status === 'processing' && $export->updated_at?->lt(now()->subMinutes(2))) {
-                Log::warning('Report-card export exceeded the worker window; serving printable HTML.', ['export_id' => $export->id]);
-                return response()->view('pdf.exam-result-cards', [
-                    'exam' => $exam,
-                    'results' => $this->buildResultCardResults($exam),
-                ]);
-            }
-
-            if ($export->status === 'complete') {
-                try {
-                    return response(
-                        app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
-                        200,
-                        [
-                            'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'attachment; filename="results-report-cards-' . $exam->id . '.pdf"',
-                        ]
-                    );
-                } catch (\Throwable $exception) {
-                    $export->update(['status' => 'failed', 'error' => 'The generated report could not be read. Please generate it again.']);
-                    Log::warning('Completed report-card export could not be read.', ['export_id' => $export->id, 'message' => $exception->getMessage()]);
-                }
-            }
-
-            if ($export->status === 'failed') {
-                return response()->view('reports.exam-export-failed', ['export' => $export], 422);
-            }
-
-            return response()->view('reports.exam-export-queued', [
-                'export' => $export,
-                'routeName' => request()->routeIs('teacher.*')
-                    ? 'teacher.exams.report-cards.export'
-                    : 'admin.exams.report-cards.export',
+            return response()->view('pdf.exam-result-cards', [
+                'exam' => $exam,
+                'results' => $this->buildResultCardResults($exam),
             ]);
         }
 
