@@ -33,7 +33,10 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
-            throw $exception;
+            return response()->json([
+                'message' => 'Report cards could not be generated.',
+                'error' => get_class($exception) . ': ' . $exception->getMessage(),
+            ], 500);
         }
     }
 
