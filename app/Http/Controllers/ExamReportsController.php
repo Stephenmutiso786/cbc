@@ -45,7 +45,7 @@ class ExamReportsController extends Controller
             // claimed it. Do not leave the user on an endless status page.
             // Only one stale queued row may be claimed, and normal workers
             // still handle exports first.
-            if ($export->status === 'queued' && $export->created_at?->lt(now()->subSeconds(15))) {
+            if ($export->status === 'queued') {
                 $claimed = ExamReportExport::whereKey($export->id)
                     ->where('status', 'queued')
                     ->update(['status' => 'processing']);
