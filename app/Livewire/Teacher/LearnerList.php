@@ -17,6 +17,7 @@ class LearnerList extends Component
         $user = auth()->user();
         $staff = $user->staffMember;
         $isAdmin = $user->hasAnyRole(['admin', 'super-admin']);
+        $bandLevels = $user->gradeBandLevels();
         $allocatedIds = $staff
             ? TeacherSubjectAllocation::where('teacher_id', $staff->id)->where('is_active', true)->pluck('class_id')
             : collect();
@@ -26,7 +27,8 @@ class LearnerList extends Component
             : SchoolClass::active()->forConfiguredGrades()->where(function ($query) use ($staff, $allocatedIds) {
                 $query->whereIn('id', $allocatedIds);
                 if ($staff) $query->orWhere('class_teacher_id', $staff->id);
-            })->orderBy('grade_level')->orderBy('name')->get();
+            })->when($bandLevels, fn ($query) => $query->whereIn('grade_level', $bandLevels))
+            ->orderBy('grade_level')->orderBy('name')->get();
 
         $learners = Learner::with('schoolClass')
             ->where('is_active', true)

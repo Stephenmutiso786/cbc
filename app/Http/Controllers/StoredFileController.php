@@ -9,7 +9,10 @@ class StoredFileController extends Controller
 {
     public function note(LearningNote $note, GoogleDriveStorage $storage)
     {
-        abort_unless($note->is_published || auth()->user()->hasAnyRole(['admin', 'super-admin', 'teacher', 'class-teacher', 'hod']), 403);
+        abort_unless($note->is_published || auth()->user()->hasAnyRole([
+            'admin', 'super-admin', 'teacher', 'class-teacher', 'pre-primary-teacher',
+            'lower-primary-teacher', 'upper-primary-teacher', 'junior-secondary-teacher', 'hod',
+        ]), 403);
         abort_unless($note->file_path, 404);
 
         return response($storage->contents($note->file_path), 200, [
