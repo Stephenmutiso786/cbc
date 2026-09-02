@@ -14,7 +14,7 @@
         <p class="mt-4 text-xs font-bold uppercase tracking-[0.3em] text-green-200">{{ config('school.name') }}</p>
         <h1 class="mt-3 text-3xl font-bold">System under maintenance</h1>
         <p class="mx-auto mt-4 max-w-md text-sm leading-6 text-green-100">{{ $message }}</p>
-        <form method="GET" action="{{ url('/login') }}" class="mt-7">
+        <form method="GET" action="{{ route('maintenance.login') }}" class="mt-7">
             <button type="submit" class="inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-green-900 shadow-sm transition hover:bg-green-50">Back to login</button>
         </form>
         <p class="mt-8 text-xs text-green-200">Please refresh this page after the maintenance is complete.</p>
