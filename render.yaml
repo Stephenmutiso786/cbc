@@ -36,7 +36,9 @@ services:
       - key: SESSION_SECURE_COOKIE
         value: "true"
       - key: QUEUE_CONNECTION
-        value: sync
+        value: database
+      - key: QUEUE_WORKER
+        value: "true"
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_URL
