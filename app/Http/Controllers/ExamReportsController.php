@@ -48,10 +48,19 @@ class ExamReportsController extends Controller
         $this->ensureGroupPublished($exam);
         $exam->load('schoolClass');
         $scale = $exam->schoolClass?->gradingScale()->first();
-        $results = ExamResult::with(['learner.schoolClass'])
-            ->whereIn('exam_id', $exam->groupExamIds())
+        $examIds = $exam->groupExamIds();
+        $subjects = Exam::with('learningArea')->whereIn('id', $examIds)->orderBy('id')->get();
+        $subjectResults = ExamResult::with(['learner.schoolClass'])
+            ->whereIn('exam_id', $examIds)
             ->whereHas('learner')
-            ->get()
+            ->get();
+        $subjectMeans = $subjects->map(function ($subject) use ($subjectResults): array {
+            $scores = $subjectResults->where('exam_id', $subject->id)
+                ->filter(fn ($result) => $result->marks_obtained !== null)
+                ->map(fn ($result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks * 100 : 0);
+            return ['name' => $subject->learningArea?->name ?? 'Learning area', 'mean' => round($scores->avg() ?: 0, 2), 'entries' => $scores->count()];
+        })->values();
+        $results = $subjectResults
             ->groupBy('learner_id')
             ->map(function ($learnerResults) use ($scale) {
                 $first = $learnerResults->first();
@@ -63,6 +72,9 @@ class ExamReportsController extends Controller
                 $first->grade = $this->gradeForPercentage($percentage, $scale);
                 $first->rubric_level = null;
                 $first->remarks = 'Combined results across ' . $learnerResults->count() . ' learning areas.';
+                $first->subject_scores = $learnerResults->mapWithKeys(fn ($result) => [$result->exam_id => [
+                    'marks' => $result->marks_obtained, 'total' => $result->total_marks, 'grade' => $result->grade,
+                ]])->all();
                 return $first;
             })
             ->sortByDesc(fn ($result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks : 0)
@@ -85,7 +97,10 @@ class ExamReportsController extends Controller
             return $result;
         });
 
-        return Pdf::loadView('pdf.exam-merit-list', ['exam' => $exam, 'results' => $ranked])
+        return Pdf::loadView('pdf.exam-merit-list', [
+            'exam' => $exam, 'results' => $ranked, 'subjects' => $subjects,
+            'subjectMeans' => $subjectMeans, 'topFive' => $ranked->take(5),
+        ])
             ->setPaper('a4', 'portrait')
             ->download('merit-list-' . $exam->id . '.pdf');
     }
