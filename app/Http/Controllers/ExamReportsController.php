@@ -30,6 +30,13 @@ class ExamReportsController extends Controller
                 'exception' => $exception,
             ]);
 
+            if (request()->boolean('diagnose')) {
+                return response()->json([
+                    'exception' => get_class($exception),
+                    'message' => $exception->getMessage(),
+                ], 500);
+            }
+
             throw $exception;
         }
     }
