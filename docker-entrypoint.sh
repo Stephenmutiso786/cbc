@@ -16,6 +16,19 @@ if [ "${DB_CONNECTION:-mysql}" = "pgsql" ] && [ -z "${DB_URL:-${DATABASE_URL:-}}
     exit 1
 fi
 
+# Redis is opt-in. This keeps local installs and deployments without a Redis
+# URL on the durable database queue instead of failing during boot.
+if [ "${USE_REDIS:-false}" = "true" ]; then
+    if [ -z "${REDIS_URL:-}" ]; then
+        echo "USE_REDIS=true requires REDIS_URL. Add the Render Key Value internal URL or disable USE_REDIS." >&2
+        exit 1
+    fi
+    export REDIS_CLIENT="${REDIS_CLIENT:-predis}"
+    export QUEUE_CONNECTION=redis
+    export CACHE_STORE=redis
+    export SESSION_DRIVER=redis
+fi
+
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 if ! timeout "${MIGRATION_TIMEOUT}" php artisan migrate --force; then
     echo "Database migrations did not finish within ${MIGRATION_TIMEOUT}s. Check the Render database host, SSL CA, and credentials." >&2
