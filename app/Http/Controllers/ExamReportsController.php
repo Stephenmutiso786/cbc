@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\RubricLevel;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\ExamReportExport;
 use App\Models\TeacherSubjectAllocation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
+use App\Jobs\GenerateExamReportCardsJob;
 
 class ExamReportsController extends Controller
 {
@@ -15,6 +17,84 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
+
+        $learnerCount = ExamResult::whereIn('exam_id', $exam->groupExamIds())
+            ->whereHas('learner')
+            ->distinct('learner_id')
+            ->count('learner_id');
+
+        // Large classes must be rendered by the queue worker, otherwise the
+        // browser request can exceed Render's request timeout.
+        if ($learnerCount > 20) {
+            $export = ExamReportExport::where('exam_id', $exam->id)
+                ->whereIn('status', ['queued', 'processing', 'complete'])
+                ->latest('id')->first();
+
+            if (! $export) {
+                $export = ExamReportExport::create([
+                    'exam_id' => $exam->id,
+                    'requested_by' => auth()->id(),
+                    'status' => 'queued',
+                ]);
+                GenerateExamReportCardsJob::dispatch($export->id);
+            }
+
+            if ($export->status === 'complete') {
+                return response(
+                    app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
+                    200,
+                    [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'attachment; filename="results-report-cards-' . $exam->id . '.pdf"',
+                    ]
+                );
+            }
+
+            if ($export->status === 'failed') {
+                abort(422, 'Report cards could not be generated: ' . $export->error);
+            }
+
+            return response()->view('reports.exam-export-queued', [
+                'export' => $export,
+                'routeName' => request()->routeIs('teacher.*')
+                    ? 'teacher.exams.report-cards.export'
+                    : 'admin.exams.report-cards.export',
+            ]);
+        }
+
+        return $this->downloadResultCards($exam);
+    }
+
+    public function downloadExport(ExamReportExport $export): Response
+    {
+        $this->authorizeExamReports($export->exam);
+        $this->ensureGroupPublished($export->exam);
+
+        if ($export->status === 'complete' && $export->path) {
+            return response(
+                app(\App\Services\GoogleDriveStorage::class)->contents($export->path),
+                200,
+                [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'attachment; filename="results-report-cards-' . $export->exam_id . '.pdf"',
+                ]
+            );
+        }
+
+        if ($export->status === 'failed') {
+            abort(422, 'Report cards could not be generated: ' . $export->error);
+        }
+
+        return response()->view('reports.exam-export-queued', [
+            'export' => $export,
+            'routeName' => request()->routeIs('teacher.*')
+                ? 'teacher.exams.report-cards.export'
+                : 'admin.exams.report-cards.export',
+        ]);
+    }
+
+    public function buildResultCardsPdf(Exam $exam): string
+    {
         $exam->load('schoolClass');
         $scale = $exam->schoolClass?->gradingScale()->first();
         $results = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
@@ -46,7 +126,14 @@ class ExamReportsController extends Controller
 
         return Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
             ->setPaper('a4', 'portrait')
-            ->download('results-report-cards-' . $exam->id . '.pdf');
+            ->output();
+    }
+
+    private function downloadResultCards(Exam $exam): Response
+    {
+        return response()->streamDownload(function () use ($exam): void {
+            echo $this->buildResultCardsPdf($exam);
+        }, 'results-report-cards-' . $exam->id . '.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     public function meritList(Exam $exam): Response

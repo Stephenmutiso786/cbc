@@ -14,6 +14,7 @@ Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/exams', ExamManager::class)->name('exams.index');
 Route::get('/results', ViewResults::class)->name('results.index');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
+Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->name('exams.report-cards.export');
 Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->name('exams.merit-list');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
 Route::get('/signature', SignatureSettings::class)->name('signature.index');
