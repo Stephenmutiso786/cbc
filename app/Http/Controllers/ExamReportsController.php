@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\TeacherSubjectAllocation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 
@@ -11,7 +12,7 @@ class ExamReportsController extends Controller
 {
     public function resultCards(Exam $exam): Response
     {
-        $this->authorizeExamReports();
+        $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
         $results = ExamResult::with(['learner.schoolClass', 'exam.learningArea'])
             ->whereIn('exam_id', $exam->groupExamIds())
@@ -29,7 +30,7 @@ class ExamReportsController extends Controller
 
     public function meritList(Exam $exam): Response
     {
-        $this->authorizeExamReports();
+        $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
         $results = ExamResult::with(['learner.schoolClass'])
             ->whereIn('exam_id', $exam->groupExamIds())
@@ -70,9 +71,23 @@ class ExamReportsController extends Controller
             ->download('merit-list-' . $exam->id . '.pdf');
     }
 
-    private function authorizeExamReports(): void
+    private function authorizeExamReports(Exam $exam): void
     {
-        abort_unless(auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher']), 403);
+        if (auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher'])) {
+            return;
+        }
+
+        $staff = auth()->user()->staffMember;
+        abort_unless($staff, 403);
+        $examIds = $exam->groupExamIds();
+        $classIds = $staff->classes()->pluck('id');
+        $isClassTeacher = Exam::whereIn('id', $examIds)->whereIn('class_id', $classIds)->exists();
+        $areaIds = Exam::whereIn('id', $examIds)->pluck('learning_area_id');
+        $isAllocatedTeacher = TeacherSubjectAllocation::where('teacher_id', $staff->id)
+            ->whereIn('class_id', $classIds)->whereIn('learning_area_id', $areaIds)
+            ->where('academic_year', config('school.academic_year'))->where('is_active', true)->exists();
+
+        abort_unless($isClassTeacher || $isAllocatedTeacher, 403);
     }
 
     private function ensureGroupPublished(Exam $exam): void
