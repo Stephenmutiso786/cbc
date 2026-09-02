@@ -46,6 +46,7 @@ class ExamManager extends Component
     public array  $marks          = []; // keyed by learner_id
     public array  $markSubjectOptions = [];
     public float $marksTotal = 100;
+    public string $marksEntryStatus = 'draft';
 
     protected $rules = [
         'examName'  => 'required|string|max:200',
@@ -251,6 +252,7 @@ class ExamManager extends Component
             ]
         ])->toArray();
 
+        $this->marksEntryStatus = $exam->marks_status;
         $this->tab = 'marks';
     }
 
@@ -271,15 +273,36 @@ class ExamManager extends Component
     public function submitMarks(): void
     {
         $exam = $this->editableMarksExam();
-        $saved = $this->persistMarks($exam);
+        try {
+            $saved = null;
+            DB::transaction(function () use ($exam, &$saved): void {
+                $saved = $this->persistMarks($exam);
+                if ($saved !== null) {
+                    $updated = Exam::whereKey($exam->id)
+                        ->whereIn('marks_status', ['draft', 'returned'])
+                        ->whereNull('results_locked_at')
+                        ->update([
+                            'marks_status' => 'submitted', 'marks_submitted_at' => now(),
+                            'marks_submitted_by' => auth()->id(), 'marks_review_comment' => null,
+                        ]);
+
+                    if ($updated !== 1) {
+                        throw new \RuntimeException('The marks were changed by another request before submission.');
+                    }
+                }
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('marks', 'Marks could not be submitted. Nothing was locked; please try again.');
+            return;
+        }
         if ($saved === null) return;
 
-        $exam->update([
-            'marks_status' => 'submitted', 'marks_submitted_at' => now(),
-            'marks_submitted_by' => auth()->id(), 'marks_review_comment' => null,
-        ]);
-
-        $this->dispatch('notify', type: 'success', message: "{$saved} learner mark entries submitted for review.");
+        $this->marksEntryStatus = 'submitted';
+        $this->marks = [];
+        $this->selectedExam = null;
+        $this->tab = 'exams';
+        session()->flash('success', "{$saved} learner mark entries submitted successfully and locked. They cannot be edited until returned for correction.");
     }
 
     public function updatedMarks($value, $key): void
