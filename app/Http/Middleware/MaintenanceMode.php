@@ -30,10 +30,13 @@ class MaintenanceMode
 
     private function allowed(Request $request): bool
     {
-        if ($request->is('up', 'login', 'forgot-password') || $request->is('password/*')) {
+        $path = trim($request->path(), '/');
+        if (in_array($path, ['up', 'login', 'forgot-password'], true) || str_starts_with($path, 'password/')) {
             return true;
         }
 
-        return $request->user()?->hasAnyRole(['admin', 'super-admin']) ?? false;
+        return $request->user()?->hasAnyRole([
+            'admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy',
+        ]) ?? false;
     }
 }
