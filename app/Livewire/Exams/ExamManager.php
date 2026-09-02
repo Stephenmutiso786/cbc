@@ -562,13 +562,13 @@ class ExamManager extends Component
         $allocatedGroupMasterIds = $fullAdmin ? collect() : Exam::whereIn('id', $allocatedExamIds)
             ->pluck('exam_group_id')->filter()->values();
         $exams = Exam::with(['learningArea', 'schoolClass', 'groupedSubjects.learningArea'])
+            ->whereNull('exam_group_id')
             ->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
             ->when(!$fullAdmin, fn ($query) => $query->where(function ($query) use ($allocatedExamIds, $allocatedGroupMasterIds): void {
                 $query->whereIn('id', $allocatedExamIds)->orWhereIn('id', $allocatedGroupMasterIds);
             }))
             ->latest()->paginate(20);
-        $exams->setCollection($exams->getCollection()->filter(fn ($exam) => $exam->isGroupMaster())->values());
         $exams->getCollection()->each(function ($exam): void {
             $areas = collect([$exam->learningArea])->merge($exam->groupedSubjects->pluck('learningArea'))->filter();
             $exam->setRelation('learningArea', (object) ['name' => $areas->pluck('name')->unique()->join(', ')]);

@@ -11,7 +11,7 @@ use App\Http\Controllers\StoredFileController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', fn() => redirect()->route('login'));
-Route::get('/maintenance/login', fn() => redirect()->route('login'))->name('maintenance.login');
+Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);

@@ -36,4 +36,7 @@ fi
 php artisan optimize:clear
 php artisan storage:link || true
 
+# PHP's CLI server supports multiple worker processes; use the instance's
+# configured concurrency instead of forcing every request through one worker.
+export PHP_CLI_SERVER_WORKERS="${WEB_CONCURRENCY:-4}"
 exec php artisan serve --host 0.0.0.0 --port "${PORT:-10000}"
