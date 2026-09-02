@@ -12,6 +12,12 @@ class Exam extends Model {
     public function creator()      { return $this->belongsTo(StaffMember::class, 'created_by'); }
     public function lockedBy()     { return $this->belongsTo(StaffMember::class, 'locked_by'); }
     public function isPublished(): bool { return $this->status === 'published'; }
+    public function isFullyPublished(): bool
+    {
+        return $this->exam_state === 'published'
+            && $this->status === 'published'
+            && $this->marks_status === 'approved';
+    }
     public function typeLabel(): string
     {
         return match ($this->exam_type) {
