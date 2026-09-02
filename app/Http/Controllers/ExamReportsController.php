@@ -7,34 +7,34 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\ExamReportExport;
 use App\Models\TeacherSubjectAllocation;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ExamReportsController extends Controller
 {
     public function resultCards(Exam $exam): Response
     {
-        $this->authorizeExamReports($exam);
-        $this->ensureGroupPublished($exam);
+        try {
+            $this->authorizeExamReports($exam);
+            $this->ensureGroupPublished($exam);
 
-        $learnerCount = ExamResult::whereIn('exam_id', $exam->groupExamIds())
-            ->whereHas('learner')
-            ->distinct('learner_id')
-            ->count('learner_id');
-
-        // Keep printing reliable on the free web instance. Large classes are
-        // served as the same print-ready HTML used by the PDF template rather
-        // than waiting for a background worker that may be asleep after a
-        // deployment. The browser's print dialog produces the report cards.
-        if ($learnerCount > 20) {
+            // Use one browser-print path for every class size. This avoids
+            // sending identical report requests through two renderers with
+            // different memory and timeout behaviour.
             return response()->view('pdf.exam-result-cards', [
                 'exam' => $exam,
                 'results' => $this->buildResultCardResults($exam),
             ]);
-        }
+        } catch (Throwable $exception) {
+            Log::error('Report-card request failed.', [
+                'exam_id' => $exam->id,
+                'user_id' => auth()->id(),
+                'exception' => $exception,
+            ]);
 
-        return $this->downloadResultCards($exam);
+            throw $exception;
+        }
     }
 
     public function downloadExport(ExamReportExport $export): Response
@@ -74,7 +74,7 @@ class ExamReportsController extends Controller
     {
         $results = $this->buildResultCardResults($exam);
 
-        return Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.exam-result-cards', compact('exam', 'results'))
             ->setPaper('a4', 'portrait')
             ->output();
     }
