@@ -37,13 +37,13 @@
     </style>
 </head>
 <body>
-@php($logo = config('school.logo_data'))
+@php($logoUrl = is_string(config('school.logo_data')) && str_starts_with(config('school.logo_data'), 'data:image/') ? route('school.logo') : null)
 <div class="toolbar"><button type="button" onclick="window.print()">Print all report cards</button></div>
 <script>window.addEventListener('load', function () { window.print(); });</script>
 @foreach($cards as $card)
     <section class="card">
         <div class="header">
-            @if(is_string($logo) && str_starts_with($logo, 'data:image/')) <img class="logo" src="{{ $logo }}" alt="School logo"> @endif
+            @if($logoUrl) <img class="logo" src="{{ $logoUrl }}" alt="School logo"> @endif
             <div><div class="school">{{ config('school.name') }}</div><div class="details">{{ config('school.address') }} | {{ config('school.phone') }} | {{ config('school.email') }}</div><div class="details">{{ config('school.motto') }}</div></div>
         </div>
         <h1>Examination Results Report Card</h1>

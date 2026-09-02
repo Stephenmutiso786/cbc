@@ -22,14 +22,5 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->renderable(function (\Throwable $exception, \Illuminate\Http\Request $request) {
-            if ($request->boolean('diagnose')) {
-                return response()->json([
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                    'file' => basename($exception->getFile()),
-                    'line' => $exception->getLine(),
-                ], 500);
-            }
-        });
+        //
     })->create();
