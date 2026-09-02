@@ -101,7 +101,7 @@ class ExamReportsController extends Controller
             'exam' => $exam, 'results' => $ranked, 'subjects' => $subjects,
             'subjectMeans' => $subjectMeans, 'topFive' => $ranked->take(5),
         ])
-            ->setPaper('a4', 'portrait')
+            ->setPaper('a4', 'landscape')
             ->download('merit-list-' . $exam->id . '.pdf');
     }
 
