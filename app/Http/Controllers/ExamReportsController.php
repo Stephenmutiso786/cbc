@@ -22,10 +22,12 @@ class ExamReportsController extends Controller
             // Use one browser-print path for every class size. This avoids
             // sending identical report requests through two renderers with
             // different memory and timeout behaviour.
-            return response()->view('pdf.exam-result-cards', [
+            $html = view('pdf.exam-result-cards', [
                 'exam' => $exam,
                 'results' => $this->buildResultCardResults($exam),
-            ]);
+            ])->render();
+
+            return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
         } catch (Throwable $exception) {
             Log::error('Report-card request failed.', [
                 'exam_id' => $exam->id,
