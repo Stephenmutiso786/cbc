@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StoredFileController;
+use App\Http\Controllers\SchoolAssetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,6 +13,7 @@ use App\Http\Controllers\StoredFileController;
 */
 Route::get('/', fn() => redirect()->route('login'));
 Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
+Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school.logo');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
