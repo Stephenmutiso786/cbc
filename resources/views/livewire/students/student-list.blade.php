@@ -102,7 +102,7 @@
                     <td class="px-4 py-3 flex items-center gap-2">
                         <button wire:click="view({{ $learner->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">View</button>
                         <button wire:click="edit({{ $learner->id }})" class="text-green-600 hover:text-green-800 text-xs font-medium">Edit</button>
-                        <button wire:click="generateReport({{ $learner->id }})" class="text-purple-600 hover:text-purple-800 text-xs font-medium">Report</button>
+                        <a href="{{ route('admin.students.report-card', $learner) }}" class="text-purple-600 hover:text-purple-800 text-xs font-medium">Report</a>
                     </td>
                 </tr>
                 @empty

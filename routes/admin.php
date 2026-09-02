@@ -21,10 +21,12 @@ use App\Models\FeeInvoice;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ExamReportsController;
+use App\Http\Controllers\ReportCardController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
 Route::get('/students/import', StudentList::class)->name('students.import');
+Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->name('students.report-card');
 Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
 Route::get('/sms', SmsBalance::class)->name('sms.index');
