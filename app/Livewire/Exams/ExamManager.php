@@ -622,7 +622,10 @@ class ExamManager extends Component
             $exam->setAttribute('subjects_submitted', $subjects->whereIn('marks_status', ['submitted', 'approved'])->count());
             $exam->setAttribute('subjects_approved', $subjects->where('marks_status', 'approved')->count());
             $exam->setAttribute('subjects_awaiting_review', $subjects->where('marks_status', 'submitted')->count());
-            $exam->setAttribute('all_subjects_approved', $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
+            // A published parent can never re-enter the finalization step,
+            // even when an older record has inconsistent workflow columns.
+            $exam->setAttribute('all_subjects_approved', $exam->status !== 'published'
+                && $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
             $exam->setAttribute('all_subjects_published', $subjects->every(fn ($subject) => $subject->isFullyPublished()));
             $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => in_array($subject->exam_state, ['finalized', 'published'], true)));
             // The grouped row represents the complete exam, so expose all subject results to the view.
