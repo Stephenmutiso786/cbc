@@ -181,13 +181,9 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.exam-merit-list', $this->buildPrintableMeritList($exam))
-            ->setPaper('a4', 'landscape');
+        $html = view('reports.exam-merit-list-print', $this->buildPrintableMeritList($exam))->render();
 
-        return response($pdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="merit-list-' . $exam->id . '.pdf"',
-        ]);
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }
 
     private function buildPrintableMeritList(Exam $exam): array

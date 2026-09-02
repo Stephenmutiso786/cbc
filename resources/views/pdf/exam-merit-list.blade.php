@@ -1,110 +1,11 @@
 <!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <style>
-        @page { size: A4 landscape; margin: 8mm; }
-        * { box-sizing: border-box; }
-        body { color: #172033; font-family: DejaVu Sans, sans-serif; font-size: 7.5px; }
-        .header { display: table; width: 100%; padding-bottom: 6px; border-bottom: 3px solid #166534; }
-        .logo-cell, .school-cell { display: table-cell; vertical-align: middle; }
-        .logo-cell { width: 58px; }
-        .logo { width: 48px; height: 48px; object-fit: contain; }
-        .school { color: #166534; font-size: 15px; font-weight: bold; }
-        .details { margin-top: 2px; color: #5b6472; font-size: 7.5px; }
-        .title { margin: 8px 0 2px; color: #166534; font-size: 14px; font-weight: bold; text-align: center; text-transform: uppercase; }
-        .subtitle { margin-bottom: 7px; color: #5b6472; text-align: center; }
-        .meta { display: table; width: 100%; margin-bottom: 7px; border: 1px solid #b9c2ce; }
-        .meta-cell { display: table-cell; width: 33.33%; padding: 4px; border-right: 1px solid #b9c2ce; }
-        .meta-cell:last-child { border-right: 0; }
-        .label { display: block; margin-bottom: 1px; color: #6b7280; font-size: 6.5px; text-transform: uppercase; }
-        .value { font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; }
-        th { color: #fff; background: #166534; font-size: 6.5px; text-align: left; }
-        th, td { padding: 3px; border: 1px solid #b9c2ce; vertical-align: middle; }
-        tbody tr:nth-child(even) { background: #f0fdf4; }
-        .num { text-align: center; }
-        .summary { display: table; width: 100%; margin-top: 7px; }
-        .summary-cell { display: table-cell; width: 50%; padding: 5px; border: 1px solid #b9c2ce; vertical-align: top; }
-        .summary-cell + .summary-cell { border-left: 0; }
-        .summary-title { margin: 0 0 4px; color: #166534; font-size: 8px; font-weight: bold; }
-        .bar-row { display: table; width: 100%; margin: 2px 0; }
-        .bar-label, .bar-track, .bar-value { display: table-cell; vertical-align: middle; }
-        .bar-label { width: 120px; white-space: nowrap; }
-        .bar-track { height: 6px; background: #e5e7eb; }
-        .bar { height: 6px; background: #16a34a; }
-        .bar-value { width: 36px; text-align: right; }
-        .note { margin-top: 6px; color: #166534; }
-        .footer { display: table; width: 100%; margin-top: 10px; }
-        .signature { display: table-cell; width: 50%; padding-top: 4px; border-top: 1px solid #374151; color: #5b6472; font-size: 7.5px; }
-    </style>
-</head>
-<body>
+<html><head><meta charset="utf-8"><style>
+@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:DejaVu Sans,sans-serif;color:#172033;font-size:8px}.header{display:flex;align-items:center;border-bottom:3px solid #166534;padding-bottom:7px}.logo{width:48px;height:48px;object-fit:contain;margin-right:10px}.school{font-size:16px;font-weight:700;color:#166534}.details{font-size:8px;color:#5b6472;margin-top:2px}.title{text-align:center;margin:10px 0 2px;font-size:15px;font-weight:700;color:#166534;text-transform:uppercase}.subtitle{text-align:center;color:#5b6472;margin-bottom:9px}.meta{display:grid;grid-template-columns:2fr 1fr 1fr;border:1px solid #b9c2ce;margin-bottom:9px}.meta div{padding:5px;border-right:1px solid #b9c2ce}.meta div:last-child{border-right:0}.label{display:block;font-size:7px;text-transform:uppercase;color:#6b7280;margin-bottom:2px}.value{font-weight:700}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;text-align:left;font-size:7px}th,td{border:1px solid #b9c2ce;padding:4px;vertical-align:middle}td.num,th.num{text-align:center}tbody tr:nth-child(even){background:#f0fdf4}.summary{display:grid;grid-template-columns:1fr 1fr;margin-top:10px;gap:10px}.panel{border:1px solid #b9c2ce;padding:6px}.panel h3{margin:0 0 5px;color:#166534;font-size:9px}.bar-row{display:flex;align-items:center;margin:3px 0}.bar-label{width:125px;white-space:nowrap;overflow:hidden}.bar-track{height:7px;background:#e5e7eb;flex:1}.bar{height:7px;background:#16a34a}.bar-value{width:38px;text-align:right}.footer{margin-top:13px;display:grid;grid-template-columns:1fr 1fr;gap:35px}.signature{border-top:1px solid #374151;padding-top:4px;font-size:8px;color:#5b6472}.note{margin-top:8px;color:#166534}
+</style></head><body>
 @php($logo = config('school.logo_data'))
-<div class="header">
-    <div class="logo-cell">
-        @if(is_string($logo) && str_starts_with($logo, 'data:image/'))<img class="logo" src="{{ $logo }}" alt="School logo">@endif
-    </div>
-    <div class="school-cell">
-        <div class="school">{{ config('school.name') }}</div>
-        <div class="details">{{ config('school.address') }} | {{ config('school.phone') }} | {{ config('school.email') }}</div>
-        <div class="details">{{ config('school.motto') }}</div>
-    </div>
-</div>
-
-<div class="title">Examination Merit List</div>
-<div class="subtitle">{{ $exam->typeLabel() }} - {{ $exam->name }}</div>
-<div class="meta">
-    <div class="meta-cell"><span class="label">Class / grade</span><span class="value">{{ $exam->schoolClass?->name ?? $exam->grade_level }}</span></div>
-    <div class="meta-cell"><span class="label">Academic year</span><span class="value">{{ $exam->academic_year }}</span></div>
-    <div class="meta-cell"><span class="label">Term</span><span class="value">Term {{ $exam->term }}</span></div>
-</div>
-
-<table>
-    <thead>
-    <tr>
-        <th class="num">Position</th><th>Admission number</th><th>Learner name</th>
-        @foreach($subjects as $subject)<th class="num">{{ $subject['name'] }}<br>Marks</th>@endforeach
-        <th class="num">Total</th><th class="num">Mean</th><th class="num">Overall grade</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach($rows as $row)
-        <tr>
-            <td class="num"><strong>{{ $row['position'] }}</strong></td>
-            <td>{{ $row['learner']['admission_number'] ?: '-' }}</td>
-            <td>{{ $row['learner']['name'] }}</td>
-            @foreach($subjects as $subject)
-                @php($score = $row['subject_scores'][$subject['id']] ?? null)
-                <td class="num">{{ $score && $score['marks'] !== null ? $score['marks'].' / '.$score['total'] : 'NS' }}</td>
-            @endforeach
-            <td class="num">{{ rtrim(rtrim(number_format($row['total_obtained'], 2, '.', ''), '0'), '.') }} / {{ rtrim(rtrim(number_format($row['total_possible'], 2, '.', ''), '0'), '.') }}</td>
-            <td class="num">{{ number_format($row['percentage'], 1) }}%</td>
-            <td class="num">{{ $row['grade'] }}</td>
-        </tr>
-    @endforeach
-    </tbody>
-</table>
-
-<div class="summary">
-    <div class="summary-cell">
-        <div class="summary-title">Best 5 learners</div>
-        <table>
-            <thead><tr><th>Position</th><th>Learner</th><th class="num">Mean</th><th class="num">Grade</th></tr></thead>
-            <tbody>
-            @foreach($topFive as $row)<tr><td>{{ $row['position'] }}</td><td>{{ $row['learner']['name'] }}</td><td class="num">{{ number_format($row['percentage'], 1) }}%</td><td class="num">{{ $row['grade'] }}</td></tr>@endforeach
-            </tbody>
-        </table>
-    </div>
-    <div class="summary-cell">
-        <div class="summary-title">Subject performance means</div>
-        @foreach($subjectMeans as $subject)
-            <div class="bar-row"><div class="bar-label">{{ $subject['name'] }}</div><div class="bar-track"><div class="bar" style="width:{{ min(100, max(0, (float) $subject['mean'])) }}%"></div></div><div class="bar-value">{{ number_format($subject['mean'], 1) }}%</div></div>
-        @endforeach
-    </div>
-</div>
-
-<div class="note">Overall mean is calculated from total marks obtained divided by total possible marks across all {{ count($subjects) }} subjects. NS means the learner did not sit that subject.</div>
-<div class="footer"><div class="signature">Prepared by Admin, Kyandulu</div><div class="signature">Headteacher signature and date</div></div>
-</body>
-</html>
+<div class="header">@if(is_string($logo) && str_starts_with($logo, 'data:image/'))<img class="logo" src="{{ $logo }}">@endif<div><div class="school">{{ config('school.name') }}</div><div class="details">{{ config('school.address') }} | {{ config('school.phone') }} | {{ config('school.email') }}</div><div class="details">{{ config('school.motto') }}</div></div></div>
+<div class="title">Examination Merit List</div><div class="subtitle">{{ $exam->typeLabel() }} - {{ $exam->name }}</div>
+<div class="meta"><div><span class="label">Class / grade</span><span class="value">{{ $exam->schoolClass?->name ?? $exam->grade_level }}</span></div><div><span class="label">Academic year</span><span class="value">{{ $exam->academic_year }}</span></div><div><span class="label">Term</span><span class="value">Term {{ $exam->term }}</span></div></div>
+<table><thead><tr><th class="num">Position</th><th>Admission number</th><th>Learner name</th>@foreach($subjects as $subject)<th class="num">{{ $subject->learningArea?->name ?? 'Subject' }}<br>Marks</th>@endforeach<th class="num">Total</th><th class="num">Mean</th><th class="num">Overall grade</th></tr></thead><tbody>@foreach($results as $result)<tr><td class="num"><strong>{{ $result->merit_position }}</strong></td><td>{{ $result->learner?->admission_number ?? '-' }}</td><td>{{ $result->learner?->full_name ?? 'Unknown learner' }}</td>@foreach($subjects as $subject)@php($score = $result->subject_scores[$subject->id] ?? null)<td class="num">{{ $score && $score['marks'] !== null ? $score['marks'].' / '.($score['total'] ?? 0) : 'NS' }}</td>@endforeach<td class="num">{{ $result->marks_obtained ?? 0 }} / {{ $result->total_marks ?? 0 }}</td><td class="num">{{ number_format((float) ($result->merit_percentage ?? 0), 1) }}%</td><td class="num">{{ $result->grade ?: '-' }}</td></tr>@endforeach</tbody></table>
+<div class="summary"><div class="panel"><h3>Best 5 learners</h3><table><thead><tr><th>Position</th><th>Learner</th><th class="num">Mean</th><th class="num">Grade</th></tr></thead><tbody>@foreach($topFive as $result)<tr><td>{{ $result->merit_position }}</td><td>{{ $result->learner?->full_name ?? 'Unknown learner' }}</td><td class="num">{{ number_format((float) ($result->merit_percentage ?? 0), 1) }}%</td><td class="num">{{ $result->grade ?: '-' }}</td></tr>@endforeach</tbody></table></div><div class="panel"><h3>Subject performance means</h3>@foreach($subjectMeans as $subject)<div class="bar-row"><div class="bar-label">{{ $subject['name'] }}</div><div class="bar-track"><div class="bar" style="width:{{ min(100, max(0, (float) ($subject['mean'] ?? 0))) }}%"></div></div><div class="bar-value">{{ number_format((float) ($subject['mean'] ?? 0), 1) }}%</div></div>@endforeach</div></div>
+<div class="note">Overall mean is calculated from total marks obtained divided by total possible marks across all {{ $subjects->count() }} subjects. NS means the learner did not sit that subject.</div><div class="footer"><div class="signature">Prepared by Admin, Kyandulu</div><div class="signature">Headteacher signature and date</div></div></body></html>
