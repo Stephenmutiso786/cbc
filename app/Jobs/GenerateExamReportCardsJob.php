@@ -21,6 +21,7 @@ class GenerateExamReportCardsJob implements ShouldQueue
 
     public int $tries = 2;
     public int $timeout = 300;
+    public $queue = 'reports';
 
     public function __construct(public readonly int $exportId) {}
 
