@@ -28,7 +28,13 @@ class ExamReportsController extends Controller
         // browser request can exceed Render's request timeout.
         if ($learnerCount > 20) {
             $export = ExamReportExport::where('exam_id', $exam->id)
-                ->whereIn('status', ['queued', 'processing', 'complete'])
+                ->where(function ($query): void {
+                    $query->where('status', 'complete')
+                        ->orWhere(function ($query): void {
+                            $query->whereIn('status', ['queued', 'processing'])
+                                ->where('updated_at', '>=', now()->subMinutes(5));
+                        });
+                })
                 ->latest('id')->first();
 
             if (! $export) {
