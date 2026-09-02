@@ -130,12 +130,15 @@ class ExamReportsController extends Controller
         $staff = auth()->user()->staffMember;
         abort_unless($staff, 403);
         $examIds = $exam->groupExamIds();
+        $groupExams = Exam::whereIn('id', $examIds)->get(['id', 'class_id', 'learning_area_id', 'term', 'academic_year']);
         $classIds = $staff->classes()->pluck('id');
-        $isClassTeacher = Exam::whereIn('id', $examIds)->whereIn('class_id', $classIds)->exists();
+        $groupClassIds = $groupExams->pluck('class_id')->filter()->unique();
+        $isClassTeacher = $groupClassIds->intersect($classIds)->isNotEmpty();
         $areaIds = Exam::whereIn('id', $examIds)->pluck('learning_area_id');
         $isAllocatedTeacher = TeacherSubjectAllocation::where('teacher_id', $staff->id)
-            ->whereIn('class_id', $classIds)->whereIn('learning_area_id', $areaIds)
-            ->where('academic_year', config('school.academic_year'))->where('is_active', true)->exists();
+            ->whereIn('class_id', $groupClassIds)->whereIn('learning_area_id', $areaIds)
+            ->where('academic_year', (string) $exam->academic_year)->where('term', (int) $exam->term)
+            ->where('is_active', true)->exists();
 
         abort_unless($isClassTeacher || $isAllocatedTeacher, 403);
     }

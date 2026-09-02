@@ -35,12 +35,11 @@ class ViewResults extends Component
         $visibleRows = Exam::with(['learningArea', 'schoolClass'])
             ->where('academic_year', $year)->where('term', (int) $this->term)
             ->where('exam_state', 'published')->where('status', 'published')->where('marks_status', 'approved')->get()
-            ->filter(fn (Exam $exam) => $classTeacher
-                ? $classTeacherClassIds->contains((int) $exam->class_id)
-                : (bool) ($allocationKeys[$exam->class_id . ':' . $exam->learning_area_id] ?? false));
+            ->filter(fn (Exam $exam) => $classTeacherClassIds->contains((int) $exam->class_id)
+                || (bool) ($allocationKeys[$exam->class_id . ':' . $exam->learning_area_id] ?? false));
 
         $groups = $visibleRows->groupBy(fn (Exam $exam) => $exam->exam_group_id ?: $exam->id)
-            ->map(function (Collection $subjects, $rootId) use ($classTeacher): array {
+            ->map(function (Collection $subjects, $rootId) use ($classTeacherClassIds): array {
                 $root = $subjects->firstWhere('id', (int) $rootId) ?: $subjects->first();
                 $results = ExamResult::whereIn('exam_id', $subjects->pluck('id'))
                     ->whereHas('learner', fn ($query) => $query
@@ -52,7 +51,8 @@ class ViewResults extends Component
                         ->map(fn (ExamResult $result) => $result->total_marks > 0 ? (float) $result->marks_obtained / (float) $result->total_marks * 100 : 0);
                     return ['name' => $subject->learningArea?->name ?? 'Learning area', 'mean' => round($scores->avg() ?: 0, 2), 'entries' => $scores->count()];
                 })->values();
-                return ['id' => (int) $root->id, 'name' => $root->name, 'type' => $root->typeLabel(), 'class' => $root->schoolClass?->name ?: $root->grade_level, 'date' => $root->exam_date?->format('d M Y'), 'subjects' => $stats, 'mean' => round($stats->pluck('mean')->avg() ?: 0, 2), 'can_download' => $classTeacher];
+                $classId = (int) ($root->class_id ?: $subjects->first()->class_id);
+                return ['id' => (int) $root->id, 'name' => $root->name, 'type' => $root->typeLabel(), 'class' => $root->schoolClass?->name ?: $root->grade_level, 'date' => $root->exam_date?->format('d M Y'), 'subjects' => $stats, 'mean' => round($stats->pluck('mean')->avg() ?: 0, 2), 'can_download' => $classTeacherClassIds->contains($classId)];
             })->sortByDesc('date')->values();
 
         $view = view('livewire.teacher.view-results', compact('groups', 'allocations', 'classTeacher'))->with('terms', [1, 2, 3]);
