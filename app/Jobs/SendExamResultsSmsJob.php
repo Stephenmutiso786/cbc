@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Exam;
 use App\Models\NotificationLog;
 use App\Models\SchoolNotification;
+use App\Models\ExamResult;
 use App\Services\OlympusSmsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,17 +25,22 @@ class SendExamResultsSmsJob implements ShouldQueue
 
     public function handle(OlympusSmsService $sms): void
     {
-        $exam = Exam::with(['learningArea', 'results.learner.guardians'])->findOrFail($this->examId);
+        $exam = Exam::findOrFail($this->examId);
+        $resultsByLearner = ExamResult::with(['learner.guardians', 'exam.learningArea'])
+            ->whereIn('exam_id', $exam->groupExamIds())
+            ->whereHas('learner')
+            ->get()
+            ->groupBy('learner_id');
         $notification = SchoolNotification::findOrFail($this->notificationId);
         $sent = 0;
         $failed = 0;
 
-        foreach ($exam->results as $result) {
-            $learner = $result->learner;
+        foreach ($resultsByLearner as $learnerResults) {
+            $learner = $learnerResults->first()->learner;
             if (! $learner) continue;
 
-            foreach ($learner->guardians->whereNotNull('phone_number') as $guardian) {
-                $message = $this->messageFor($exam, $result);
+            foreach ($learner->guardians->whereNotNull('phone_number')->unique('id') as $guardian) {
+                $message = $this->messageFor($exam, $learnerResults);
                 try {
                     $providerResult = $sms->sendSms($guardian->phone_number, $message);
                     $sent++;
@@ -72,13 +78,18 @@ class SendExamResultsSmsJob implements ShouldQueue
         report($exception);
     }
 
-    private function messageFor(Exam $exam, $result): string
+    private function messageFor(Exam $exam, $results): string
     {
-        $learnerName = Str::limit($result->learner->full_name, 48, '');
+        $learnerName = Str::limit($results->first()->learner->full_name, 34, '');
         $examName = Str::limit($exam->typeLabel() . ' - ' . $exam->name, 42, '');
-        $marks = rtrim(rtrim(number_format((float) $result->marks_obtained, 2, '.', ''), '0'), '.');
-        $total = rtrim(rtrim(number_format((float) $result->total_marks, 2, '.', ''), '0'), '.');
-        $message = "{$learnerName}: {$examName} {$marks}/{$total} ({$result->grade}). @KYANDULU SCHOOL";
+        $subjects = $results->map(function ($result): string {
+            $subject = Str::limit($result->exam?->learningArea?->name ?? 'Subject', 12, '');
+            $rubric = $result->rubric_level?->value ?? '-';
+            $points = $result->rubric_level?->numericValue() ?? '-';
+            $grade = $result->grade ?: '-';
+            return "{$subject}:{$rubric}/{$points}/{$grade}";
+        })->implode(', ');
+        $message = "{$learnerName}: {$examName} {$subjects}. @KYANDULU SCHOOL";
 
         return Str::limit($message, 160, '');
     }
