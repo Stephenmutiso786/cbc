@@ -600,7 +600,7 @@ class ExamManager extends Component
 
     public function sendResults(int $examId): void
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']), 403);
+        abort_unless(auth()->user()->can('publish results'), 403);
 
         $exam = Exam::findOrFail($examId);
         $group = Exam::whereIn('id', $exam->groupExamIds())->get();
@@ -723,7 +723,7 @@ class ExamManager extends Component
 
     public function canReviewMarks(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']);
+        return auth()->user()->can('review marks');
     }
 
     public function render()

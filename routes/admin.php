@@ -33,10 +33,10 @@ Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:vi
 Route::get('/notifications', SendNotification::class)->middleware('permission:view notifications')->name('notifications.index');
 Route::get('/sms', SmsBalance::class)->middleware('permission:view notifications')->name('sms.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams')->name('exams.index');
-Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->name('exams.marks-template');
-Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
-Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->name('exams.report-cards.export');
-Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->name('exams.merit-list');
+Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->middleware('permission:enter marks')->name('exams.marks-template');
+Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->middleware('permission:view report cards')->name('exams.report-cards');
+Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->middleware('permission:view report cards')->name('exams.report-cards.export');
+Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->middleware('permission:view report cards')->name('exams.merit-list');
 Route::get('/inventory', InventoryList::class)->middleware('permission:view inventory')->name('inventory.index');
 Route::get('/notes', LearningNotesList::class)->middleware('permission:view notes')->name('notes.index');
 Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
@@ -58,7 +58,7 @@ Route::get('/settings', fn() => view('admin.settings.index'))->middleware('permi
 Route::get('/report-forms', ReportCardTemplates::class)->middleware('permission:view report cards')->name('report-forms.index');
 Route::get('/grades', GradeManager::class)->middleware('permission:manage curriculum')->name('grades.index');
 Route::get('/academic-periods', AcademicPeriods::class)->middleware('permission:manage curriculum')->name('academic-periods.index');
-Route::get('/promotions', PromotionManager::class)->middleware('permission:view students')->name('promotions.index');
+Route::get('/promotions', PromotionManager::class)->middleware('permission:manage promotions')->name('promotions.index');
 Route::get('/roles', RoleManager::class)->middleware('permission:manage roles')->name('roles.index');
 Route::get('/classes', AcademicSetup::class)->middleware('permission:manage curriculum')->name('classes.index');
 Route::get('/subjects', SubjectManager::class)->middleware('permission:manage curriculum')->name('subjects.index');

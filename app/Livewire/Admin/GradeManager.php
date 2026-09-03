@@ -104,6 +104,6 @@ class GradeManager extends Component
 
     private function canManage(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']);
+        return auth()->user()->can('manage curriculum');
     }
 }

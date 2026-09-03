@@ -11,6 +11,7 @@ class MarksImportTemplateController extends Controller
 {
     public function download(string $exam): Response
     {
+        abort_unless(auth()->user()->can('enter marks'), 403);
         $exam = Exam::with('schoolClass')->findOrFail($exam);
         abort_unless(in_array($exam->marks_status, ['draft', 'returned'], true) && ! $exam->isLocked(), 422, 'This exam is already submitted or locked.');
 

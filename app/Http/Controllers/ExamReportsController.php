@@ -325,7 +325,7 @@ class ExamReportsController extends Controller
 
     private function authorizeExamReports(Exam $exam): void
     {
-        if (auth()->user()->can('manage exams') || auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal'])) {
+        if (request()->routeIs('admin.*') && auth()->user()->can('manage exams')) {
             return;
         }
 
