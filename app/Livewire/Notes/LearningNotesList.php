@@ -50,6 +50,7 @@ class LearningNotesList extends Component
 
     public function upload(): void
     {
+        abort_unless(Auth::user()->can('upload notes'), 403);
         $this->validate();
 
         $filePath = null;
@@ -78,12 +79,14 @@ class LearningNotesList extends Component
 
     public function togglePublish(int $id): void
     {
+        abort_unless(Auth::user()->can('publish notes'), 403);
         $note = LearningNote::findOrFail($id);
         $note->update(['is_published' => !$note->is_published]);
     }
 
     public function delete(int $id): void
     {
+        abort_unless(Auth::user()->can('publish notes'), 403);
         $note = LearningNote::findOrFail($id);
         if ($note->file_path) {
             app(GoogleDriveStorage::class)->delete($note->file_path);

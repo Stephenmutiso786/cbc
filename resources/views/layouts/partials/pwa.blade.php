@@ -6,4 +6,4 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
 <script src="{{ asset('navigation.js') }}" defer></script>
-<script src="{{ asset('pwa.js') }}" defer></script>
+<script src="{{ asset('pwa.js') }}?v=2" defer></script>

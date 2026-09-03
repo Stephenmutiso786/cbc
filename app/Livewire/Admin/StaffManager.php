@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 
 class StaffManager extends Component
@@ -99,7 +100,7 @@ class StaffManager extends Component
             'form.phone_number' => ['nullable', 'string', 'max:50'],
             'form.employment_type' => ['required', 'in:permanent,contract,bom,volunteer'], 'form.staff_type' => ['required', 'in:teaching,non_teaching'],
             'form.designation' => ['nullable', 'string', 'max:255'], 'form.date_joined' => ['required', 'date'],
-            'form.role' => ['required', 'exists:roles,name'], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
+            'form.role' => ['required', Rule::in($this->assignableRoleNames())], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
             'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ])['form'];
         if (! $this->editingId) {
@@ -154,12 +155,13 @@ class StaffManager extends Component
                 $this->importErrors[] = 'Row ' . $rowNumber . ': a staff member with the same name already exists.';
                 continue;
             }
-            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => 'required|exists:roles,name', 'password' => 'required|min:8']);
+            $validator = validator($row, ['staff_number' => 'required|unique:staff_members,staff_number', 'first_name' => 'required|string|max:255', 'last_name' => 'required|string|max:255', 'email' => 'required|email|unique:users,email', 'phone_number' => 'nullable|string|max:50', 'employment_type' => 'required|in:permanent,contract,bom,volunteer', 'staff_type' => 'required|in:teaching,non_teaching', 'date_joined' => 'required|date', 'role' => ['required', Rule::in($this->assignableRoleNames())], 'password' => 'required|min:8']);
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
             try {
                 DB::transaction(function () use ($row) {
                     $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'email_verified_at' => now()]);
-                    $user->assignRole($row['role']);
+                    // A staff account has one operational role; replace stale roles from older assignments.
+                    $user->syncRoles([$row['role']]);
                     StaffMember::create(array_merge($row, ['gender' => 'male', 'user_id' => $user->id, 'is_active' => true]));
                 });
                 $this->importedCount++;
@@ -298,6 +300,20 @@ class StaffManager extends Component
 
     public function render()
     {
-        return view('livewire.admin.staff-manager', ['staff' => StaffMember::with('user')->orderBy('last_name')->paginate(25), 'roles' => \Spatie\Permission\Models\Role::orderBy('name')->get()])->layout('layouts.admin');
+        return view('livewire.admin.staff-manager', ['staff' => StaffMember::with('user')->orderBy('last_name')->paginate(25), 'roles' => Role::whereIn('name', $this->assignableRoleNames())->orderBy('name')->get()])->layout('layouts.admin');
+    }
+
+    private function assignableRoleNames(): array
+    {
+        $user = auth()->user();
+        if ($user->hasRole('super-admin')) {
+            return Role::where('guard_name', 'web')->orderBy('name')->pluck('name')->all();
+        }
+
+        $permissions = $user->getAllPermissions()->pluck('name');
+        return Role::with('permissions')->where('guard_name', 'web')->get()
+            ->filter(fn (Role $role) => $role->name !== 'super-admin'
+                && $role->permissions->pluck('name')->diff($permissions)->isEmpty())
+            ->pluck('name')->values()->all();
     }
 }

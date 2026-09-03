@@ -82,6 +82,7 @@ class StudentList extends Component
 
     public function create(): void
     {
+        abort_unless(auth()->user()->can('create students'), 403);
         $this->resetValidation();
         $this->editingId = null;
         $this->form = array_merge($this->form, [
@@ -95,6 +96,7 @@ class StudentList extends Component
 
     public function openImport(): void
     {
+        abort_unless(auth()->user()->can('create students'), 403);
         $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount']);
         $this->importGrade = '';
         $this->importClassId = '';
@@ -117,6 +119,7 @@ class StudentList extends Component
 
     public function importLearners(): void
     {
+        abort_unless(auth()->user()->can('create students'), 403);
         $this->validate([
             'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:10240'],
             'importGrade' => ['nullable', 'string'],
@@ -249,6 +252,7 @@ class StudentList extends Component
 
     public function edit(int $id): void
     {
+        abort_unless(auth()->user()->can('edit students'), 403);
         $this->resetValidation();
         $learner = Learner::findOrFail($id);
         $this->editingId = $id;
@@ -265,6 +269,7 @@ class StudentList extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()->can($this->editingId ? 'edit students' : 'create students'), 403);
         $data = $this->validate([
             'form.admission_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('learners', 'admission_number')->ignore($this->editingId)],
             'form.first_name' => 'required|string|max:255', 'form.middle_name' => 'nullable|string|max:255',
@@ -297,7 +302,7 @@ class StudentList extends Component
 
     public function generateReport(int $id): void
     {
-        abort_unless($this->canDelete(), 403);
+        abort_unless(auth()->user()->can('generate report cards'), 403);
         Learner::findOrFail($id);
         GenerateReportCardJob::dispatch($id, (string) config('school.current_term'), (string) config('school.academic_year'));
         session()->flash('success', 'The report card was queued for generation. It will be saved to the configured report storage.');

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'cbc-school-static-v4';
+var CACHE_NAME = 'cbc-school-static-v5';
 var STATIC_ASSETS = [
     '/manifest.webmanifest',
     '/pwa.js',

@@ -16,6 +16,7 @@ class SubjectManager extends Component
 
     public function create(): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $this->editingId = null;
         $this->form = ['name' => '', 'code' => '', 'grade_level' => '', 'weekly_lessons' => 5];
         $this->showForm = true;
@@ -23,6 +24,7 @@ class SubjectManager extends Component
 
     public function edit(int $id): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $this->editingId = $id;
         $this->form = LearningArea::findOrFail($id)->only(['name', 'code', 'grade_level', 'weekly_lessons']);
         $this->showForm = true;
@@ -30,6 +32,7 @@ class SubjectManager extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $data = $this->validate([
             'form.name' => ['required', 'string', 'max:255'],
             'form.code' => ['required', 'string', 'max:50', 'unique:learning_areas,code,' . ($this->editingId ?: 'NULL')],
@@ -44,18 +47,21 @@ class SubjectManager extends Component
 
     public function toggle(int $id): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $area = LearningArea::findOrFail($id);
         $area->update(['is_active' => !$area->is_active]);
     }
 
     public function openAssignment(?int $classId = null): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $this->assignmentForm = ['class_id' => $classId ?: '', 'learning_area_id' => '', 'lessons_per_week' => 5];
         $this->showAssignmentForm = true;
     }
 
     public function assignToClass(): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         $data = $this->validate([
             'assignmentForm.class_id' => ['required', 'integer', 'exists:school_classes,id'],
             'assignmentForm.learning_area_id' => ['required', 'integer', 'exists:learning_areas,id'],
@@ -71,6 +77,7 @@ class SubjectManager extends Component
 
     public function removeFromClass(int $classId, int $learningAreaId): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         SchoolClass::findOrFail($classId)->learningAreas()->detach($learningAreaId);
         session()->flash('success', 'Subject removed from class.');
     }

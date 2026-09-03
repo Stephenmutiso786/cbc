@@ -25,7 +25,7 @@ use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\MarksImportTemplateController;
 
-Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
 Route::get('/students', StudentList::class)->middleware('permission:view students')->name('students.index');
 Route::get('/students/import', StudentList::class)->middleware('permission:create students')->name('students.import');
 Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->middleware('permission:view report cards')->name('students.report-card');
@@ -45,7 +45,7 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
     abort_unless($payment, 404, 'Receipt not found.');
 
     return view('pdf.fee-receipt', compact('payment'));
-})->name('fees.receipt');
+})->middleware('permission:view fees')->name('fees.receipt');
 Route::get('/staff', StaffManager::class)->middleware('permission:view staff')->name('staff.index');
 Route::get('/staff/import', StaffManager::class)->middleware('permission:manage staff')->name('staff.import');
 Route::get('/parents', ParentManager::class)->middleware('permission:view students')->name('parents.index');
