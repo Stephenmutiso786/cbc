@@ -14,7 +14,6 @@ class DatabaseSeeder extends Seeder
             DefaultGradingScalesSeeder::class,
             DefaultClassSubjectsSeeder::class,
             AdminUserSeeder::class,
-            ScreenshotTeachersSeeder::class,
         ]);
     }
 }
