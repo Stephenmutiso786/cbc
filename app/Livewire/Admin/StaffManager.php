@@ -34,6 +34,7 @@ class StaffManager extends Component
 
     public function create(): void
     {
+        $this->resetValidation();
         $this->signatureFile = null;
         $this->editingId = null;
         $this->form = ['staff_number' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'employment_type' => 'permanent', 'staff_type' => 'teaching', 'designation' => '', 'date_joined' => now()->format('Y-m-d'), 'role' => 'teacher', 'password' => ''];
@@ -79,6 +80,7 @@ class StaffManager extends Component
 
     public function edit(int $id): void
     {
+        $this->resetValidation();
         $staff = StaffMember::with('user')->findOrFail($id);
         $this->editingId = $id;
         $this->signatureFile = null;
