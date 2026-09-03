@@ -16,6 +16,7 @@ class ExamTimetableManager extends Component
     public string $academicYear = '';
     public int $term = 1;
     public string $examGroupId = '';
+    public string $classId = '';
     public string $startDate = '';
     public string $notice = '';
 
@@ -33,6 +34,11 @@ class ExamTimetableManager extends Component
     }
 
     public function updatedTerm(): void
+    {
+        $this->examGroupId = '';
+    }
+
+    public function updatedClassId(): void
     {
         $this->examGroupId = '';
     }
@@ -139,11 +145,18 @@ class ExamTimetableManager extends Component
         $groups = Exam::with(['schoolClass', 'learningArea', 'groupedSubjects.learningArea'])
             ->whereNull('exam_group_id')->where('academic_year', $this->academicYear)
             ->where('term', (string) $this->term)->latest()->get();
+        if ($this->classId !== '') {
+            $groups = $groups->where('class_id', (int) $this->classId)->values();
+        }
         $slots = ExamTimetable::with(['exam.learningArea', 'schoolClass', 'invigilator'])
             ->whereHas('exam', fn ($query) => $query->where('academic_year', $this->academicYear)->where('term', (string) $this->term))
+            ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
             ->orderBy('date')->orderBy('start_time')->get();
         return view('livewire.admin.exam-timetable-manager', [
-            'groups' => $groups, 'slots' => $slots,
+            'groups' => $groups,
+            'classes' => \App\Models\SchoolClass::forConfiguredGrades()->where('is_active', true)
+                ->where('academic_year', $this->academicYear)->orderBy('grade_level')->orderBy('name')->get(),
+            'slots' => $slots,
         ])->layout('layouts.admin');
     }
 

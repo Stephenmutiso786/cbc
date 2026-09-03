@@ -12,6 +12,7 @@ use App\Models\TeacherSubjectAllocation;
 use App\Models\GradingScale;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\SendExamResultsSmsJob;
 use App\Models\SchoolNotification;
@@ -19,7 +20,7 @@ use Throwable;
 
 class ExamManager extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public string $tab          = 'exams'; // exams | marks | results
     public ?int   $selectedExam = null;
@@ -48,6 +49,9 @@ class ExamManager extends Component
     public array  $markSubjectOptions = [];
     public float $marksTotal = 100;
     public string $marksEntryStatus = 'draft';
+    public $marksCsvFile;
+    public array $marksImportErrors = [];
+    public int $marksImportedCount = 0;
 
     protected $rules = [
         'examName'  => 'required|string|max:200',
@@ -269,6 +273,102 @@ class ExamManager extends Component
         if ($saved === null) return;
 
         $this->dispatch('notify', type: 'success', message: "{$saved} learner mark entries saved as draft. Submit them when complete.");
+    }
+
+    public function importMarksCsv(): void
+    {
+        $this->validate(['marksCsvFile' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+        $exam = $this->editableMarksExam();
+        $this->marksImportErrors = [];
+        $this->marksImportedCount = 0;
+
+        $scale = $exam->schoolClass?->gradingScale()->first();
+        if (! $scale) {
+            $this->addError('marksCsvFile', 'This class has no active grading scale.');
+            return;
+        }
+
+        $learners = Learner::where('class_id', $exam->class_id)
+            ->where('grade_level', $exam->grade_level)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy(fn ($learner) => strtolower(trim((string) $learner->admission_number)));
+
+        $handle = fopen($this->marksCsvFile->getRealPath(), 'r');
+        $headers = array_map(fn ($header) => $this->normalizeCsvHeader($header), fgetcsv($handle) ?: []);
+        $required = ['admission_number', 'marks'];
+        if (array_diff($required, $headers)) {
+            fclose($handle);
+            $this->addError('marksCsvFile', 'The CSV must contain these headers: admission_number, learner_name, marks.');
+            return;
+        }
+
+        $updates = [];
+        $seen = [];
+        $line = 1;
+        while (($values = fgetcsv($handle)) !== false) {
+            $line++;
+            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
+            $row = [];
+            foreach ($headers as $position => $header) $row[$header] = trim((string) ($values[$position] ?? ''));
+
+            $admission = strtolower($row['admission_number'] ?? '');
+            if ($admission === '') {
+                $this->marksImportErrors[] = "Row {$line}: admission_number is required.";
+                continue;
+            }
+            if (isset($seen[$admission])) {
+                $this->marksImportErrors[] = "Row {$line}: duplicate admission_number in this CSV.";
+                continue;
+            }
+            $seen[$admission] = true;
+            if (! isset($learners[$admission])) {
+                $this->marksImportErrors[] = "Row {$line}: learner admission number was not found in this exam class.";
+                continue;
+            }
+
+            $raw = $row['marks'] ?? '';
+            if ($raw !== '' && (! preg_match('/^\d+(?:\.\d+)?$/', $raw) || (float) $raw > 100 || (float) $raw > (float) $exam->total_marks)) {
+                $this->marksImportErrors[] = "Row {$line}: marks must be a number from 0 to 100 and cannot exceed the exam total.";
+                continue;
+            }
+            $updates[$learners[$admission]->id] = $raw === '' ? null : (float) $raw;
+        }
+        fclose($handle);
+
+        if ($this->marksImportErrors) return;
+        if (! $updates) {
+            $this->addError('marksCsvFile', 'The CSV contains no learner mark rows.');
+            return;
+        }
+
+        $teacher = StaffMember::where('user_id', auth()->id())->first();
+        DB::transaction(function () use ($updates, $exam, $scale, $teacher): void {
+            foreach ($updates as $learnerId => $marks) {
+                $grade = $marks === null ? null : $this->calculateGrade($marks, (float) $exam->total_marks, $scale);
+                ExamResult::updateOrCreate(
+                    ['exam_id' => $exam->id, 'learner_id' => $learnerId],
+                    [
+                        'marks_obtained' => $marks,
+                        'total_marks' => $exam->total_marks,
+                        'grade' => $grade,
+                        'rubric_level' => $marks === null ? null : $this->calculateRubric(($marks / (float) $exam->total_marks) * 100, $scale),
+                        'remarks' => $grade ? $scale->commentForCode($grade) : null,
+                        'marked_by' => $teacher?->id ?? 1,
+                    ]
+                );
+            }
+        });
+
+        $this->marksImportedCount = count($updates);
+        $this->marksCsvFile = null;
+        $this->loadMarkEntry($exam->id, true);
+        $this->dispatch('notify', type: 'success', message: "{$this->marksImportedCount} marks imported and saved as draft.");
+    }
+
+    private function normalizeCsvHeader($header): string
+    {
+        return strtolower(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) $header)));
     }
 
     public function submitMarks(): void
@@ -617,7 +717,8 @@ class ExamManager extends Component
 
     private function isFullAdmin(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        // Only the platform super-admin may enter marks outside allocations.
+        return auth()->user()->hasRole('super-admin');
     }
 
     public function canReviewMarks(): bool
@@ -628,6 +729,7 @@ class ExamManager extends Component
     public function render()
     {
         $fullAdmin = $this->isFullAdmin();
+        $adminPortal = auth()->user()->hasAnyRole(['admin', 'super-admin']);
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
         $allocatedExamIds = $fullAdmin ? collect() : Exam::where('academic_year', config('school.academic_year'))
@@ -683,7 +785,7 @@ class ExamManager extends Component
             'examScaleBands' => $this->examScaleBands,
             'reviewExam' => $this->selectedExam ? Exam::with(['schoolClass', 'learningArea'])->find($this->selectedExam) : null,
             'reviewQueue' => $reviewQueue,
-        ])->layout($fullAdmin ? 'layouts.admin' : 'layouts.teacher');
+        ])->layout($adminPortal ? 'layouts.admin' : 'layouts.teacher');
     }
 
     private function availableLearningAreas(bool $fullAdmin, $allocation)

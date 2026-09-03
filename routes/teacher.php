@@ -7,11 +7,13 @@ use App\Livewire\Notifications\SendNotification;
 use App\Livewire\Teacher\LearnerList;
 use App\Livewire\Teacher\ViewResults;
 use App\Http\Controllers\ExamReportsController;
+use App\Http\Controllers\MarksImportTemplateController;
 
 Route::get('/dashboard', fn() => view('teacher.dashboard'))->name('dashboard');
 Route::get('/learners', LearnerList::class)->name('learners.index');
 Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/exams', ExamManager::class)->name('exams.index');
+Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->name('exams.marks-template');
 Route::get('/results', ViewResults::class)->name('results.index');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
 Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->name('exams.report-cards.export');

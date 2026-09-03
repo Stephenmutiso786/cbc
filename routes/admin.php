@@ -23,6 +23,7 @@ use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\ReportCardController;
+use App\Http\Controllers\MarksImportTemplateController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/students', StudentList::class)->name('students.index');
@@ -32,6 +33,7 @@ Route::get('/assessment', BulkAssessmentEntry::class)->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->name('notifications.index');
 Route::get('/sms', SmsBalance::class)->name('sms.index');
 Route::get('/exams', ExamManager::class)->name('exams.index');
+Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->name('exams.marks-template');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->name('exams.report-cards');
 Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->name('exams.report-cards.export');
 Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->name('exams.merit-list');
