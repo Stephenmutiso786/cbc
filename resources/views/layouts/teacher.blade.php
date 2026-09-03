@@ -18,11 +18,13 @@
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1">
             @foreach([
-                ['teacher.dashboard','Dashboard'],['teacher.learners.index','My Learners'],['teacher.exams.index','Marks Entry'],['teacher.results.index','View Results'],
-                ['teacher.notes.index','Learning Notes'],['teacher.notifications.index','Message Parents'],['teacher.signature.index','Report-card Signature'],['teacher.attendance.index','Attendance'],
-                ['teacher.timetable.index','Timetable'],
-            ] as [$route,$label])
-            <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
+                ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Marks Entry','enter marks'],['teacher.results.index','View Results','view results'],
+                ['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature', null],['teacher.attendance.index','Attendance','view attendance'],
+                ['teacher.timetable.index','Timetable','view timetable'],
+            ] as [$route,$label,$permission])
+            @if($permission === null || auth()->user()->can($permission))
+                <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
+            @endif
             @endforeach
         </nav>
         <div class="px-4 py-3 border-t border-blue-800">

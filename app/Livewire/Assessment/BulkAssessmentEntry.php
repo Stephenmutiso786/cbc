@@ -91,7 +91,7 @@ class BulkAssessmentEntry extends Component
 
     public function render()
     {
-        $fullAdmin = auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        $fullAdmin = request()->routeIs('admin.*');
         $staffId = auth()->user()->staffMember?->id;
         $allocations = TeacherSubjectAllocation::where('teacher_id', $staffId)->where('is_active', true)
             ->where('academic_year', (string) $this->academicYear);
@@ -108,7 +108,7 @@ class BulkAssessmentEntry extends Component
 
     private function canUseSelection(): bool
     {
-        if (auth()->user()->hasAnyRole(['admin', 'super-admin'])) return true;
+        if (request()->routeIs('admin.*')) return true;
         return TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('class_id', $this->classId)
             ->where('learning_area_id', $this->learningAreaId)

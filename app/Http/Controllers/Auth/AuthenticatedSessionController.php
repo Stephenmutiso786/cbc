@@ -51,6 +51,18 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('finance.dashboard');
         }
 
+        // Custom roles created in Role Management must still land in the
+        // correct portal based on their assigned capabilities.
+        if ($user->canAny(['manage system settings', 'manage roles', 'manage staff', 'manage curriculum', 'manage fees', 'view finance reports'])) {
+            return redirect()->route('admin.dashboard');
+        }
+        if ($user->canAny(['enter marks', 'view assessments', 'view results', 'view notes', 'view timetable'])) {
+            return redirect()->route('teacher.dashboard');
+        }
+        if ($user->canAny(['view fees', 'record payments', 'view finance reports'])) {
+            return redirect()->route('finance.dashboard');
+        }
+
         return redirect()->intended('/');
     }
 
