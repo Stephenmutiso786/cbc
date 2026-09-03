@@ -21,12 +21,14 @@ class ParentManager extends Component
 
     public function create(): void
     {
+        abort_unless(auth()->user()->can('manage staff'), 403);
         $this->resetForm();
         $this->showForm = true;
     }
 
     public function edit(int $id): void
     {
+        abort_unless(auth()->user()->can('manage staff'), 403);
         $parent = Guardian::with('learners')->findOrFail($id);
         $this->editingId = $id;
         $this->firstName = $parent->first_name;
@@ -40,6 +42,7 @@ class ParentManager extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()->can('manage staff'), 403);
         $data = $this->validate([
             'firstName' => ['required', 'string', 'max:100'],
             'lastName' => ['required', 'string', 'max:100'],
@@ -72,6 +75,7 @@ class ParentManager extends Component
 
     public function delete(int $id): void
     {
+        abort_unless(auth()->user()->can('manage staff'), 403);
         Guardian::findOrFail($id)->delete();
         session()->flash('success', 'Parent record deleted. Learners were not deleted.');
     }

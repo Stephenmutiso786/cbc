@@ -112,15 +112,12 @@
         });
     }
 
-    // Keep a visible install action on mobile, including iOS where the native
-    // beforeinstallprompt event is not supported.
+    // The install button is created only after the browser confirms that the
+    // app is installable through beforeinstallprompt. A button shown without
+    // that event is only a fake instruction prompt on Android Chrome.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-            createInstallButton();
-            updateConnectionStatus();
-        });
+        document.addEventListener('DOMContentLoaded', updateConnectionStatus);
     } else {
-        createInstallButton();
         updateConnectionStatus();
     }
 })();
