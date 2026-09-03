@@ -149,6 +149,6 @@ class ExamTimetableManager extends Component
 
     private function canManage(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy']);
+        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']);
     }
 }

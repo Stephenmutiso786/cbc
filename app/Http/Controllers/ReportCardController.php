@@ -11,7 +11,7 @@ class ReportCardController extends Controller
 {
     public function download(Learner $learner, ReportCardService $service, GoogleDriveStorage $storage): Response
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy']), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']), 403);
 
         $term = (string) config('school.current_term');
         $academicYear = (string) config('school.academic_year');

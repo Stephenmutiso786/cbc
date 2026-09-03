@@ -190,5 +190,5 @@ class TimetableManager extends Component
         if (in_array($grade, ['Grade 4', 'Grade 5', 'Grade 6'], true)) return in_array($name, ['english', 'kiswahili', 'mathematics'], true) ? 5 : 4;
         return 5;
     }
-    private function canManage(): bool { return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']); }
+    private function canManage(): bool { return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']); }
 }
