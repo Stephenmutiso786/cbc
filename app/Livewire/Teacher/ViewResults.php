@@ -4,6 +4,7 @@ namespace App\Livewire\Teacher;
 
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\Learner;
 use App\Models\TeacherSubjectAllocation;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -41,10 +42,12 @@ class ViewResults extends Component
         $groups = $visibleRows->groupBy(fn (Exam $exam) => $exam->exam_group_id ?: $exam->id)
             ->map(function (Collection $subjects, $rootId) use ($classTeacherClassIds): array {
                 $root = $subjects->firstWhere('id', (int) $rootId) ?: $subjects->first();
-                $results = ExamResult::whereIn('exam_id', $subjects->pluck('id'))
+                $classIds = $subjects->pluck('class_id')->filter()->unique()->values();
+                $results = ExamResult::with('learner')
+                    ->whereIn('exam_id', $subjects->pluck('id'))
                     ->whereHas('learner', fn ($query) => $query
                         ->where('is_active', true)
-                        ->whereIn('class_id', $subjects->pluck('class_id')->filter()->unique()))
+                        ->whereIn('class_id', $classIds))
                     ->get();
                 $stats = $subjects->map(function (Exam $subject) use ($results): array {
                     $scores = $results->where('exam_id', $subject->id)->filter(fn (ExamResult $result) => $result->marks_obtained !== null)
@@ -52,7 +55,22 @@ class ViewResults extends Component
                     return ['name' => $subject->learningArea?->name ?? 'Learning area', 'mean' => round($scores->avg() ?: 0, 2), 'entries' => $scores->count()];
                 })->values();
                 $classId = (int) ($root->class_id ?: $subjects->first()->class_id);
-                return ['id' => (int) $root->id, 'name' => $root->name, 'type' => $root->typeLabel(), 'class' => $root->schoolClass?->name ?: $root->grade_level, 'date' => $root->exam_date?->format('d M Y'), 'subjects' => $stats, 'mean' => round($stats->pluck('mean')->avg() ?: 0, 2), 'can_download' => $classTeacherClassIds->contains($classId)];
+                $learners = Learner::whereIn('class_id', $classIds)->where('is_active', true)
+                    ->orderBy('last_name')->orderBy('first_name')->get()
+                    ->map(function (Learner $learner) use ($subjects, $results): array {
+                        $subjectResults = $subjects->map(function (Exam $subject) use ($learner, $results): array {
+                            $result = $results->first(fn (ExamResult $item) => (int) $item->exam_id === (int) $subject->id && (int) $item->learner_id === (int) $learner->id);
+                            return [
+                                'subject' => $subject->learningArea?->name ?? 'Learning area',
+                                'marks' => $result?->marks_obtained !== null ? (float) $result->marks_obtained : null,
+                                'percentage' => $result?->percentage,
+                                'rubric' => $result?->rubric_level?->value ?? (string) ($result?->rubric_level ?? ''),
+                                'grade' => $result?->grade,
+                            ];
+                        })->values();
+                        return ['id' => $learner->id, 'name' => $learner->full_name, 'admission_number' => $learner->admission_number, 'subjects' => $subjectResults];
+                    })->values();
+                return ['id' => (int) $root->id, 'name' => $root->name, 'type' => $root->typeLabel(), 'class' => $root->schoolClass?->name ?: $root->grade_level, 'date' => $root->exam_date?->format('d M Y'), 'subjects' => $stats, 'learners' => $learners, 'mean' => round($stats->pluck('mean')->avg() ?: 0, 2), 'can_download' => $classTeacherClassIds->contains($classId)];
             })->sortByDesc('date')->values();
 
         $view = view('livewire.teacher.view-results', compact('groups', 'allocations', 'classTeacher'))->with('terms', [1, 2, 3]);
