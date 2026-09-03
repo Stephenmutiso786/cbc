@@ -359,6 +359,6 @@ class StudentList extends Component
 
     private function canDelete(): bool
     {
-        return auth()->user()->can('delete students') || auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        return auth()->user()->can('delete students');
     }
 }

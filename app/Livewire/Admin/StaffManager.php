@@ -293,7 +293,7 @@ class StaffManager extends Component
 
     private function canDelete(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        return auth()->user()->can('manage staff');
     }
 
     public function render()

@@ -32,7 +32,7 @@ class ReportCardTemplates extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal']), 403);
+        abort_unless(auth()->user()->can('generate report cards'), 403);
         SchoolSetting::updateOrCreate(['key' => 'report_card_template'], ['value' => $this->selected]);
         Config::set('school.report_card_template', $this->selected);
         $this->saved = 'Default report form saved. New report cards will use ' . $this->templates[$this->selected]['name'] . '.';

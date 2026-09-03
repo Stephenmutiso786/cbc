@@ -42,6 +42,7 @@ class SendNotification extends Component
 
     public function send(): void
     {
+        abort_unless(Auth::user()->can('send notifications'), 403);
         $this->validate();
         $this->sending = true;
 
