@@ -622,7 +622,7 @@ class ExamManager extends Component
 
     public function canReviewMarks(): bool
     {
-        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal', 'deputy']);
+        return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']);
     }
 
     public function render()

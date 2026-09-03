@@ -116,6 +116,6 @@ class PromotionManager extends Component
         ])->layout('layouts.admin');
     }
 
-    private function canManage(): bool { return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-principal']); }
+    private function canManage(): bool { return auth()->user()->hasAnyRole(['admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']); }
     private function canApprove(): bool { return $this->canManage(); }
 }

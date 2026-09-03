@@ -38,7 +38,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'super-admin'      => $permissions,
             'principal'        => array_diff($permissions, ['manage system settings','manage roles']),
             'headteacher'      => array_diff($permissions, ['manage system settings','manage roles']),
-            'deputy-principal' => ['view students','view assessments','view timetable','manage timetable',
+            'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable',
                                    'view notes','view exams','view analytics','view attendance','mark attendance'],
             'deputy'           => ['view students','view assessments','view timetable','manage timetable',
                                    'view notes','view exams','view analytics','view attendance','mark attendance'],
