@@ -72,7 +72,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
                 @forelse($learners as $learner)
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr wire:key="learner-{{ $learner->id }}" class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3"><input type="checkbox" wire:model.live="selectedIds" value="{{ $learner->id }}" class="rounded border-gray-300"></td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
@@ -101,7 +101,7 @@
                     </td>
                     <td class="px-4 py-3 flex items-center gap-2">
                         <button wire:click="view({{ $learner->id }})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">View</button>
-                        <button wire:click="edit({{ $learner->id }})" class="text-green-600 hover:text-green-800 text-xs font-medium">Edit</button>
+                        <button type="button" wire:click="edit({{ $learner->id }})" class="rounded-lg border border-green-700 px-2.5 py-1 text-xs font-semibold text-green-700 hover:bg-green-50">Edit</button>
                         <a href="{{ route('admin.students.report-card', $learner) }}" class="text-purple-600 hover:text-purple-800 text-xs font-medium">Report</a>
                     </td>
                 </tr>

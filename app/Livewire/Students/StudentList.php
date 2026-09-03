@@ -82,6 +82,7 @@ class StudentList extends Component
 
     public function create(): void
     {
+        $this->resetValidation();
         $this->editingId = null;
         $this->form = array_merge($this->form, [
             'admission_number' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '',
@@ -248,6 +249,7 @@ class StudentList extends Component
 
     public function edit(int $id): void
     {
+        $this->resetValidation();
         $learner = Learner::findOrFail($id);
         $this->editingId = $id;
         $this->form = [
