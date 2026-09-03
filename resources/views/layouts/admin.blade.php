@@ -19,17 +19,19 @@
         </div>
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 pb-28 text-sm">
             @foreach([
-                'Overview' => [['admin.dashboard', 'Dashboard']],
-                'People' => [['admin.students.index', 'Learners'], ['admin.students.import', 'Import Learners'], ['admin.staff.index', 'Staff'], ['admin.staff.import', 'Import Staff'], ['admin.parents.index', 'Parent Management']],
-                'Academics' => [['admin.classes.index', 'Classes'], ['admin.subjects.index', 'Subjects'], ['admin.grades.index', 'Grade Management'], ['admin.promotions.index', 'Promotions'], ['admin.assessment.index', 'Assessments'], ['admin.exams.index', 'Exams'], ['admin.notes.index', 'Learning Notes'], ['admin.timetable.index', 'Timetable'], ['admin.exam-timetable.index', 'Exam Timetable']],
-                'Finance' => [['finance.payments.index', 'Fees and Payments'], ['finance.invoices.index', 'Invoices'], ['finance.reports.index', 'Finance Reports']],
-                'Operations' => [['admin.inventory.index', 'Inventory'], ['admin.sms.index', 'SMS Center'], ['admin.notifications.index', 'Notifications'], ['admin.reports.index', 'Analytics and Reports']],
-                'Configuration' => [['admin.settings.index', 'School Settings'], ['admin.academic-periods.index', 'Years and Terms'], ['admin.roles.index', 'Roles and Permissions'], ['admin.report-forms.index', 'Report Forms'], ['admin.kemis.index', 'KEMIS Integration']],
+                'Overview' => [['admin.dashboard', 'Dashboard', null]],
+                'People' => [['admin.students.index', 'Learners', 'view students'], ['admin.students.import', 'Import Learners', 'create students'], ['admin.staff.index', 'Staff', 'view staff'], ['admin.staff.import', 'Import Staff', 'manage staff'], ['admin.parents.index', 'Parent Management', 'view students']],
+                'Academics' => [['admin.classes.index', 'Classes', 'manage curriculum'], ['admin.subjects.index', 'Subjects', 'manage curriculum'], ['admin.grades.index', 'Grade Management', 'manage curriculum'], ['admin.promotions.index', 'Promotions', 'view students'], ['admin.assessment.index', 'Assessments', 'view assessments'], ['admin.exams.index', 'Exams', 'view exams'], ['admin.notes.index', 'Learning Notes', 'view notes'], ['admin.timetable.index', 'Timetable', 'view timetable'], ['admin.exam-timetable.index', 'Exam Timetable', 'view timetable']],
+                'Finance' => [['finance.payments.index', 'Fees and Payments', 'view fees'], ['finance.invoices.index', 'Invoices', 'view fees'], ['finance.reports.index', 'Finance Reports', 'view finance reports']],
+                'Operations' => [['admin.inventory.index', 'Inventory', 'view inventory'], ['admin.sms.index', 'SMS Center', 'send notifications'], ['admin.notifications.index', 'Notifications', 'view notifications'], ['admin.reports.index', 'Analytics and Reports', 'view analytics']],
+                'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis']],
             ] as $section => $links)
                 <div>
                     <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
-                    @foreach($links as [$route, $label])
-                        <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+                    @foreach($links as [$route, $label, $permission])
+                        @if($permission === null || auth()->user()->can($permission))
+                            <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
+                        @endif
                     @endforeach
                 </div>
             @endforeach
