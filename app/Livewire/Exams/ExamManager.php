@@ -729,7 +729,7 @@ class ExamManager extends Component
     public function render()
     {
         $fullAdmin = $this->isFullAdmin();
-        $adminPortal = auth()->user()->hasAnyRole(['admin', 'super-admin']);
+        $adminPortal = request()->routeIs('admin.*');
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
         $allocatedExamIds = $fullAdmin ? collect() : Exam::where('academic_year', config('school.academic_year'))

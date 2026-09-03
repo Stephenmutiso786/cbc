@@ -52,7 +52,7 @@ class SendNotification extends Component
             return;
         }
 
-        $isAdmin = Auth::user()->hasAnyRole(['admin', 'super-admin', 'principal', 'headteacher', 'deputy-headteacher', 'deputy']);
+        $isAdmin = request()->routeIs('admin.*');
         if (!$isAdmin && !$this->targetClassId) {
             $this->addError('targetClassId', 'Select the class whose parents should receive this message.');
             $this->sending = false;
@@ -86,7 +86,7 @@ class SendNotification extends Component
     public function render()
     {
         $this->count = $this->getRecipientsCount();
-        $isAdmin = Auth::user()->hasAnyRole(['admin', 'super-admin', 'principal', 'headteacher', 'deputy-headteacher', 'deputy']);
+        $isAdmin = request()->routeIs('admin.*');
         $classes = SchoolClass::forConfiguredGrades()->where('is_active', true);
         if (!$isAdmin) {
             $classIds = \App\Models\TeacherSubjectAllocation::where('teacher_id', Auth::user()->staffMember?->id)->where('is_active', true)->pluck('class_id');
@@ -99,7 +99,7 @@ class SendNotification extends Component
     private function recipientQuery()
     {
         $query = Guardian::query();
-        $isAdmin = Auth::user()->hasAnyRole(['admin', 'super-admin', 'principal', 'headteacher', 'deputy-headteacher', 'deputy']);
+        $isAdmin = request()->routeIs('admin.*');
         if (!$isAdmin) {
             $classIds = \App\Models\TeacherSubjectAllocation::where('teacher_id', Auth::user()->staffMember?->id)->where('is_active', true)->pluck('class_id');
             $query->whereHas('learners', fn ($q) => $q->whereIn('class_id', $classIds)->where('is_active', true));
