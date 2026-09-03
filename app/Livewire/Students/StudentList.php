@@ -7,6 +7,7 @@ use App\Models\SchoolClass;
 use App\Jobs\GenerateReportCardJob;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -263,14 +264,17 @@ class StudentList extends Component
     public function save(): void
     {
         $data = $this->validate([
-            'form.admission_number' => 'required|string|max:255|unique:learners,admission_number,' . ($this->editingId ?? 'NULL'),
+            'form.admission_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('learners', 'admission_number')->ignore($this->editingId)],
             'form.first_name' => 'required|string|max:255', 'form.middle_name' => 'nullable|string|max:255',
-            'form.last_name' => 'required|string|max:255', 'form.date_of_birth' => 'required|date',
+            'form.last_name' => 'required|string|max:255', 'form.date_of_birth' => 'nullable|date',
             'form.grade_level' => 'required|string',
             'form.class_id' => 'required|exists:school_classes,id', 'form.admission_date' => 'required|date',
             'form.boarding_status' => 'required|in:day,boarding', 'form.academic_year' => 'required|string|max:9',
         ])['form'];
         $data['grade_level'] = (string) SchoolClass::forConfiguredGrades()->findOrFail($data['class_id'])->grade_level;
+        if (! $this->editingId) {
+            $data['admission_number'] = $this->newAdmissionNumber((int) $data['class_id']);
+        }
         if ($this->duplicateNameExists($data['first_name'], $data['middle_name'], $data['last_name'], (int) $data['class_id'], $data['academic_year'], $this->editingId)) {
             $this->addError('form.first_name', 'A learner with the same name already exists in this class and academic year.');
             return;

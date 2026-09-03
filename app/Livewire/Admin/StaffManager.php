@@ -91,15 +91,18 @@ class StaffManager extends Component
     {
         $staff = $this->editingId ? StaffMember::findOrFail($this->editingId) : null;
         $data = $this->validate([
-            'form.staff_number' => ['required', 'string', 'max:255', Rule::unique('staff_members', 'staff_number')->ignore($this->editingId)],
+            'form.staff_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('staff_members', 'staff_number')->ignore($this->editingId)],
             'form.first_name' => ['required', 'string', 'max:255'], 'form.last_name' => ['required', 'string', 'max:255'],
             'form.email' => ['required', 'email', 'max:255', Rule::unique('staff_members', 'email')->ignore($this->editingId)],
-            'form.phone_number' => ['required', 'string', 'max:50'],
+            'form.phone_number' => ['nullable', 'string', 'max:50'],
             'form.employment_type' => ['required', 'in:permanent,contract,bom,volunteer'], 'form.staff_type' => ['required', 'in:teaching,non_teaching'],
             'form.designation' => ['nullable', 'string', 'max:255'], 'form.date_joined' => ['required', 'date'],
             'form.role' => ['required', 'exists:roles,name'], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
             'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ])['form'];
+        if (! $this->editingId) {
+            $data['staff_number'] = $this->newStaffNumber();
+        }
         if ($this->duplicateNameExists($data['first_name'], $data['last_name'], $this->editingId)) {
             $this->addError('form.first_name', 'A staff member with the same name already exists.');
             return;
