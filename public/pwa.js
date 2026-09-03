@@ -3,6 +3,7 @@
     var installButton;
     var helpPanel;
     var statusBadge;
+    var installButtonId = 'cbc-install-app';
 
     function isInstalled() {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -28,6 +29,8 @@
         instructions.style.margin = '0 0 .75rem';
         if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
             instructions.textContent = 'Tap Share, choose Add to Home Screen, then tap Add.';
+        } else if (/android/i.test(navigator.userAgent)) {
+            instructions.textContent = 'Open the Chrome menu and choose Install app or Add to Home screen.';
         } else {
             instructions.textContent = 'Open your browser menu and choose Install app or Add to Home screen.';
         }
@@ -43,6 +46,7 @@
     function createInstallButton() {
         if (installButton || !document.body || isInstalled()) return;
         installButton = document.createElement('button');
+        installButton.id = installButtonId;
         installButton.type = 'button';
         installButton.textContent = 'Install app';
         installButton.setAttribute('aria-label', 'Install CBC School app');
@@ -55,7 +59,7 @@
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then(function () {
                 deferredPrompt = null;
-                installButton.remove();
+                if (installButton) installButton.remove();
                 installButton = null;
             });
         });
@@ -92,12 +96,19 @@
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
 
-    if ('serviceWorker' in navigator && window.isSecureContext) {
+    var isLocalhost = window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
+    if ('serviceWorker' in navigator && (window.isSecureContext || isLocalhost)) {
         window.addEventListener('load', function () {
             navigator.serviceWorker.register('/sw.js', {
                 scope: '/',
                 updateViaCache: 'none'
-            }).catch(function () {});
+            }).catch(function (error) {
+                // Keep the install control available even if offline support
+                // is blocked by an insecure origin or browser policy.
+                console.warn('CBC School service worker registration failed:', error);
+            });
         });
     }
 

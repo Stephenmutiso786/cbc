@@ -1,4 +1,4 @@
-var CACHE_NAME = 'cbc-school-static-v2';
+var CACHE_NAME = 'cbc-school-static-v3';
 var STATIC_ASSETS = [
     '/manifest.webmanifest',
     '/pwa.js',
@@ -11,7 +11,13 @@ var STATIC_ASSETS = [
 
 self.addEventListener('install', function (event) {
     event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
-        return cache.addAll(STATIC_ASSETS);
+        // Keep one unavailable asset from preventing the worker from
+        // installing during a deploy or a cold start.
+        return Promise.all(STATIC_ASSETS.map(function (asset) {
+            return cache.add(asset).catch(function (error) {
+                console.warn('PWA asset was not cached:', asset, error);
+            });
+        }));
     }).then(function () {
         return self.skipWaiting();
     }));
@@ -40,7 +46,15 @@ self.addEventListener('fetch', function (event) {
         return;
     }
 
-    event.respondWith(fetch(event.request).catch(function () {
+    event.respondWith(fetch(event.request).then(function (response) {
+        if (response.ok) {
+            var copy = response.clone();
+            caches.open(CACHE_NAME).then(function (cache) {
+                cache.put(event.request, copy);
+            });
+        }
+        return response;
+    }).catch(function () {
         return caches.match(event.request);
     }));
 });

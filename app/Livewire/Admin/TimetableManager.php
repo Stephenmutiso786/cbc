@@ -15,6 +15,7 @@ class TimetableManager extends Component
 {
     public string $academicYear = '';
     public int $term = 1;
+    public string $classId = '';
     public string $notice = '';
 
     private const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
@@ -32,7 +33,11 @@ class TimetableManager extends Component
     public function generate(): void
     {
         abort_unless($this->canManage(), 403);
-        $this->validate(['academicYear' => ['required', 'string', 'max:9'], 'term' => ['required', 'integer', 'between:1,3']]);
+        $this->validate([
+            'academicYear' => ['required', 'string', 'max:9'],
+            'term' => ['required', 'integer', 'between:1,3'],
+            'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
+        ]);
 
         $slots = $this->buildSchedule();
         if ($slots === []) {
@@ -48,14 +53,18 @@ class TimetableManager extends Component
     public function publish(): void
     {
         abort_unless($this->canManage(), 403);
-        $count = TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)->update(['is_active' => true]);
+        $count = TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)
+            ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
+            ->update(['is_active' => true]);
         $this->notice = $count ? "{$count} lessons published to teachers." : 'Generate the timetable before publishing.';
     }
 
     public function unpublish(): void
     {
         abort_unless($this->canManage(), 403);
-        TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)->update(['is_active' => false]);
+        TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)
+            ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
+            ->update(['is_active' => false]);
         $this->notice = 'Timetable unpublished for editing.';
     }
 
@@ -64,6 +73,7 @@ class TimetableManager extends Component
         return view('livewire.admin.timetable-manager', [
             'slots' => TimetableSlot::with(['schoolClass', 'learningArea', 'teacher'])
                 ->where('academic_year', $this->academicYear)->where('term', (string) $this->term)
+                ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
                 ->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")
                 ->orderBy('start_time')->get(),
             'classes' => SchoolClass::forConfiguredGrades()->where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
@@ -72,7 +82,9 @@ class TimetableManager extends Component
 
     private function buildSchedule(): array
     {
-        $classes = SchoolClass::forConfiguredGrades()->where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get();
+        $classes = SchoolClass::forConfiguredGrades()->where('is_active', true)
+            ->when($this->classId, fn ($query) => $query->whereKey((int) $this->classId))
+            ->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get();
         $allocations = TeacherSubjectAllocation::where('academic_year', $this->academicYear)->where('term', $this->term)->where('is_active', true)->get()->groupBy(fn ($allocation) => $allocation->class_id . ':' . $allocation->learning_area_id);
         $occupied = ['class' => [], 'teacher' => [], 'venue' => []];
         $rows = [];
