@@ -36,8 +36,9 @@ Route::get('/files/notes/{note}', [StoredFileController::class, 'note'])
 */
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // Admin / Principal / Deputy / HOD
-    Route::middleware(['role:admin|super-admin|headteacher|principal|deputy-headteacher|deputy|hod'])
+    // Administration / school leadership. HODs use the HOD teaching portal,
+    // and must not inherit the institution-wide administration portal.
+    Route::middleware(['role:admin|super-admin|headteacher|principal|deputy-headteacher|deputy'])
         ->prefix('admin')
         ->name('admin.')
         ->group(base_path('routes/admin.php'));
