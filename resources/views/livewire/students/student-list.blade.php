@@ -162,7 +162,7 @@
                 ['date_of_birth','Date of birth','date'], ['admission_date','Admission date','date'],
             ] as [$field, $label, $type])
             <label class="text-sm text-gray-700">{{ $label }}
-                <input wire:model="form.{{ $field }}" type="{{ $type }}" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+                <input wire:model="form.{{ $field }}" type="{{ $type }}" @if($field === 'admission_number' && ! $editingId) readonly placeholder="Generated automatically" @endif class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 @if($field === 'admission_number' && ! $editingId) bg-gray-100 @endif">
                 @error('form.'.$field)<span class="text-xs text-red-600">{{ $message }}</span>@enderror
             </label>
             @endforeach

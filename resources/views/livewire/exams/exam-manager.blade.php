@@ -1,3 +1,10 @@
+<style>
+    .sticky.right-0.flex > a,
+    .sticky.right-0.flex > button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #d1d5db; border-radius:.5rem; padding:.45rem .7rem; font-weight:600; background:#fff; }
+    .sticky.right-0.flex > a:hover,
+    .sticky.right-0.flex > button:hover { background:#f3f4f6; }
+    .sticky.right-0.flex > button:disabled { cursor:not-allowed; opacity:.5; }
+</style>
 <div>
     <div id="marks-grading-bands" data-bands='@json($examScaleBands)'></div>
     @if($tab === 'subject-select' && $selectedExam)<div class="mt-5 rounded-xl bg-white p-5 shadow-sm"><div class="mb-4 flex justify-between"><div><h3 class="font-bold">Select subject for marks entry</h3><p class="text-sm text-gray-500">Choose one subject from this combined exam.</p></div><button wire:click="$set('tab', 'exams')" class="text-sm text-green-700">Back to exams</button></div><div class="grid gap-3 sm:grid-cols-2">@foreach($markSubjectOptions as $subject)<button wire:click="chooseMarkSubject({{ $subject['id'] }})" @disabled(in_array($subject['status'], ['submitted', 'approved'], true)) class="flex items-center justify-between rounded-lg border p-4 text-left hover:border-green-600 disabled:cursor-not-allowed disabled:opacity-50"><span class="font-semibold">{{ $subject['name'] }}</span><span class="text-xs text-gray-500">{{ ucfirst($subject['status']) }}{{ in_array($subject['status'], ['submitted', 'approved'], true) ? ' - locked' : ' - enter marks' }}</span></button>@endforeach</div></div>@endif
