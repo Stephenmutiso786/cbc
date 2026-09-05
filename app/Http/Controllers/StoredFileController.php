@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\LearningNote;
-use App\Services\DataTransferPolicy;
 use App\Services\GoogleDriveStorage;
 
 class StoredFileController extends Controller
 {
-    public function note(LearningNote $note, GoogleDriveStorage $storage, DataTransferPolicy $transferPolicy)
+    public function note(LearningNote $note, GoogleDriveStorage $storage)
     {
         abort_unless($note->is_published || auth()->user()->can('view notes'), 403);
         abort_unless($note->file_path, 404);

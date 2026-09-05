@@ -101,7 +101,7 @@ class StaffManager extends Component
             'form.employment_type' => ['required', 'in:permanent,contract,bom,volunteer'], 'form.staff_type' => ['required', 'in:teaching,non_teaching'],
             'form.designation' => ['nullable', 'string', 'max:255'], 'form.date_joined' => ['required', 'date'],
             'form.role' => ['required', Rule::in($this->assignableRoleNames())], 'form.password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
-            'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1400'],
+            'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
         ])['form'];
         if (! $this->editingId) {
             $data['staff_number'] = $this->newStaffNumber();
@@ -131,8 +131,8 @@ class StaffManager extends Component
     public function importCsv(): void
     {
         $this->validate([
-            'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:1900'],
-            'pasteNames' => ['nullable', 'string', 'max:1900'],
+            'csvFile' => ['nullable', 'file', 'mimes:csv,txt'],
+            'pasteNames' => ['nullable', 'string'],
         ]);
         if (!$this->csvFile && trim($this->pasteNames) === '') {
             $this->addError('pasteNames', 'Paste staff names or choose a CSV file.');

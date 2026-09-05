@@ -26,7 +26,7 @@ class DataTransferPolicy
     /** Reserve provider transfer bytes before an upload starts. */
     public function reserve(int $bytes, string $label = 'transfer'): void
     {
-        $this->assertFileSize($bytes, ucfirst($label));
+        if ($bytes < 0) throw new \InvalidArgumentException('Transfer size cannot be negative.');
         $limit = max(1, (int) config('data_limits.daily_transfer_bytes', 50 * 1024 * 1024));
 
         DB::transaction(function () use ($bytes, $label, $limit): void {

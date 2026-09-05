@@ -6,7 +6,6 @@ use App\Http\Controllers\ExamReportsController;
 use App\Models\Exam;
 use App\Models\ExamReportExport;
 use App\Services\GoogleDriveStorage;
-use App\Services\DataTransferPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,7 +25,7 @@ class GenerateExamReportCardsJob implements ShouldQueue
 
     public function __construct(public readonly int $exportId) {}
 
-    public function handle(ExamReportsController $reports, GoogleDriveStorage $storage, DataTransferPolicy $transferPolicy): void
+    public function handle(ExamReportsController $reports, GoogleDriveStorage $storage): void
     {
         $export = ExamReportExport::findOrFail($this->exportId);
         $export->update(['status' => 'processing', 'error' => null]);
@@ -37,7 +36,6 @@ class GenerateExamReportCardsJob implements ShouldQueue
             $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
             $filename = 'exam-' . $exam->id . '-report-cards.pdf';
             $path = $folder . '/' . $filename;
-            $transferPolicy->assertFileSize(strlen($pdf), 'Generated exam report');
             Storage::disk('public')->put($path, $pdf);
 
             if (config('services.google_drive.report_backup', false)) {
