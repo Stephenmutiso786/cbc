@@ -37,6 +37,7 @@ if [ "${USE_REDIS:-false}" = "true" ]; then
 fi
 
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
+SEED_TIMEOUT="${SEED_TIMEOUT:-600}"
 MIGRATION_DB_URL="${DB_MIGRATION_URL:-${DB_URL:-${DATABASE_URL:-}}}"
 if ! timeout "${MIGRATION_TIMEOUT}" env DB_URL="${MIGRATION_DB_URL}" php artisan migrate --force; then
     echo "Database migrations did not finish within ${MIGRATION_TIMEOUT}s. Check the Render database host, SSL CA, and credentials." >&2
@@ -46,11 +47,11 @@ fi
 # Provision a new empty database once, but never reseed an existing school on
 # ordinary restarts. The seeders use firstOrCreate/syncRoles and are idempotent.
 if [ "${RUN_DB_SEEDER:-false}" = "true" ]; then
-    timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
+    timeout "${SEED_TIMEOUT}" php artisan db:seed --force
 else
     if ! php artisan tinker --execute="exit((\\App\\Models\\User::query()->exists() && \\Spatie\\Permission\\Models\\Role::where('name', 'super-admin')->exists()) ? 0 : 1);" >/dev/null 2>&1; then
         echo "Initial users or roles are missing. Provisioning the school defaults..."
-        timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
+        timeout "${SEED_TIMEOUT}" php artisan db:seed --force
     fi
 fi
 

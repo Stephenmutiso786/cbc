@@ -59,3 +59,5 @@ services:
         value: "10"
       - key: MIGRATION_TIMEOUT
         value: "600"
+      - key: SEED_TIMEOUT
+        value: "600"
