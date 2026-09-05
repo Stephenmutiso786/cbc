@@ -8,7 +8,6 @@ use App\Models\Learner;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use App\Services\GoogleDriveStorage;
-use App\Services\DataTransferPolicy;
 
 class ReportCardService
 {
@@ -33,7 +32,6 @@ class ReportCardService
         ])->setPaper('a4', 'portrait');
 
         $pdfContents = $pdf->output();
-        app(DataTransferPolicy::class)->assertFileSize(strlen($pdfContents), 'Generated report card');
         $fileName = "reports/{$academicYear}/term{$term}/{$learner->admission_number}_report.pdf";
         $fileName = app(GoogleDriveStorage::class)->store($pdfContents, "reports/{$academicYear}/term{$term}", basename($fileName), 'application/pdf');
 

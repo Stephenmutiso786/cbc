@@ -121,7 +121,7 @@ class StudentList extends Component
     {
         abort_unless(auth()->user()->can('create students'), 403);
         $this->validate([
-            'csvFile' => ['nullable', 'file', 'mimes:csv,txt', 'max:1900'],
+            'csvFile' => ['nullable', 'file', 'mimes:csv,txt'],
             'importGrade' => ['nullable', 'string'],
             'importClassId' => ['required', 'integer', 'exists:school_classes,id'],
         ]);
