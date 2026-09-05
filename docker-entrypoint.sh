@@ -48,8 +48,8 @@ fi
 if [ "${RUN_DB_SEEDER:-false}" = "true" ]; then
     timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
 else
-    if ! php artisan tinker --execute="exit(\\App\\Models\\User::query()->exists() ? 0 : 1);" >/dev/null 2>&1; then
-        echo "No users found. Provisioning the initial administrator accounts..."
+    if ! php artisan tinker --execute="exit((\\App\\Models\\User::query()->exists() && \\Spatie\\Permission\\Models\\Role::where('name', 'super-admin')->exists()) ? 0 : 1);" >/dev/null 2>&1; then
+        echo "Initial users or roles are missing. Provisioning the school defaults..."
         timeout "${MIGRATION_TIMEOUT}" php artisan db:seed --force
     fi
 fi
