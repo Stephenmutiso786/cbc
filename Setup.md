@@ -646,7 +646,7 @@ The production Docker image includes both `pdo_pgsql` and `pdo_mysql`, and Rende
 2. In Render, open the `cbc-school-management` service, then **Environment**.
 3. Set `DB_URL` to the complete Supabase Session pooler connection string as a secret value. It normally resembles `postgres://postgres.[PROJECT-REF]:PASSWORD@aws-[REGION].pooler.supabase.com:5432/postgres`.
 4. In Supabase Connect, also copy the **Direct connection** string and set it as the optional `DB_MIGRATION_URL` secret. If Render cannot reach the direct IPv6 endpoint, leave this empty and migrations will use `DB_URL`.
-5. Confirm `DB_CONNECTION=pgsql`, `PGSSLMODE=require`, `DB_CONNECT_TIMEOUT=10`, and `MIGRATION_TIMEOUT=120`.
+5. Confirm `DB_CONNECTION=pgsql`, `PGSSLMODE=require`, `DB_CONNECT_TIMEOUT=10`, and `MIGRATION_TIMEOUT=600` for the first Supabase deployment.
 6. Remove the old `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and `MYSQL_ATTR_*` values from the Render service, or leave them unused. `DB_URL` takes precedence for PostgreSQL.
 7. Deploy from the latest commit and check the logs for `php artisan migrate --force` completing before the server starts.
 8. Open `/up`, then test login and one database-backed module. Do not enable `RUN_DB_SEEDER=true` on every deploy; seed only a new empty database when required.
