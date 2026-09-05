@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\DatabaseBackup;
 use App\Services\GoogleDriveStorage;
+use App\Services\DataTransferPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
@@ -16,7 +17,7 @@ class BackupDatabaseToDrive extends Command
 
     protected $description = 'Compress the database and upload a threshold backup to Google Drive';
 
-    public function handle(GoogleDriveStorage $drive): int
+    public function handle(GoogleDriveStorage $drive, DataTransferPolicy $transferPolicy): int
     {
         $driver = (string) config('database.default');
         if ($driver !== 'pgsql') {
@@ -71,12 +72,7 @@ class BackupDatabaseToDrive extends Command
                 throw new \RuntimeException('pg_dump produced an empty archive.');
             }
 
-            $drivePath = $drive->storeFilePath(
-                $archive,
-                'backups/database',
-                basename($archive),
-                'application/octet-stream',
-            );
+            $drivePath = $this->uploadArchive($drive, $transferPolicy, $archive, $archiveSize);
 
             $backup->update([
                 'archive_size_bytes' => $archiveSize,
@@ -103,6 +99,56 @@ class BackupDatabaseToDrive extends Command
                 unlink($archive);
             }
         }
+    }
+
+    private function uploadArchive(GoogleDriveStorage $drive, DataTransferPolicy $transferPolicy, string $archive, int $archiveSize): string
+    {
+        $folder = 'backups/database';
+        $baseName = basename($archive);
+        if ($archiveSize <= $transferPolicy->maxFileBytes()) {
+            return $drive->storeFilePath($archive, $folder, $baseName, 'application/octet-stream');
+        }
+
+        $partSize = min($transferPolicy->maxFileBytes(), 1_800_000);
+        $input = fopen($archive, 'rb');
+        if ($input === false) throw new \RuntimeException('The compressed backup could not be opened for splitting.');
+
+        $parts = [];
+        $partNumber = 0;
+        try {
+            while (!feof($input)) {
+                $part = storage_path('app/backups/' . $baseName . '.part-' . str_pad((string) (++$partNumber), 5, '0', STR_PAD_LEFT));
+                $output = fopen($part, 'wb');
+                if ($output === false) throw new \RuntimeException('A backup part could not be created.');
+                $remaining = $partSize;
+                while ($remaining > 0 && !feof($input)) {
+                    $chunk = fread($input, min(1024 * 1024, $remaining));
+                    if ($chunk === false) throw new \RuntimeException('A backup part could not be read.');
+                    if ($chunk !== '') fwrite($output, $chunk);
+                    $remaining -= strlen($chunk);
+                }
+                fclose($output);
+                if (filesize($part) < 1) { unlink($part); break; }
+                $parts[] = [
+                    'name' => basename($part),
+                    'path' => $drive->storeFilePath($part, $folder, basename($part), 'application/octet-stream'),
+                    'bytes' => filesize($part),
+                ];
+                unlink($part);
+            }
+        } finally {
+            fclose($input);
+        }
+
+        if ($parts === []) throw new \RuntimeException('No backup parts were created.');
+        $manifest = json_encode([
+            'format' => 'cbc-postgres-backup-parts-v1',
+            'archive' => $baseName,
+            'bytes' => $archiveSize,
+            'parts' => $parts,
+        ], JSON_THROW_ON_ERROR);
+        $transferPolicy->assertFileSize(strlen($manifest), 'Backup manifest');
+        return $drive->store($manifest, $folder, $baseName . '.manifest.json', 'application/json');
     }
 
     private function databaseSize(string $driver): int

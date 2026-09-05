@@ -61,3 +61,7 @@ services:
         value: "600"
       - key: SEED_TIMEOUT
         value: "600"
+      - key: MAX_FILE_SIZE_BYTES
+        value: "1900000"
+      - key: DAILY_TRANSFER_LIMIT_BYTES
+        value: "52428800"

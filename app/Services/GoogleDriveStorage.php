@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 
 class GoogleDriveStorage
 {
+    public function __construct(private readonly DataTransferPolicy $transferPolicy) {}
+
     public function enabled(): bool
     {
         return filter_var(config('services.google_drive.enabled'), FILTER_VALIDATE_BOOLEAN) && $this->credentials() && config('services.google_drive.folder_id');
@@ -17,6 +19,9 @@ class GoogleDriveStorage
 
     public function store(UploadedFile|string $file, string $folder, ?string $name = null, ?string $mime = null): string
     {
+        $bytes = $file instanceof UploadedFile ? (int) $file->getSize() : strlen($file);
+        $this->transferPolicy->assertFileSize($bytes, 'Uploaded file');
+
         if (!$this->enabled()) {
             if ($file instanceof UploadedFile) return $file->store($folder, 'public');
             $path = trim($folder, '/') . '/' . ($name ?? uniqid('file_', true));
@@ -24,6 +29,7 @@ class GoogleDriveStorage
             return $path;
         }
 
+        $this->transferPolicy->reserve($bytes, 'Google Drive upload');
         $contents = $file instanceof UploadedFile ? file_get_contents($file->getRealPath()) : $file;
         $name ??= $file instanceof UploadedFile ? $file->getClientOriginalName() : basename($folder);
         $mime ??= $file instanceof UploadedFile ? $file->getMimeType() : 'application/octet-stream';
@@ -45,6 +51,11 @@ class GoogleDriveStorage
         if (!is_file($path) || !is_readable($path)) {
             throw new \RuntimeException('The file to upload does not exist or is not readable.');
         }
+
+        $bytes = filesize($path);
+        if ($bytes === false) throw new \RuntimeException('The file size could not be determined.');
+        $this->transferPolicy->assertFileSize($bytes, 'File upload');
+        $this->transferPolicy->reserve($bytes, 'Google Drive upload');
 
         $stream = fopen($path, 'rb');
         if ($stream === false) {

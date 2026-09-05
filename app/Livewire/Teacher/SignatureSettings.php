@@ -14,7 +14,7 @@ class SignatureSettings extends Component
 
     public function save(): void
     {
-        $this->validate(['signatureFile' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048']]);
+        $this->validate(['signatureFile' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:1400']]);
         $staff = auth()->user()->staffMember;
         abort_unless($staff, 422, 'This account is not linked to a staff profile.');
         $staff->update(['signature_data' => 'data:' . $this->signatureFile->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->signatureFile->getRealPath()))]);

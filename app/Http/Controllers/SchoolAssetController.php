@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DataTransferPolicy;
 use Symfony\Component\HttpFoundation\Response;
 
 class SchoolAssetController extends Controller
 {
-    public function logo(): Response
+    public function logo(DataTransferPolicy $transferPolicy): Response
     {
         $logo = (string) config('school.logo_data', '');
 
@@ -17,7 +18,11 @@ class SchoolAssetController extends Controller
             ? substr($metadata, 5, strpos($metadata, ';') - 5)
             : substr($metadata, 5);
 
-        return response(base64_decode($encoded, true), 200, [
+        $contents = base64_decode($encoded, true);
+        abort_unless(is_string($contents), 404);
+        $transferPolicy->assertFileSize(strlen($contents), 'School logo');
+
+        return response($contents, 200, [
             'Content-Type' => $mimeType,
             'Cache-Control' => 'public, max-age=86400',
             'Content-Disposition' => 'inline; filename="school-logo"',

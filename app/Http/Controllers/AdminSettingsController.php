@@ -41,9 +41,9 @@ class AdminSettingsController extends Controller
             'address' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
-            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'official_signature' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'official_stamp' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1400'],
+            'official_signature' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1400'],
+            'official_stamp' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1400'],
             'maintenance_mode' => ['required', 'boolean'],
             'maintenance_message' => ['nullable', 'string', 'max:500'],
             'mpesa_env' => ['required', 'in:sandbox,production'],
@@ -68,7 +68,7 @@ class AdminSettingsController extends Controller
             'kemis_school_code' => ['nullable', 'string', 'max:100'],
             'google_drive_enabled' => ['required', 'boolean'],
             'google_drive_folder_id' => ['nullable', 'string', 'max:255'],
-            'google_drive_credentials' => ['nullable', 'json', 'max:30000'],
+            'google_drive_credentials' => ['nullable', 'json', 'max:100000'],
             'google_drive_credentials_file' => ['nullable', 'file', 'mimes:json,txt', 'max:100'],
         ]);
 
