@@ -277,7 +277,7 @@ class ExamManager extends Component
 
     public function importMarksCsv(): void
     {
-        $this->validate(['marksCsvFile' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+        $this->validate(['marksCsvFile' => ['required', 'file', 'mimes:csv,txt', 'max:1900']]);
         $exam = $this->editableMarksExam();
         $this->marksImportErrors = [];
         $this->marksImportedCount = 0;

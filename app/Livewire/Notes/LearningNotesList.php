@@ -37,7 +37,7 @@ class LearningNotesList extends Component
         'term'          => 'required|string',
         'resourceType'  => 'required|in:pdf,video,image,document,link,other',
         'learningAreaId'=> 'required|integer|exists:learning_areas,id',
-        'uploadedFile'  => 'nullable|file|max:51200',
+        'uploadedFile'  => 'nullable|file|max:1900',
         'externalUrl'   => 'nullable|url',
     ];
 
