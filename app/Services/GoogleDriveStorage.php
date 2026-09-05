@@ -89,7 +89,8 @@ class GoogleDriveStorage
     {
         if (str_starts_with($path, 'cbc-parts:')) {
             $manifest = json_decode(base64_decode(substr($path, 10), true) ?: '', true, 512, JSON_THROW_ON_ERROR);
-            return collect($manifest['parts'] ?? [])->map(fn (string $part) => $this->contents($part))->implode('');
+            $contents = collect($manifest['parts'] ?? [])->map(fn (string $part) => $this->contents($part))->implode('');
+            return ($manifest['encoding'] ?? null) === 'gzip' ? gzdecode($contents) : $contents;
         }
         if (!str_starts_with($path, 'gdrive:')) return Storage::disk('public')->get($path);
         return $this->drive()->files->get(substr($path, 7), ['alt' => 'media'])->getBody()->getContents();
@@ -113,6 +114,12 @@ class GoogleDriveStorage
     /** Store large content as limited parts and reconstruct it when read. */
     private function storeChunked(string $contents, string $folder, string $name, string $mime): string
     {
+        $encoding = 'identity';
+        $compressed = gzencode($contents, 6);
+        if (is_string($compressed) && strlen($compressed) < strlen($contents)) {
+            $contents = $compressed;
+            $encoding = 'gzip';
+        }
         $partSize = min($this->transferPolicy->maxFileBytes(), 1_800_000);
         $parts = [];
         for ($offset = 0, $number = 1, $length = strlen($contents); $offset < $length; $offset += $partSize, $number++) {
@@ -123,7 +130,7 @@ class GoogleDriveStorage
                 $mime,
             );
         }
-        return 'cbc-parts:' . base64_encode(json_encode(['format' => 'cbc-parts-v1', 'mime' => $mime, 'parts' => $parts], JSON_THROW_ON_ERROR));
+        return 'cbc-parts:' . base64_encode(json_encode(['format' => 'cbc-parts-v1', 'mime' => $mime, 'encoding' => $encoding, 'parts' => $parts], JSON_THROW_ON_ERROR));
     }
 
     private function drive(): Drive
