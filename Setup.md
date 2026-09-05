@@ -638,19 +638,20 @@ php artisan schedule:run
 
 ---
 
-## 🌐 Neon PostgreSQL on Render
+## 🌐 Supabase PostgreSQL on Render
 
-The production Docker image includes both `pdo_pgsql` and `pdo_mysql`, but Render is configured to use Neon PostgreSQL. Neon credentials must stay in Render and must not be committed to Git.
+The production Docker image includes both `pdo_pgsql` and `pdo_mysql`, and Render is configured to use Supabase PostgreSQL. Supabase credentials must stay in Render and must not be committed to Git.
 
-1. In Neon, open the project dashboard and copy the pooled PostgreSQL connection string. It should begin with `postgresql://` or `postgres://` and include `sslmode=require`.
+1. In Supabase, open the project dashboard and choose **Connect**. Copy the **Session pooler** PostgreSQL connection string. It should use port `5432`; do not use the Transaction pooler on port `6543` for Laravel's main connection.
 2. In Render, open the `cbc-school-management` service, then **Environment**.
-3. Set `DB_URL` to the complete Neon connection string as a secret value.
-4. Confirm `DB_CONNECTION=pgsql`, `PGSSLMODE=require`, `DB_CONNECT_TIMEOUT=10`, and `MIGRATION_TIMEOUT=120`.
-5. Remove the old `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and `MYSQL_ATTR_*` values from the Render service, or leave them unused. `DB_URL` takes precedence for PostgreSQL.
-6. Deploy from the latest commit and check the logs for `php artisan migrate --force` completing before the server starts.
-7. Open `/up`, then test login and one database-backed module. Do not enable `RUN_DB_SEEDER=true` on every deploy; seed only a new empty database when required.
+3. Set `DB_URL` to the complete Supabase Session pooler connection string as a secret value. It normally resembles `postgres://postgres.[PROJECT-REF]:PASSWORD@aws-[REGION].pooler.supabase.com:5432/postgres`.
+4. In Supabase Connect, also copy the **Direct connection** string and set it as the optional `DB_MIGRATION_URL` secret. If Render cannot reach the direct IPv6 endpoint, leave this empty and migrations will use `DB_URL`.
+5. Confirm `DB_CONNECTION=pgsql`, `PGSSLMODE=require`, `DB_CONNECT_TIMEOUT=10`, and `MIGRATION_TIMEOUT=120`.
+6. Remove the old `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and `MYSQL_ATTR_*` values from the Render service, or leave them unused. `DB_URL` takes precedence for PostgreSQL.
+7. Deploy from the latest commit and check the logs for `php artisan migrate --force` completing before the server starts.
+8. Open `/up`, then test login and one database-backed module. Do not enable `RUN_DB_SEEDER=true` on every deploy; seed only a new empty database when required.
 
-The current Aiven hostname in the old deployment no longer resolves. Existing Aiven data will not appear in Neon automatically. If that data must be preserved, restore/export it from Aiven or a backup before using Neon in production; otherwise Neon will start as a new database and Laravel will create its schema through migrations.
+Existing Neon or Aiven data will not appear in Supabase automatically. If that data must be preserved, restore/export it from the old provider or a backup before using Supabase in production; otherwise Supabase will start as a new database and Laravel will create its schema through migrations.
 
 The 11 teacher records shown in the supplied staff screenshot are included in
 `ScreenshotTeachersSeeder`. The seeder is idempotent and uses the displayed
@@ -696,11 +697,11 @@ numprocs=2
 
 ## Google Drive database backups
 
-The application now measures the live PostgreSQL/Neon database. When it reaches
+The application now measures the live PostgreSQL/Supabase database. When it reaches
 100 MB, `backup:drive` creates a PostgreSQL custom-format archive (compressed
 with level 9), streams it to the configured Google Drive folder, records the
 result in `database_backups`, and removes the temporary local archive. This is a
-compressed backup copy; the live database remains in Neon so the application
+compressed backup copy; the live database remains in Supabase so the application
 can continue querying it normally.
 
 Run a manual check:
