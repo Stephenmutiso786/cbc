@@ -20,7 +20,7 @@ class BackupDatabaseToDrive extends Command
     {
         $driver = (string) config('database.default');
         if ($driver !== 'pgsql') {
-            $this->error("Automatic Drive backups currently support PostgreSQL/Neon, not {$driver}.");
+            $this->error("Automatic Drive backups currently support PostgreSQL/Supabase, not {$driver}.");
             return self::FAILURE;
         }
 
@@ -116,7 +116,7 @@ class BackupDatabaseToDrive extends Command
 
     private function createPostgresDump(string $archive): void
     {
-        $url = config('database.connections.pgsql.url');
+        $url = env('DB_MIGRATION_URL') ?: config('database.connections.pgsql.url');
         $parts = is_string($url) && trim($url) !== '' ? parse_url($url) : false;
         $connection = config('database.connections.pgsql');
         $query = [];
