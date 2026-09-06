@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#166534">
+    <title>Starting CBC School</title>
+    <style>
+        body{margin:0;min-height:100vh;display:grid;place-items:center;background:#166534;color:#fff;font-family:system-ui,sans-serif;text-align:center}
+        .card{width:min(90vw,30rem);padding:2rem}.mark{width:5rem;height:5rem;margin:auto auto 1.25rem;object-fit:contain;background:#fff;border-radius:1rem}
+        .spinner{width:2.5rem;height:2.5rem;margin:1.5rem auto;border:.3rem solid #bbf7d0;border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+        p{line-height:1.5;color:#dcfce7}.retry{display:none;margin-top:1rem;border:0;border-radius:.6rem;background:#fff;color:#166534;padding:.7rem 1rem;font-weight:700;cursor:pointer}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+    <main class="card">
+        <img class="mark" src="/icons/icon-192.png" alt="CBC School">
+        <h1>Starting CBC School</h1>
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="message">The school system is waking up. Your records are safe.</p>
+        <button id="retry" class="retry" type="button" onclick="location.reload()">Try again</button>
+    </main>
+    <script>
+        (function () {
+            var attempts = 0;
+            var message = document.getElementById('message');
+            var retry = document.getElementById('retry');
+            function check() {
+                attempts += 1;
+                fetch('/up?wake=' + Date.now(), { cache: 'no-store' }).then(function (response) {
+                    if (response.ok) {
+                        var returnUrl = decodeURIComponent('__CBC_RETURN_URL__');
+                        location.replace(returnUrl === '__CBC_RETURN_URL__' ? '/login' : returnUrl);
+                    }
+                    else throw new Error('not ready');
+                }).catch(function () {
+                    if (attempts >= 12) {
+                        message.textContent = navigator.onLine
+                            ? 'The school system is taking longer than expected to start.'
+                            : 'Your device is offline. Reconnect and try again.';
+                        retry.style.display = 'inline-block';
+                        return;
+                    }
+                    message.textContent = 'The school system is waking up. Checking again in a few seconds...';
+                    window.setTimeout(check, 2000);
+                });
+            }
+            check();
+        }());
+    </script>
+</body>
+</html>

@@ -1,11 +1,12 @@
-var CACHE_NAME = 'cbc-school-static-v8';
+var CACHE_NAME = 'cbc-school-static-v9';
 var STATIC_ASSETS = [
     '/manifest.webmanifest',
     '/pwa.js',
     '/navigation.js?v=3',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
-    '/offline.html'
+    '/offline.html',
+    '/waking.html'
 ];
 
 self.addEventListener('install', function (event) {
@@ -58,6 +59,17 @@ self.addEventListener('fetch', function (event) {
 
 function fetchWithWakeFallback(request) {
     return fetch(request).catch(function () {
-        return caches.match('/offline.html');
+        // A failed request can mean Railway is waking the container, not that
+        // the user's device is offline. Let the branded wake page retry /up.
+        return caches.match('/waking.html').then(function (response) {
+            if (!response) return caches.match('/offline.html');
+            return response.text().then(function (html) {
+                var returnUrl = new URL(request.url).pathname + new URL(request.url).search;
+                var body = html.replace('__CBC_RETURN_URL__', encodeURIComponent(returnUrl));
+                return new Response(body, {
+                    headers: {'Content-Type': 'text/html; charset=UTF-8'},
+                });
+            });
+        });
     });
 }
