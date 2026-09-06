@@ -10,7 +10,7 @@
     <div class="rounded-2xl bg-white/95 px-7 py-6 text-center shadow-2xl">
         <div class="loading-spinner" aria-hidden="true"></div>
         <video class="mx-auto h-16 w-16 object-contain" autoplay loop muted playsinline preload="auto" onerror="this.classList.add('is-unavailable')" aria-hidden="true">
-            <source src="{{ asset('processing-loader.mp4') }}" type="video/mp4">
+            <source src="/processing-loader.mp4" type="video/mp4">
         </video>
         <p class="mt-2 text-sm font-semibold text-gray-700">Loading...</p>
     </div>
