@@ -17,6 +17,16 @@ class GoogleDriveStorage
         return filter_var(config('services.google_drive.enabled'), FILTER_VALIDATE_BOOLEAN) && $this->credentials() && config('services.google_drive.folder_id');
     }
 
+    public function testConnection(): string
+    {
+        if (!$this->enabled()) {
+            throw new \RuntimeException('Save a valid Google Drive service account, folder ID, and enable Drive first.');
+        }
+        $folderId = (string) config('services.google_drive.folder_id');
+        $this->drive()->files->get($folderId, ['fields' => 'id,name,mimeType']);
+        return $folderId;
+    }
+
     public function store(UploadedFile|string $file, string $folder, ?string $name = null, ?string $mime = null): string
     {
         $contents = $file instanceof UploadedFile ? file_get_contents($file->getRealPath()) : $file;

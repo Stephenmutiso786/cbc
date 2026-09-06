@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
 use App\Services\OlympusSmsService;
 use App\Services\DataTransferPolicy;
+use App\Services\GoogleDriveStorage;
 use Illuminate\Support\Facades\DB;
 
 class AdminSettingsController extends Controller
@@ -29,6 +30,18 @@ class AdminSettingsController extends Controller
         }
 
         return back()->with('success', 'Test SMS accepted by Olympus for delivery.');
+    }
+
+    public function testDrive(GoogleDriveStorage $drive): RedirectResponse
+    {
+        try {
+            $drive->testConnection();
+        } catch (\Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['google_drive' => 'Google Drive connection failed: ' . $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Google Drive connection is working and the configured folder is accessible.');
     }
 
     public function update(Request $request, DataTransferPolicy $transferPolicy): RedirectResponse

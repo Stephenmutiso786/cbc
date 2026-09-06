@@ -1,11 +1,12 @@
-var CACHE_NAME = 'cbc-school-static-v5';
+var CACHE_NAME = 'cbc-school-static-v6';
 var STATIC_ASSETS = [
     '/manifest.webmanifest',
     '/pwa.js',
     '/navigation.js',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
-    '/offline.html'
+    '/offline.html',
+    '/waking.html'
 ];
 
 self.addEventListener('install', function (event) {
@@ -39,9 +40,7 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
     if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
     if (event.request.destination === 'document') {
-        event.respondWith(fetch(event.request).catch(function () {
-            return caches.match('/offline.html');
-        }));
+        event.respondWith(fetchWithWakeFallback(event.request));
         return;
     }
 
@@ -57,3 +56,17 @@ self.addEventListener('fetch', function (event) {
         return caches.match(event.request);
     }));
 });
+
+function fetchWithWakeFallback(request) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
+    return fetch(request, { signal: controller.signal }).then(function (response) {
+        clearTimeout(timer);
+        return response;
+    }).catch(function () {
+        clearTimeout(timer);
+        return caches.match('/waking.html').then(function (response) {
+            return response || caches.match('/offline.html');
+        });
+    });
+}
