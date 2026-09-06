@@ -98,6 +98,43 @@ class OlympusSmsService
             ->all();
     }
 
+    /**
+     * Read the provider's paginated inbound and outbound message reports.
+     */
+    public function getMessages(int $page = 1): array
+    {
+        $token = (string) config('services.olympus_sms.api_token');
+        if ($token === '') {
+            throw new RuntimeException('Olympus SMS API token is not configured. Add it in Admin Settings.');
+        }
+
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->contentType('application/json')
+            ->timeout(20)
+            ->retry(2, 500)
+            ->get($this->baseUrl() . '/api/v3/sms', ['page' => max(1, $page)]);
+
+        $result = $response->json() ?: ['status' => 'error', 'message' => $response->body()];
+        if (!$response->successful() || ($result['status'] ?? null) !== 'success') {
+            throw new RuntimeException('Unable to read Olympus SMS messages: ' . ($result['message'] ?? 'Unknown provider error'));
+        }
+
+        $data = $result['data'] ?? [];
+        $items = is_array($data) && isset($data['data']) && is_array($data['data'])
+            ? $data['data']
+            : (is_array($data) ? $data : []);
+
+        return [
+            'items' => array_values(array_filter($items, 'is_array')),
+            'meta' => is_array($data) ? [
+                'current_page' => (int) ($data['current_page'] ?? $page),
+                'last_page' => (int) ($data['last_page'] ?? $page),
+                'total' => (int) ($data['total'] ?? count($items)),
+            ] : ['current_page' => $page, 'last_page' => $page, 'total' => 0],
+        ];
+    }
+
     private function formatPhone(string $phone): string
     {
         $digits = preg_replace('/\D+/', '', trim($phone));
