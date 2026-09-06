@@ -32,6 +32,12 @@
         .remark { min-height: 48px; margin-top: 18px; padding: 10px; border: 1px solid #b9c2ce; }
         .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 45px; margin-top: 35px; }
         .signature { padding-top: 5px; border-top: 1px solid #374151; color: #5b6472; font-size: 9px; }
+        .verification-footer { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; padding-top: 6px; border-top: 1px solid #d1d5db; text-align: center; }
+        .verification-qr { width: 64px; height: 64px; line-height: 0; }
+        .verification-qr svg { width: 64px; height: 64px; }
+        .verification-copy { color: #166534; font-size: 8px; }
+        .verification-copy span { color: #6b7280; font-size: 7px; }
+        .verification-stamp { width: 52px; height: 52px; object-fit: contain; }
         .footer { position: absolute; bottom: 0; width: 100%; padding-top: 6px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 8px; text-align: center; }
         @media print { .toolbar { display: none; } }
     </style>
@@ -55,6 +61,7 @@
         <div class="summary"><div><span class="label">Subjects</span><span class="big">{{ $card['subject_count'] }}</span></div><div><span class="label">Total marks</span><span class="big">{{ rtrim(rtrim(number_format($card['total_obtained'], 2, '.', ''), '0'), '.') }} / {{ rtrim(rtrim(number_format($card['total_possible'], 2, '.', ''), '0'), '.') }}</span></div><div><span class="label">Mean</span><span class="big">{{ $card['overall_percentage'] }}%</span></div><div><span class="label">Overall grade</span><span class="big">{{ $card['overall_grade'] }}</span></div></div>
         <div class="remark"><span class="label">Official comment</span>Keep working consistently and use the teacher's feedback to strengthen the next competency.</div>
         <div class="signatures"><div class="signature">Class teacher signature and date</div><div class="signature">Headteacher signature and date</div></div>
+        @include('pdf.verification-footer')
         <div class="footer">{{ config('school.name') }} | Official examination result | {{ now()->format('d M Y') }}</div>
     </section>
 @endforeach
