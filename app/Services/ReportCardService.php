@@ -33,7 +33,7 @@ class ReportCardService
 
         $pdfContents = $pdf->output();
         $fileName = "reports/{$academicYear}/term{$term}/{$learner->admission_number}_report.pdf";
-        $fileName = app(GoogleDriveStorage::class)->store($pdfContents, "reports/{$academicYear}/term{$term}", basename($fileName), 'application/pdf');
+        $fileName = app(GoogleDriveStorage::class)->storeOrReplace($pdfContents, "reports/{$academicYear}/term{$term}", basename($fileName), 'application/pdf');
 
         return $fileName;
     }

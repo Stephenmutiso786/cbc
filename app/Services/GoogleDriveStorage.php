@@ -68,6 +68,59 @@ class GoogleDriveStorage
         return $folderId;
     }
 
+    public function listFiles(): array
+    {
+        if (!$this->enabled()) {
+            throw new \RuntimeException('Connect Google Drive, enable storage, and save a folder ID first.');
+        }
+
+        $files = $this->drive()->files->listFiles([
+            'q' => "'" . config('services.google_drive.folder_id') . "' in parents and trashed = false",
+            'orderBy' => 'createdTime desc',
+            'pageSize' => 100,
+            'fields' => 'files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink)',
+        ])->getFiles();
+
+        return array_map(fn (DriveFile $file): array => [
+            'id' => $file->getId(),
+            'name' => $file->getName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => (int) ($file->getSize() ?? 0),
+            'created_at' => $file->getCreatedTime(),
+            'modified_at' => $file->getModifiedTime(),
+            'url' => $file->getWebViewLink() ?: 'https://drive.google.com/open?id=' . $file->getId(),
+        ], $files);
+    }
+
+    public function storeOrReplace(string $contents, string $folder, string $name, string $mime): string
+    {
+        if (!$this->enabled()) {
+            return $this->store($contents, $folder, $name, $mime);
+        }
+        if (strlen($contents) > $this->transferPolicy->maxFileBytes()) {
+            return $this->store($contents, $folder, $name, $mime);
+        }
+
+        $this->transferPolicy->reserve(strlen($contents), 'Google Drive upload');
+        $drive = $this->drive();
+        $escapedName = str_replace("'", "\\'", $name);
+        $existing = $drive->files->listFiles([
+            'q' => "'" . config('services.google_drive.folder_id') . "' in parents and name = '" . $escapedName . "' and trashed = false",
+            'pageSize' => 1,
+            'fields' => 'files(id)',
+        ])->getFiles()[0] ?? null;
+        $metadata = new DriveFile([
+            'name' => $name,
+            'parents' => [config('services.google_drive.folder_id')],
+            'description' => 'CBC School Management - ' . trim($folder, '/'),
+        ]);
+        $saved = $existing
+            ? $drive->files->update($existing->getId(), $metadata, ['data' => $contents, 'mimeType' => $mime, 'uploadType' => 'multipart', 'fields' => 'id'])
+            : $drive->files->create($metadata, ['data' => $contents, 'mimeType' => $mime, 'uploadType' => 'multipart', 'fields' => 'id']);
+
+        return 'gdrive:' . $saved->getId();
+    }
+
     public function store(UploadedFile|string $file, string $folder, ?string $name = null, ?string $mime = null): string
     {
         $contents = $file instanceof UploadedFile ? file_get_contents($file->getRealPath()) : $file;
