@@ -40,6 +40,10 @@
         .verification-stamp { width: 52px; height: 52px; object-fit: contain; }
         .footer { position: absolute; bottom: 0; width: 100%; padding-top: 6px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 8px; text-align: center; }
         @media print { .toolbar { display: none; } }
+        .verification-footer { position: absolute; bottom: 10mm; left: 0; right: 0; text-align: center; }
+        .verification-qr { width: 64px; height: 64px; margin: 0 auto; line-height: 0; }
+        .verification-qr svg { width: 64px; height: 64px; }
+        .verification-stamp { position: absolute; right: 20mm; top: 0; width: 52px; height: 52px; object-fit: contain; }
     </style>
 </head>
 <body>
