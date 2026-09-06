@@ -1,10 +1,15 @@
 <style>
-    #global-loading { opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    #global-loading { opacity: 0; pointer-events: none; transition: opacity .12s ease; }
     #global-loading.is-visible { opacity: 1; pointer-events: auto; }
+    #global-loading .loading-spinner { width: 2.5rem; height: 2.5rem; margin: 0 auto; border: .28rem solid #bbf7d0; border-top-color: #166534; border-radius: 9999px; animation: cbc-loading-spin .8s linear infinite; }
+    #global-loading video { display: block; }
+    #global-loading video.is-unavailable { display: none; }
+    @keyframes cbc-loading-spin { to { transform: rotate(360deg); } }
 </style>
 <div id="global-loading" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-950/45 backdrop-blur-[2px]" role="status" aria-live="polite" aria-label="Loading">
     <div class="rounded-2xl bg-white/95 px-7 py-6 text-center shadow-2xl">
-        <video class="mx-auto h-16 w-16 object-contain" autoplay loop muted playsinline preload="auto">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <video class="mx-auto h-16 w-16 object-contain" autoplay loop muted playsinline preload="auto" onerror="this.classList.add('is-unavailable')" aria-hidden="true">
             <source src="{{ asset('processing-loader.mp4') }}" type="video/mp4">
         </video>
         <p class="mt-2 text-sm font-semibold text-gray-700">Loading...</p>
@@ -16,7 +21,7 @@
         let timer;
         const show = () => {
             clearTimeout(timer);
-            timer = setTimeout(() => loader?.classList.add('is-visible'), 180);
+            loader?.classList.add('is-visible');
         };
         const hide = () => {
             clearTimeout(timer);
