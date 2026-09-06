@@ -79,10 +79,12 @@
             // Some mobile WebViews keep an older delegated Livewire listener.
             // Route the exam modal button directly to the real component.
             document.addEventListener('click', (event) => {
-                const button = event.target.closest('button[wire\\:click]');
-                if (!button || button.getAttribute('wire:click') !== "$set('showCreateModal', true)") return;
+                const button = event.target.closest('button');
+                if (!button || !/\bcreate exam\b/i.test(button.textContent || '')) return;
                 const root = button.closest('[wire\\:id]');
-                const component = root && Livewire.find(root.getAttribute('wire:id'));
+                const component = root
+                    ? Livewire.find(root.getAttribute('wire:id'))
+                    : Livewire.all().find((item) => item.name === 'exams.exam-manager');
                 if (!component?.$wire?.openCreateForm) return;
                 event.preventDefault();
                 event.stopImmediatePropagation();
