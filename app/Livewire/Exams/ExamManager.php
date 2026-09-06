@@ -606,7 +606,18 @@ class ExamManager extends Component
         abort_unless($this->canReviewMarks(), 403);
         $exam = Exam::findOrFail($examId);
         $group = Exam::whereIn('id', $exam->groupExamIds())->get();
-        abort_unless($group->isNotEmpty() && $group->every(fn ($item) => $item->exam_state === 'finalized' && $item->marks_status === 'approved'), 422, 'Finalize the complete reviewed exam before publishing results.');
+        if ($group->isEmpty()) {
+            $this->addError('results', 'The exam could not be found. Refresh the page and try again.');
+            return;
+        }
+        if (! $group->every(fn ($item) => $item->exam_state === 'finalized')) {
+            $this->addError('results', 'Finalize every subject before publishing results.');
+            return;
+        }
+        if (! $group->every(fn ($item) => $item->marks_status === 'approved')) {
+            $this->addError('results', 'Every subject must be reviewed and approved before publishing results. Open the review queue and approve the submitted marks first.');
+            return;
+        }
 
         DB::transaction(function () use ($group): void {
             Exam::whereIn('id', $group->pluck('id'))->update([
@@ -794,7 +805,7 @@ class ExamManager extends Component
             $exam->setAttribute('all_subjects_approved', $exam->status !== 'published'
                 && $subjects->every(fn ($subject) => $subject->marks_status === 'approved'));
             $exam->setAttribute('all_subjects_published', $subjects->every(fn ($subject) => $subject->isFullyPublished()));
-            $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => in_array($subject->exam_state, ['finalized', 'published'], true)));
+            $exam->setAttribute('all_subjects_finalized', $subjects->every(fn ($subject) => in_array($subject->exam_state, ['finalized', 'published'], true) && $subject->marks_status === 'approved'));
             // The grouped row represents the complete exam, so expose all subject results to the view.
             $exam->setRelation('results', $subjects->flatMap(fn ($subject) => $subject->results)->values());
             $exam->setAttribute('has_editable_subjects', $subjects->contains(fn ($subject) => in_array($subject->marks_status, ['draft', 'returned'], true) && ! $subject->isLocked()));
