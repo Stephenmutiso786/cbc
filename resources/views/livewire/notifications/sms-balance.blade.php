@@ -51,4 +51,43 @@
     <div class="rounded-xl bg-white p-6 text-sm text-gray-600 shadow-sm">
         SMS sending remains available from <a class="font-medium text-green-700 hover:underline" href="{{ route('admin.notifications.index') }}">Notifications</a>. The balance shown above is fetched live from Olympus and is not stored as a fake local credit balance.
     </div>
+
+    <section class="rounded-xl bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">Sent messages</h3>
+                <p class="text-sm text-gray-500">Messages reported by Olympus SMS, including delivery information where available.</p>
+            </div>
+            <span class="text-xs text-gray-500">{{ number_format($messagesTotal) }} total</span>
+        </div>
+
+        @if($messagesLoading)
+            <p class="py-8 text-center text-sm text-gray-500">Loading sent messages...</p>
+        @elseif(empty($messages))
+            <p class="py-8 text-center text-sm text-gray-500">No messages were returned by Olympus.</p>
+        @else
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Recipient</th><th class="px-3 py-2 text-left">Message</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Sent</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($messages as $message)
+                            <tr>
+                                <td class="whitespace-nowrap px-3 py-3">{{ data_get($message, 'recipient', data_get($message, 'to', '—')) }}</td>
+                                <td class="min-w-[18rem] max-w-xl px-3 py-3">{{ data_get($message, 'message', data_get($message, 'body', '—')) }}</td>
+                                <td class="whitespace-nowrap px-3 py-3">{{ ucfirst((string) data_get($message, 'status', data_get($message, 'delivery_status', 'Reported'))) }}</td>
+                                <td class="whitespace-nowrap px-3 py-3">{{ data_get($message, 'created_at', data_get($message, 'sent_at', data_get($message, 'schedule_time', '—'))) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @if($messagesLastPage > 1)
+                <div class="mt-4 flex items-center justify-between text-sm">
+                    <button wire:click="previousMessagesPage" wire:loading.attr="disabled" @disabled($messagesPage <= 1) class="rounded-lg border px-3 py-2 disabled:opacity-50">Previous</button>
+                    <span>Page {{ $messagesPage }} of {{ $messagesLastPage }}</span>
+                    <button wire:click="nextMessagesPage" wire:loading.attr="disabled" @disabled($messagesPage >= $messagesLastPage) class="rounded-lg border px-3 py-2 disabled:opacity-50">Next</button>
+                </div>
+            @endif
+        @endif
+    </section>
 </div>
