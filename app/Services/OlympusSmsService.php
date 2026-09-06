@@ -31,10 +31,20 @@ class OlympusSmsService
             throw new RuntimeException('Unable to read Olympus SMS balance: ' . ($result['message'] ?? 'Unknown provider error'));
         }
 
+        $units = $this->findBalanceValue($result['data'] ?? $result);
+        if ($units === null) {
+            Log::warning('Olympus SMS balance response did not contain a unit value', [
+                'http_status' => $response->status(),
+                'data_type' => get_debug_type($result['data'] ?? null),
+                'data_keys' => is_array($result['data'] ?? null) ? array_keys($result['data']) : [],
+            ]);
+            throw new RuntimeException('Olympus returned a successful balance response, but no SMS unit value was found. Check the provider response format.');
+        }
+
         return [
             'status' => 'success',
             'data' => $result['data'] ?? null,
-            'units' => $this->findBalanceValue($result['data'] ?? $result),
+            'units' => $units,
             'checked_at' => now()->toIso8601String(),
         ];
     }
@@ -111,11 +121,19 @@ class OlympusSmsService
      */
     private function findBalanceValue(mixed $value): int|float|string|null
     {
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/(?<![\d.])\d+(?:\.\d+)?(?![\d.])/', $value, $match)) {
+            return str_contains($match[0], '.') ? (float) $match[0] : (int) $match[0];
+        }
+
         if (!is_array($value)) {
             return null;
         }
 
-        foreach (['balance', 'sms_balance', 'sms_units', 'units', 'credits', 'remaining'] as $key) {
+        foreach (['balance', 'sms_balance', 'sms_unit', 'sms_units', 'sms_units_balance', 'units', 'credits', 'remaining', 'available', 'quantity', 'count', 'total'] as $key) {
             if (array_key_exists($key, $value) && is_scalar($value[$key])) {
                 return $value[$key];
             }
