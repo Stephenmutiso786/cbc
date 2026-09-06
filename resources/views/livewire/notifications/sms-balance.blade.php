@@ -48,8 +48,15 @@
         </section>
     </div>
 
+    @if(auth()->user()->can('send notifications'))
+        <section class="rounded-xl bg-white p-6 shadow-sm">
+            <h3 class="mb-4 text-lg font-semibold text-gray-800">Send SMS</h3>
+            <livewire:notifications.send-notification />
+        </section>
+    @endif
+
     <div class="rounded-xl bg-white p-6 text-sm text-gray-600 shadow-sm">
-        SMS sending remains available from <a class="font-medium text-green-700 hover:underline" href="{{ route('admin.notifications.index') }}">Notifications</a>. The balance shown above is fetched live from Olympus and is not stored as a fake local credit balance.
+        SMS balance, sending, delivery history, and recharge access are managed from this SMS Center. The balance shown above is fetched live from Olympus and is not stored as a fake local credit balance.
     </div>
 
     <section class="rounded-xl bg-white p-6 shadow-sm">
@@ -61,7 +68,12 @@
             <span class="text-xs text-gray-500">{{ number_format($messagesTotal) }} total</span>
         </div>
 
-        @if($messagesLoading)
+        @if($messagesError)
+            <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Olympus message history is temporarily unavailable: {{ $messagesError }}
+                <button wire:click="refreshMessagesNow" class="ml-2 font-semibold underline">Try again</button>
+            </div>
+        @elseif($messagesLoading)
             <p class="py-8 text-center text-sm text-gray-500">Loading sent messages...</p>
         @elseif(empty($messages))
             <p class="py-8 text-center text-sm text-gray-500">No messages were returned by Olympus.</p>

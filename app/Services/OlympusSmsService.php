@@ -108,12 +108,13 @@ class OlympusSmsService
             throw new RuntimeException('Olympus SMS API token is not configured. Add it in Admin Settings.');
         }
 
-        $response = Http::withToken($token)
+        $request = Http::withToken($token)
             ->acceptJson()
             ->contentType('application/json')
-            ->timeout(20)
-            ->retry(2, 500)
-            ->get($this->baseUrl() . '/api/v3/sms', ['page' => max(1, $page)]);
+            ->timeout(5);
+        $response = $page > 1
+            ? $request->get($this->baseUrl() . '/api/v3/sms', ['page' => $page])
+            : $request->get($this->baseUrl() . '/api/v3/sms');
 
         $result = $response->json() ?: ['status' => 'error', 'message' => $response->body()];
         if (!$response->successful() || ($result['status'] ?? null) !== 'success') {

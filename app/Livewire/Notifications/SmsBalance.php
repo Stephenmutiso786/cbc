@@ -11,6 +11,7 @@ class SmsBalance extends Component
     public mixed $units = null;
     public string $checkedAt = '';
     public string $error = '';
+    public string $messagesError = '';
     public array $messages = [];
     public int $messagesPage = 1;
     public int $messagesLastPage = 1;
@@ -28,6 +29,11 @@ class SmsBalance extends Component
     {
         $this->refreshBalance($sms);
         $this->refreshMessages($sms);
+    }
+
+    public function refreshMessagesNow(OlympusSmsService $sms): void
+    {
+        $this->refreshMessages($sms, $this->messagesPage);
     }
 
     public function nextMessagesPage(OlympusSmsService $sms): void
@@ -83,7 +89,7 @@ class SmsBalance extends Component
             $this->messagesTotal = $result['meta']['total'];
         } catch (Throwable $exception) {
             report($exception);
-            $this->error = $this->error ?: $exception->getMessage();
+            $this->messagesError = $exception->getMessage();
         } finally {
             $this->messagesLoading = false;
         }
