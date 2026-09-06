@@ -36,6 +36,18 @@ if [ "${USE_REDIS:-false}" = "true" ]; then
     export SESSION_DRIVER=redis
 fi
 
+# Bind Railway's port immediately so a previous PWA worker can update while
+# database migrations run. Normal Laravel routes remain available after boot.
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-1}}"
+php artisan serve --host 0.0.0.0 --port "${PORT:-10000}" &
+SERVER_PID=$!
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
+sleep 1
+if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo "The Laravel web server failed to start." >&2
+    exit 1
+fi
+
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 SEED_TIMEOUT="${SEED_TIMEOUT:-600}"
 MIGRATION_DB_URL="${DB_URL:-${DATABASE_URL:-}}"
@@ -73,6 +85,5 @@ if [ "${QUEUE_CONNECTION:-sync}" != "sync" ] && [ "${QUEUE_WORKER:-true}" = "tru
     echo "Queue workers started using ${QUEUE_CONNECTION} connection."
 fi
 
-# Start the normal Laravel server only after the database has been prepared.
-export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-1}}"
-exec php artisan serve --host 0.0.0.0 --port "${PORT:-10000}"
+# Keep the already-listening Laravel web process in the foreground.
+wait "$SERVER_PID"
