@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
 use App\Services\OlympusSmsService;
+use App\Services\DataTransferPolicy;
 use Illuminate\Support\Facades\DB;
 
 class AdminSettingsController extends Controller
@@ -30,7 +31,7 @@ class AdminSettingsController extends Controller
         return back()->with('success', 'Test SMS accepted by Olympus for delivery.');
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, DataTransferPolicy $transferPolicy): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -84,15 +85,13 @@ class AdminSettingsController extends Controller
         unset($data['google_drive_credentials_file']);
 
         if ($request->hasFile('logo')) {
-            $logo = $request->file('logo');
-            $data['logo_data'] = 'data:' . $logo->getMimeType() . ';base64,' . base64_encode(file_get_contents($logo->getRealPath()));
+            $data['logo_data'] = $transferPolicy->imageDataUrl($request->file('logo'));
         }
         unset($data['logo']);
 
         foreach (['official_signature', 'official_stamp'] as $upload) {
             if ($request->hasFile($upload)) {
-                $file = $request->file($upload);
-                $data[$upload . '_data'] = 'data:' . $file->getMimeType() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
+                $data[$upload . '_data'] = $transferPolicy->imageDataUrl($request->file($upload));
             }
             unset($data[$upload]);
         }

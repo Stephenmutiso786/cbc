@@ -12,7 +12,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class GenerateExamReportCardsJob implements ShouldQueue
@@ -35,8 +34,7 @@ class GenerateExamReportCardsJob implements ShouldQueue
             $pdf = $reports->buildResultCardsPdf($exam);
             $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
             $filename = 'exam-' . $exam->id . '-report-cards.pdf';
-            $path = $folder . '/' . $filename;
-            Storage::disk('public')->put($path, $pdf);
+            $path = $storage->storeLocal($pdf, $folder, $filename, 'application/pdf');
 
             if (config('services.google_drive.report_backup', false)) {
                 try {

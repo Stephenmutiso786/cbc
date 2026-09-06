@@ -38,6 +38,17 @@ class GoogleDriveStorage
         return 'gdrive:' . $created->getId();
     }
 
+    /** Store locally while retaining the same compression and part format. */
+    public function storeLocal(string $contents, string $folder, string $name, string $mime): string
+    {
+        if (strlen($contents) > $this->transferPolicy->maxFileBytes()) {
+            return $this->storeChunked($contents, $folder, $name, $mime, false);
+        }
+        $path = trim($folder, '/') . '/' . $name;
+        Storage::disk('public')->put($path, $contents);
+        return $path;
+    }
+
     /**
      * Upload a local file without loading the entire file into PHP memory.
      */
@@ -112,7 +123,7 @@ class GoogleDriveStorage
     }
 
     /** Store large content as limited parts and reconstruct it when read. */
-    private function storeChunked(string $contents, string $folder, string $name, string $mime): string
+    private function storeChunked(string $contents, string $folder, string $name, string $mime, bool $remote = true): string
     {
         $encoding = 'identity';
         $compressed = gzencode($contents, 6);
@@ -123,7 +134,12 @@ class GoogleDriveStorage
         $partSize = min($this->transferPolicy->maxFileBytes(), 1_800_000);
         $parts = [];
         for ($offset = 0, $number = 1, $length = strlen($contents); $offset < $length; $offset += $partSize, $number++) {
-            $parts[] = $this->store(
+            $parts[] = $remote ? $this->store(
+                substr($contents, $offset, $partSize),
+                $folder,
+                $name . '.part-' . str_pad((string) $number, 5, '0', STR_PAD_LEFT),
+                $mime,
+            ) : $this->storeLocal(
                 substr($contents, $offset, $partSize),
                 $folder,
                 $name . '.part-' . str_pad((string) $number, 5, '0', STR_PAD_LEFT),

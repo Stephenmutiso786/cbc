@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
 
+RUN printf 'upload_max_filesize=25M\npost_max_size=30M\nmemory_limit=256M\n' > /usr/local/etc/php/conf.d/uploads.ini
+
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock ./
 COPY app/Support/polyfills.php app/Support/polyfills.php
@@ -41,6 +43,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         postgresql-client \
     && docker-php-ext-install pdo_mysql pdo_pgsql mbstring xml zip gd exif \
     && rm -rf /var/lib/apt/lists/*
+
+RUN printf 'upload_max_filesize=25M\npost_max_size=30M\nmemory_limit=256M\n' > /usr/local/etc/php/conf.d/uploads.ini
 
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
