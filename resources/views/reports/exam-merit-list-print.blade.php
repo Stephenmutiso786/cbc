@@ -34,6 +34,12 @@
         .bar { height: 7px; background: #16a34a; }
         .bar-value { width: 38px; text-align: right; }
         .note { margin-top: 8px; color: #166534; }
+        .verification-footer { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; padding-top: 6px; border-top: 1px solid #d1d5db; text-align: center; }
+        .verification-qr { width: 64px; height: 64px; line-height: 0; }
+        .verification-qr svg { width: 64px; height: 64px; }
+        .verification-copy { color: #166534; font-size: 8px; }
+        .verification-copy span { color: #6b7280; font-size: 7px; }
+        .verification-stamp { width: 52px; height: 52px; object-fit: contain; }
         .footer { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; margin-top: 13px; }
         .signature { padding-top: 4px; border-top: 1px solid #374151; color: #5b6472; font-size: 8px; }
         @media print { .toolbar { display: none; } }
@@ -55,6 +61,7 @@
 </tbody></table>
 <div class="summary"><div class="panel"><h2>Best 5 learners</h2><table><thead><tr><th>Position</th><th>Learner</th><th class="num">Mean</th><th class="num">Grade</th></tr></thead><tbody>@foreach($topFive as $row)<tr><td>{{ $row['position'] }}</td><td>{{ $row['learner']['name'] }}</td><td class="num">{{ number_format($row['percentage'], 1) }}%</td><td class="num">{{ $row['grade'] }}</td></tr>@endforeach</tbody></table></div><div class="panel"><h2>Subject performance means</h2>@foreach($subjectMeans as $subject)<div class="bar-row"><div class="bar-label">{{ $subject['name'] }}</div><div class="bar-track"><div class="bar" style="width:{{ min(100, max(0, (float) $subject['mean'])) }}%"></div></div><div class="bar-value">{{ number_format($subject['mean'], 1) }}%</div></div>@endforeach</div></div>
 <div class="note">Overall mean is calculated from total marks obtained divided by total possible marks across all {{ count($subjects) }} subjects. NS means the learner did not sit that subject.</div>
+@include('pdf.verification-footer')
 <div class="footer"><div class="signature">Prepared by Admin, Kyandulu</div><div class="signature">Headteacher signature and date</div></div>
 </body>
 </html>
