@@ -51,8 +51,8 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
-      - key: DB_MIGRATION_URL
-        sync: false
+      - key: USE_SEPARATE_MIGRATION_DB
+        value: "false"
       - key: PGSSLMODE
         value: require
       - key: DB_CONNECT_TIMEOUT

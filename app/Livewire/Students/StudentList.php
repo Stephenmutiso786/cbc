@@ -45,6 +45,7 @@ class StudentList extends Component
     public function mount(Request $request): void
     {
         $this->showImport = $request->boolean('import') || $request->routeIs('admin.students.import');
+        if ($request->boolean('create') && auth()->user()->can('create students')) $this->create();
     }
 
     public function updatingSearch(): void { $this->resetPage(); }

@@ -69,6 +69,12 @@ class ExamManager extends Component
         $this->examTerm = (string) config('school.current_term');
         $this->termFilter = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
+        if (request()->query('tab') === 'marks') {
+            $exam = Exam::query()->where('academic_year', (string) config('school.academic_year'))
+                ->where('term', (string) config('school.current_term'))
+                ->whereIn('marks_status', ['draft', 'returned'])->latest('exam_date')->first();
+            if ($exam) $this->loadMarkEntry($exam->id);
+        }
     }
 
     public function updatedExamClassId($classId): void
