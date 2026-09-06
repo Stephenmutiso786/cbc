@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\ExamReportExport;
 use App\Models\TeacherSubjectAllocation;
+use App\Services\GoogleDriveStorage;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -181,7 +182,24 @@ class ExamReportsController extends Controller
     {
         $this->authorizeExamReports($exam);
         $this->ensureGroupPublished($exam);
-        $html = view('reports.exam-merit-list-print', $this->buildPrintableMeritList($exam))->render();
+        $data = $this->buildPrintableMeritList($exam);
+        $html = view('reports.exam-merit-list-print', $data)->render();
+
+        $drive = app(GoogleDriveStorage::class);
+        if ($drive->enabled()) {
+            try {
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.exam-merit-list-print', $data)
+                    ->setPaper('a4', 'landscape')
+                    ->output();
+                $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
+                $drive->storeOrReplace($pdf, $folder, 'exam-' . $exam->id . '-merit-list.pdf', 'application/pdf');
+            } catch (Throwable $exception) {
+                Log::warning('Google Drive merit-list storage failed; keeping print view available.', [
+                    'exam_id' => $exam->id,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
 
         return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }

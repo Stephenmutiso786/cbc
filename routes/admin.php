@@ -24,6 +24,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\MarksImportTemplateController;
+use App\Http\Controllers\DriveStoreController;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
 Route::get('/students', StudentList::class)->middleware('permission:view students')->name('students.index');
@@ -54,6 +55,7 @@ Route::get('/exam-timetable', ExamTimetableManager::class)->middleware('permissi
 Route::get('/reports', [AnalyticsController::class, 'index'])->middleware('permission:view analytics')->name('reports.index');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->middleware('permission:view analytics')->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
+Route::get('/drive-store', [DriveStoreController::class, 'index'])->middleware('permission:view report cards')->name('drive-store.index');
 Route::get('/settings', fn() => view('admin.settings.index'))->middleware('permission:manage system settings')->name('settings.index');
 Route::get('/report-forms', ReportCardTemplates::class)->middleware('permission:view report cards')->name('report-forms.index');
 Route::get('/grades', GradeManager::class)->middleware('permission:manage curriculum')->name('grades.index');
