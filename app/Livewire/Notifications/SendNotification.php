@@ -93,8 +93,10 @@ class SendNotification extends Component
             $classIds = \App\Models\TeacherSubjectAllocation::where('teacher_id', Auth::user()->staffMember?->id)->where('is_active', true)->pluck('class_id');
             $classes->whereIn('id', $classIds);
         }
-        return view('livewire.notifications.send-notification', ['classes' => $classes->orderBy('grade_level')->get(), 'isAdmin' => $isAdmin])
-            ->layout($isAdmin ? 'layouts.admin' : 'layouts.teacher');
+        $view = view('livewire.notifications.send-notification', ['classes' => $classes->orderBy('grade_level')->get(), 'isAdmin' => $isAdmin]);
+        return request()->routeIs('admin.sms.*')
+            ? $view
+            : $view->layout($isAdmin ? 'layouts.admin' : 'layouts.teacher');
     }
 
     private function recipientQuery()
