@@ -12,7 +12,8 @@
 <div class="max-w-4xl mx-auto py-6 px-4">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-green-900">{{ config('school.name') }}</h1>
-        <form method="POST" action="{{ route('logout') }}">@csrf<button class="text-sm text-red-600">Logout</button></form>
+        @include('layouts.partials.online-users')
+        <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="text-sm text-red-600">Logout</button></form>
     </div>
     <nav class="mb-6 flex flex-wrap gap-2">
         @foreach([['parent.dashboard','Dashboard'],['parent.progress.index','Progress'],['parent.fees.index','Fees'],['parent.notes.index','Notes']] as [$r,$l])
