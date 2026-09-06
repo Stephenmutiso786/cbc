@@ -162,7 +162,9 @@ class BackupDatabaseToDrive extends Command
 
     private function createPostgresDump(string $archive): void
     {
-        $url = env('DB_MIGRATION_URL') ?: config('database.connections.pgsql.url');
+        $url = (env('USE_SEPARATE_MIGRATION_DB', false) ? env('DB_MIGRATION_URL') : null)
+            ?: env('DB_URL')
+            ?: config('database.connections.pgsql.url');
         $parts = is_string($url) && trim($url) !== '' ? parse_url($url) : false;
         $connection = config('database.connections.pgsql');
         $query = [];

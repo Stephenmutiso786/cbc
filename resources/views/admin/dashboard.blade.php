@@ -16,6 +16,7 @@
     $hasFeePayments = Schema::hasTable($feePaymentTable);
     $hasFeeInvoices = Schema::hasTable($feeInvoiceTable);
     $hasClasses = Schema::hasTable($schoolClassTable);
+    $hasAssessments = Schema::hasTable((new \App\Models\Assessment())->getTable());
 
     $totalLearners = $hasLearners ? \App\Models\Learner::count() : 0;
     $totalStaff = $hasStaff ? \App\Models\StaffMember::count() : 0;
@@ -28,6 +29,9 @@
     $totalClasses = $hasClasses ? \App\Models\SchoolClass::whereAcademicYear(config('school.current_academic_year'))->count() : 0;
     $recentPayments = $hasFeePayments ? \App\Models\FeePayment::with('invoice.learner')->latest()->take(5)->get() : collect();
     $recentLearners = $hasLearners ? \App\Models\Learner::latest()->take(5)->get() : collect();
+    $assessmentCounts = $hasAssessments
+        ? \App\Models\Assessment::query()->where('term', config('school.current_term'))->where('academic_year', config('school.current_academic_year'))->selectRaw('rubric_level, count(*) as total')->groupBy('rubric_level')->pluck('total', 'rubric_level')
+        : collect();
 @endphp
 
 {{-- Top Stats Row --}}
@@ -102,10 +106,10 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
             @foreach([
-                'EE' => ['Exceeds Expectation', 'green', '0'],
-                'ME' => ['Meets Expectation', 'blue', '0'],
-                'AE' => ['Approaches Expectation', 'yellow', '0'],
-                'BE' => ['Below Expectation', 'red', '0'],
+                'EE' => ['Exceeds Expectation', 'green', $assessmentCounts->get('EE', 0)],
+                'ME' => ['Meets Expectation', 'blue', $assessmentCounts->get('ME', 0)],
+                'AE' => ['Approaches Expectation', 'yellow', $assessmentCounts->get('AE', 0)],
+                'BE' => ['Below Expectation', 'red', $assessmentCounts->get('BE', 0)],
             ] as $code => [$label, $color, $count])
             <div class="p-3 bg-{{ $color }}-50 rounded-lg border border-{{ $color }}-100">
                 <div class="flex items-center justify-between mb-1">
@@ -125,17 +129,17 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 class="font-semibold text-gray-800 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-2 gap-3">
-            <a href="{{ route('admin.students.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors text-center">
+            <a href="{{ route('admin.students.index', ['create' => 1]) }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-green-200 flex items-center justify-center">
                     <svg class="w-5 h-5 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                 </div>
                 <span class="text-xs font-medium text-green-800">Enroll Learner</span>
             </a>
-            <a href="{{ route('admin.assessment.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-center">
+            <a href="{{ route('admin.exams.index', ['tab' => 'marks']) }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-blue-200 flex items-center justify-center">
                     <svg class="w-5 h-5 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 </div>
-                <span class="text-xs font-medium text-blue-800">Enter Assessment</span>
+                <span class="text-xs font-medium text-blue-800">Enter Exam Marks</span>
             </a>
             <a href="{{ route('finance.payments.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-yellow-200 flex items-center justify-center">
@@ -143,11 +147,11 @@
                 </div>
                 <span class="text-xs font-medium text-yellow-800">Record Payment</span>
             </a>
-            <a href="{{ route('admin.reports.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors text-center">
+            <a href="{{ route('admin.exams.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-purple-200 flex items-center justify-center">
                     <svg class="w-5 h-5 text-purple-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
-                <span class="text-xs font-medium text-purple-800">Generate Report</span>
+                <span class="text-xs font-medium text-purple-800">Reports &amp; Merit Lists</span>
             </a>
             <a href="{{ route('admin.notifications.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-red-200 flex items-center justify-center">

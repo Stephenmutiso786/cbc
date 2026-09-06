@@ -38,7 +38,10 @@ fi
 
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 SEED_TIMEOUT="${SEED_TIMEOUT:-600}"
-MIGRATION_DB_URL="${DB_MIGRATION_URL:-${DB_URL:-${DATABASE_URL:-}}}"
+MIGRATION_DB_URL="${DB_URL:-${DATABASE_URL:-}}"
+if [ "${USE_SEPARATE_MIGRATION_DB:-false}" = "true" ]; then
+    MIGRATION_DB_URL="${DB_MIGRATION_URL:-${MIGRATION_DB_URL}}"
+fi
 if ! timeout "${MIGRATION_TIMEOUT}" env SKIP_DB_SETTINGS_BOOT=true DB_URL="${MIGRATION_DB_URL}" php artisan migrate --force; then
     echo "Database migrations did not finish within ${MIGRATION_TIMEOUT}s. Check the Render database host, SSL CA, and credentials." >&2
     exit 1
