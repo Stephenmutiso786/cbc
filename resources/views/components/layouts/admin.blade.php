@@ -37,7 +37,7 @@
         </aside>
         <div class="md:pl-64">
             <header class="bg-white shadow h-16 flex items-center px-4 md:px-6 justify-between">
-                <button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
+                <button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
                 <h1 class="text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

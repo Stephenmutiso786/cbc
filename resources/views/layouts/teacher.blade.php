@@ -34,7 +34,7 @@
     </aside>
     <div class="min-h-screen md:ml-60">
         <header class="bg-white h-14 flex items-center gap-3 px-4 shadow-sm md:px-6">
-            <button type="button" data-mobile-menu aria-expanded="false" class="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
+            <button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
             <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? auth()->user()->gradeBandLabel() ?? 'Teacher Portal' }}</h1>
             <form method="POST" action="{{ route('logout') }}" class="ml-auto">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form>
         </header>
