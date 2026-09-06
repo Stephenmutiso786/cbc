@@ -20,6 +20,7 @@ class OlympusSmsService
 
         $response = Http::withToken($token)
             ->acceptJson()
+            ->contentType('application/json')
             ->timeout(20)
             ->retry(2, 500)
             ->get($this->baseUrl() . '/api/v3/balance');
