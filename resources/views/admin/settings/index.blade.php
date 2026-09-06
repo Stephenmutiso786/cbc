@@ -27,9 +27,40 @@
         </div></section>
         <section class="card p-6"><h2 class="text-lg font-bold text-gray-800">Firebase and KEMIS</h2><div class="grid grid-cols-1 gap-4 md:grid-cols-2">@foreach([['firebase_server_key','Firebase server key'],['firebase_project_id','Firebase project ID'],['kemis_api_url','KEMIS API URL'],['kemis_api_key','KEMIS API key'],['kemis_school_code','KEMIS school code']] as [$key,$label])<label>{{ $label }}<input name="{{ $key }}" value="{{ in_array($key, ['firebase_server_key','kemis_api_key']) ? '' : old($key, config('services.'.(str_starts_with($key, 'firebase') ? 'firebase' : 'kemis').'.'.(str_starts_with($key, 'firebase') ? substr($key, 9) : substr($key, 6)))) }}" class="mt-1 w-full rounded-lg border px-3 py-2.5 text-sm"></label>@endforeach</div></section>
         <section class="card border-2 border-blue-100 p-6"><h2 class="text-lg font-bold text-gray-800">Google Drive connector</h2><p class="mb-4 text-sm text-gray-500">Connect your Google account securely. The refresh token is encrypted in the database and never shown in the browser.</p><div class="flex flex-wrap items-center gap-3"><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">{{ config('services.google_drive.oauth_token') ? 'Connected' : 'Not connected' }}</span>@if(config('services.google_drive.client_id') && config('services.google_drive.client_secret'))<a href="{{ route('admin.settings.google-drive.connect') }}" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">{{ config('services.google_drive.oauth_token') ? 'Reconnect Google Drive' : 'Connect Google Drive' }}</a>@else<span class="text-sm text-amber-700">Add Google OAuth client ID and secret in Railway first.</span>@endif @if(config('services.google_drive.oauth_token'))<form method="POST" action="{{ route('admin.settings.google-drive.disconnect') }}">@csrf<button class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Disconnect</button></form>@endif</div><div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2"><label class="flex items-center gap-3 md:col-span-2"><input type="hidden" name="google_drive_enabled" value="0"><input name="google_drive_enabled" type="checkbox" value="1" @checked(old('google_drive_enabled', config('services.google_drive.enabled'))) class="h-5 w-5"><span class="text-sm font-semibold">Enable Google Drive storage</span></label><label class="md:col-span-2">Drive folder ID<input name="google_drive_folder_id" value="{{ old('google_drive_folder_id', config('services.google_drive.folder_id')) }}" class="mt-1 w-full rounded-lg border px-3 py-2.5 text-sm"></label><label class="md:col-span-2">Optional service-account JSON fallback<input name="google_drive_credentials_file" type="file" accept=".json,application/json,text/plain" class="mt-1 w-full rounded-lg border px-3 py-2.5 text-sm"></label><label class="md:col-span-2">Or paste service-account JSON<textarea name="google_drive_credentials" rows="5" class="mt-1 w-full rounded-lg border px-3 py-2.5 font-mono text-xs"></textarea></label></div></section>
-        <button class="rounded-lg bg-green-700 px-6 py-3 text-sm font-semibold text-white">Save all settings</button>
+        <button type="submit" form="settings-form" class="rounded-lg bg-green-700 px-6 py-3 text-sm font-semibold text-white">Save all settings</button>
     </form>
     <form id="drive-test-form" method="POST" action="{{ route('admin.settings.drive-test') }}" class="mt-3">@csrf<button class="rounded-lg border border-blue-300 px-5 py-2.5 text-sm font-semibold text-blue-700">Test saved Google Drive connection</button></form>
     <section class="card border-2 border-green-100 p-6"><h2 class="text-lg font-bold text-gray-800">Test SMS delivery</h2><p class="mb-4 text-sm text-gray-500">Save the Olympus settings first, then send one real test message to a phone you control.</p><form method="POST" action="{{ route('admin.settings.sms-test') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">@csrf<label>Test phone number<input name="test_phone" value="{{ old('test_phone') }}" placeholder="0712345678 or 254712345678" class="mt-1 w-full rounded-lg border px-3 py-2.5 text-sm"></label><label class="md:col-span-2">Test message<textarea name="test_message" rows="2" maxlength="480" class="mt-1 w-full rounded-lg border px-3 py-2.5 text-sm">{{ old('test_message', 'Kyandulu SMS test: delivery is working.') }}</textarea></label><div class="md:col-span-2"><button class="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white">Send test SMS</button></div></form></section>
 </div>
+<script>
+    // Keep fields associated with the main form even when the Drive disconnect
+    // action is rendered inside this legacy settings section.
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (field) {
+            if (!field.closest('#drive-disconnect-form')) field.setAttribute('form', 'settings-form');
+        });
+
+        const disconnect = Array.from(document.querySelectorAll('button')).find(function (button) {
+            return button.textContent.trim() === 'Disconnect';
+        });
+        if (disconnect) {
+            disconnect.type = 'button';
+            disconnect.addEventListener('click', function () {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = @json(route('admin.settings.google-drive.disconnect'));
+                const token = document.querySelector('input[name="_token"]');
+                if (token) {
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = token.value;
+                    form.appendChild(csrf);
+                }
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+    });
+</script>
 @endsection
