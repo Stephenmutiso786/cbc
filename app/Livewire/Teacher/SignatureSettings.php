@@ -4,6 +4,7 @@ namespace App\Livewire\Teacher;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use App\Services\DataTransferPolicy;
 
 class SignatureSettings extends Component
 {
@@ -17,7 +18,7 @@ class SignatureSettings extends Component
         $this->validate(['signatureFile' => ['required', 'image', 'mimes:jpg,jpeg,png']]);
         $staff = auth()->user()->staffMember;
         abort_unless($staff, 422, 'This account is not linked to a staff profile.');
-        $staff->update(['signature_data' => 'data:' . $this->signatureFile->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->signatureFile->getRealPath()))]);
+        $staff->update(['signature_data' => app(DataTransferPolicy::class)->imageDataUrl($this->signatureFile)]);
         $this->reset('signatureFile');
         $this->saved = 'Your signature was saved and will appear on generated report cards.';
     }

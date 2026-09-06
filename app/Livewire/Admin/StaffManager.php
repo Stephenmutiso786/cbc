@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\Permission\Models\Role;
+use App\Services\DataTransferPolicy;
 use Illuminate\Http\Request;
 
 class StaffManager extends Component
@@ -110,7 +111,7 @@ class StaffManager extends Component
             $this->addError('form.first_name', 'A staff member with the same name already exists.');
             return;
         }
-        $signatureData = $this->signatureFile ? 'data:' . $this->signatureFile->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->signatureFile->getRealPath())) : null;
+        $signatureData = $this->signatureFile ? app(DataTransferPolicy::class)->imageDataUrl($this->signatureFile) : null;
         DB::transaction(function () use ($data, $staff, $signatureData) {
             $user = $staff?->user;
             if (!$user) $user = User::create(['name' => $data['first_name'] . ' ' . $data['last_name'], 'email' => $data['email'], 'password' => Hash::make($data['password']), 'email_verified_at' => now()]);
