@@ -34,7 +34,9 @@ Route::get('/files/notes/{note}', [StoredFileController::class, 'note'])
 | Authenticated Routes — grouped by role
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::class])->group(function () {
+
+    Route::get('/presence/ping', fn () => response()->noContent())->name('presence.ping');
 
     // Administration / school leadership. HODs use the HOD teaching portal,
     // and must not inherit the institution-wide administration portal.
