@@ -158,7 +158,11 @@ class AdminSettingsController extends Controller
         DB::transaction(function () use ($data, $secretKeys, $assetData): void {
             foreach ($data as $key => $value) {
                 $setting = SchoolSetting::firstOrNew(['key' => $key]);
-                if (in_array($key, $secretKeys, true) && $value === '' && $setting->exists) continue;
+                if (in_array($key, $secretKeys, true) && ($value === '' || $value === null)) {
+                    // An environment variable is the production source of truth when
+                    // no replacement secret was entered in the settings form.
+                    continue;
+                }
                 $configValue = $value;
                 if (in_array($key, $secretKeys, true)) {
                     $value = $value === '' ? null : 'enc:' . Crypt::encryptString($value);

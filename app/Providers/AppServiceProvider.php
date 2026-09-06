@@ -26,11 +26,16 @@ class AppServiceProvider extends ServiceProvider
 
         if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
             try {
+                $environmentBackedSecrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
                 foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
                 try {
                 $value = is_string($value) && str_starts_with($value, 'enc:')
                     ? Crypt::decryptString(substr($value, 4))
                     : $value;
+                // Keep Railway environment credentials when an old/empty database row exists.
+                if (in_array($key, $environmentBackedSecrets, true) && ($value === null || $value === '')) {
+                    continue;
+                }
                 $configKey = match (true) {
                     str_starts_with($key, 'mpesa_') => 'services.mpesa.' . substr($key, 6),
                     str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
