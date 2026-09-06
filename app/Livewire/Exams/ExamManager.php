@@ -57,7 +57,6 @@ class ExamManager extends Component
         'examName'  => 'required|string|max:200',
         'examGrade' => 'required',
         'examClassId' => 'required|exists:school_classes,id',
-        'examAreaId'=> 'required|exists:learning_areas,id',
         'examType'  => 'required',
         'examTerm'  => 'required',
         'totalMarks'=> 'required|numeric|min:1',
@@ -160,18 +159,36 @@ class ExamManager extends Component
             'exam_date' => $this->examDate, 'status' => 'draft', 'exam_state' => 'draft',
         ];
 
-        if ($this->editingExamId) {
-            $exam = Exam::findOrFail($this->editingExamId);
-            abort_unless($this->isFullAdmin(), 403);
-            abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
-            $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
-            $message = 'Exam updated successfully.';
-        } else {
-            $master = Exam::create($attributes + ['learning_area_id' => $selectedAreaIds->first(), 'created_by' => $creatorId]);
-            foreach ($selectedAreaIds->skip(1) as $areaId) {
-                Exam::create($attributes + ['exam_group_id' => $master->id, 'learning_area_id' => $areaId, 'created_by' => $creatorId]);
+        try {
+            if ($this->editingExamId) {
+                $exam = Exam::findOrFail($this->editingExamId);
+                abort_unless($this->isFullAdmin(), 403);
+                abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
+                $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
+                $message = 'Exam updated successfully.';
+            } else {
+                DB::transaction(function () use ($attributes, $creatorId, $selectedAreaIds, &$message): void {
+                    $master = Exam::create($attributes + [
+                        'learning_area_id' => $selectedAreaIds->first(),
+                        'created_by' => $creatorId,
+                    ]);
+                    foreach ($selectedAreaIds->skip(1) as $areaId) {
+                        Exam::create($attributes + [
+                            'exam_group_id' => $master->id,
+                            'learning_area_id' => $areaId,
+                            'created_by' => $creatorId,
+                        ]);
+                    }
+                    $message = $selectedAreaIds->count() . ' exam subject(s) created successfully.';
+                });
             }
-            $message = $selectedAreaIds->count() . ' exam subject(s) created successfully.';
+        } catch (Throwable $exception) {
+            if ($exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                throw $exception;
+            }
+            report($exception);
+            $this->addError('examName', 'The exam could not be saved. Check the selected class, subjects, grading scale, and staff setup, then try again.');
+            return;
         }
 
         $this->dispatch('notify', type: 'success', message: $message);
@@ -221,6 +238,12 @@ class ExamManager extends Component
         $this->reset(['examName','examGrade','examClassId','examAreaId','selectedExamAreaIds','examTerm','examDate','examScaleName','examScaleBands']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
+    }
+
+    public function openCreateForm(): void
+    {
+        $this->closeExamForm();
+        $this->showCreateModal = true;
     }
 
     public function loadMarkEntry(int $examId, bool $subjectAlreadyChosen = false): void
