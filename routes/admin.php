@@ -64,4 +64,5 @@ Route::get('/classes', AcademicSetup::class)->middleware('permission:manage curr
 Route::get('/subjects', SubjectManager::class)->middleware('permission:manage curriculum')->name('subjects.index');
 Route::put('/settings', [AdminSettingsController::class, 'update'])->middleware('permission:manage system settings')->name('settings.update');
 Route::post('/settings/sms-test', [AdminSettingsController::class, 'testSms'])->middleware('permission:manage system settings')->name('settings.sms-test');
+Route::post('/settings/drive-test', [AdminSettingsController::class, 'testDrive'])->middleware('permission:manage system settings')->name('settings.drive-test');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->middleware('permission:sync kemis')->name('kemis.index');
