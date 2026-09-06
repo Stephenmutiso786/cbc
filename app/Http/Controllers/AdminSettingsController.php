@@ -44,6 +44,44 @@ class AdminSettingsController extends Controller
         return back()->with('success', 'Google Drive connection is working and the configured folder is accessible.');
     }
 
+    public function connectDrive(Request $request, GoogleDriveStorage $drive): \Symfony\Component\HttpFoundation\Response
+    {
+        $state = bin2hex(random_bytes(32));
+        $request->session()->put('google_drive_oauth_state', $state);
+
+        return redirect()->away($drive->authorizationUrl($state));
+    }
+
+    public function googleDriveCallback(Request $request, GoogleDriveStorage $drive): RedirectResponse
+    {
+        $expectedState = (string) $request->session()->pull('google_drive_oauth_state');
+        if ($expectedState === '' || ! hash_equals($expectedState, (string) $request->query('state'))) {
+            return redirect()->route('admin.settings.index')->withErrors(['google_drive' => 'Google Drive connection could not be verified. Please try again.']);
+        }
+        if ($request->filled('error')) {
+            return redirect()->route('admin.settings.index')->withErrors(['google_drive' => 'Google Drive authorization was cancelled.']);
+        }
+
+        try {
+            $token = $drive->exchangeOAuthCode((string) $request->query('code'));
+            $encoded = 'enc:' . Crypt::encryptString(json_encode($token, JSON_THROW_ON_ERROR));
+            SchoolSetting::updateOrCreate(['key' => 'google_drive_oauth_token'], ['value' => $encoded]);
+            config()->set('services.google_drive.oauth_token', json_encode($token, JSON_THROW_ON_ERROR));
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->route('admin.settings.index')->withErrors(['google_drive' => 'Google Drive connection failed: ' . $exception->getMessage()]);
+        }
+
+        return redirect()->route('admin.settings.index')->with('success', 'Google Drive connected successfully. Save a folder ID and enable Drive storage.');
+    }
+
+    public function disconnectDrive(): RedirectResponse
+    {
+        SchoolSetting::where('key', 'google_drive_oauth_token')->delete();
+        config()->set('services.google_drive.oauth_token', null);
+        return back()->with('success', 'Google Drive disconnected.');
+    }
+
     public function update(Request $request, DataTransferPolicy $transferPolicy): RedirectResponse
     {
         $data = $request->validate([

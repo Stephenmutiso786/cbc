@@ -38,6 +38,10 @@ return [
         'enabled' => filter_var(env('GOOGLE_DRIVE_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
         'credentials' => env('GOOGLE_DRIVE_CREDENTIALS'),
+        'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_DRIVE_REDIRECT_URI'),
+        'oauth_token' => env('GOOGLE_DRIVE_OAUTH_TOKEN'),
         'report_backup' => filter_var(env('GOOGLE_DRIVE_REPORT_BACKUP', false), FILTER_VALIDATE_BOOLEAN),
     ],
 ];

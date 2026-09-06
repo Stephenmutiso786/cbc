@@ -65,4 +65,7 @@ Route::get('/subjects', SubjectManager::class)->middleware('permission:manage cu
 Route::put('/settings', [AdminSettingsController::class, 'update'])->middleware('permission:manage system settings')->name('settings.update');
 Route::post('/settings/sms-test', [AdminSettingsController::class, 'testSms'])->middleware('permission:manage system settings')->name('settings.sms-test');
 Route::post('/settings/drive-test', [AdminSettingsController::class, 'testDrive'])->middleware('permission:manage system settings')->name('settings.drive-test');
+Route::get('/settings/google-drive/connect', [AdminSettingsController::class, 'connectDrive'])->middleware('permission:manage system settings')->name('settings.google-drive.connect');
+Route::get('/settings/google-drive/callback', [AdminSettingsController::class, 'googleDriveCallback'])->middleware('permission:manage system settings')->name('settings.google-drive.callback');
+Route::post('/settings/google-drive/disconnect', [AdminSettingsController::class, 'disconnectDrive'])->middleware('permission:manage system settings')->name('settings.google-drive.disconnect');
 Route::get('/kemis', fn() => view('admin.kemis.index'))->middleware('permission:sync kemis')->name('kemis.index');

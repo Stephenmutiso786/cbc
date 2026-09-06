@@ -14,7 +14,48 @@ class GoogleDriveStorage
 
     public function enabled(): bool
     {
-        return filter_var(config('services.google_drive.enabled'), FILTER_VALIDATE_BOOLEAN) && $this->credentials() && config('services.google_drive.folder_id');
+        return filter_var(config('services.google_drive.enabled'), FILTER_VALIDATE_BOOLEAN)
+            && ($this->credentials() || $this->oauthToken())
+            && config('services.google_drive.folder_id');
+    }
+
+    public function oauthConfigured(): bool
+    {
+        return (bool) config('services.google_drive.client_id')
+            && (bool) config('services.google_drive.client_secret')
+            && (bool) $this->oauthRedirectUri();
+    }
+
+    public function oauthConnected(): bool
+    {
+        return $this->oauthToken() !== null;
+    }
+
+    public function authorizationUrl(string $state): string
+    {
+        if (!$this->oauthConfigured()) {
+            throw new \RuntimeException('Google Drive OAuth is not configured. Add the Google client ID, client secret, and redirect URI in Railway.');
+        }
+
+        $client = $this->oauthClient();
+        return $client->createAuthUrl(null, ['state' => $state, 'include_granted_scopes' => 'true']);
+    }
+
+    public function exchangeOAuthCode(string $code): array
+    {
+        if (!$this->oauthConfigured()) {
+            throw new \RuntimeException('Google Drive OAuth is not configured.');
+        }
+
+        $token = $this->oauthClient()->fetchAccessTokenWithAuthCode($code);
+        if (isset($token['error'])) {
+            throw new \RuntimeException('Google Drive authorization failed: ' . ($token['error_description'] ?? $token['error']));
+        }
+        if (empty($token['refresh_token'])) {
+            throw new \RuntimeException('Google did not return a refresh token. Disconnect the app in Google and connect again.');
+        }
+
+        return $token;
     }
 
     public function testConnection(): string
@@ -162,10 +203,46 @@ class GoogleDriveStorage
     private function drive(): Drive
     {
         $client = new Client();
-        $credentials = json_decode($this->credentials(), true, 512, JSON_THROW_ON_ERROR);
-        $client->setAuthConfig($credentials);
+        if ($token = $this->oauthToken()) {
+            $client->setClientId((string) config('services.google_drive.client_id'));
+            $client->setClientSecret((string) config('services.google_drive.client_secret'));
+            $client->setRedirectUri($this->oauthRedirectUri());
+            $client->setAccessToken($token);
+            if ($client->isAccessTokenExpired() && !empty($token['refresh_token'])) {
+                $client->fetchAccessTokenWithRefreshToken($token['refresh_token']);
+            }
+        } else {
+            $credentials = json_decode($this->credentials(), true, 512, JSON_THROW_ON_ERROR);
+            $client->setAuthConfig($credentials);
+        }
         $client->setScopes([Drive::DRIVE]);
         return new Drive($client);
+    }
+
+    private function oauthClient(): Client
+    {
+        $client = new Client();
+        $client->setClientId((string) config('services.google_drive.client_id'));
+        $client->setClientSecret((string) config('services.google_drive.client_secret'));
+        $client->setRedirectUri($this->oauthRedirectUri());
+        $client->setScopes([Drive::DRIVE]);
+        $client->setAccessType('offline');
+        $client->setPrompt('consent');
+        return $client;
+    }
+
+    private function oauthRedirectUri(): string
+    {
+        return (string) (config('services.google_drive.redirect_uri') ?: url('/admin/settings/google-drive/callback'));
+    }
+
+    private function oauthToken(): ?array
+    {
+        $value = config('services.google_drive.oauth_token');
+        if (is_array($value)) return $value;
+        if (!is_string($value) || trim($value) === '') return null;
+        $token = json_decode($value, true);
+        return is_array($token) && !empty($token['refresh_token']) ? $token : null;
     }
 
     private function credentials(): ?string
