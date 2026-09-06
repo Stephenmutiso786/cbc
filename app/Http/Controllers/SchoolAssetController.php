@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DataTransferPolicy;
 use Symfony\Component\HttpFoundation\Response;
 
 class SchoolAssetController extends Controller
 {
-    public function logo(): Response
+    public function logo(DataTransferPolicy $transferPolicy): Response
     {
         $logo = (string) config('school.logo_data', '');
 
