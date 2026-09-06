@@ -43,6 +43,10 @@
         .footer { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; margin-top: 13px; }
         .signature { padding-top: 4px; border-top: 1px solid #374151; color: #5b6472; font-size: 8px; }
         @media print { .toolbar { display: none; } }
+        .verification-footer { position: fixed; bottom: 8mm; left: 0; width: 100%; text-align: center; }
+        .verification-qr { width: 64px; height: 64px; margin: 0 auto; line-height: 0; }
+        .verification-qr svg { width: 64px; height: 64px; }
+        .verification-stamp { position: absolute; right: 20mm; top: 0; width: 52px; height: 52px; object-fit: contain; }
     </style>
 </head>
 <body>
