@@ -24,7 +24,9 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasAnyRole(['admin', 'super-admin']) ? true : null;
         });
 
-        if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
+        $applicationReady = is_file(storage_path('framework/app-ready'));
+
+        if ($applicationReady && ! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
             try {
                 foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
                 try {
@@ -52,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
+        if ($applicationReady && ! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
             try {
                 foreach (DB::table('school_setting_assets')->pluck('data', 'key') as $key => $value) {
                     config()->set('school.' . $key, $value);

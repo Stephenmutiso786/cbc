@@ -3,6 +3,7 @@ set -eu
 
 mkdir -p bootstrap/cache storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs
 chmod -R a+rwX bootstrap/cache storage public/storage 2>/dev/null || true
+rm -f storage/framework/app-ready
 
 if [ -z "${APP_KEY:-}" ]; then
     echo "APP_KEY is required. Set the stable Laravel APP_KEY in Render." >&2
@@ -36,6 +37,18 @@ if [ "${USE_REDIS:-false}" = "true" ]; then
     export SESSION_DRIVER=redis
 fi
 
+# Bind Render's port before database work begins. Requests receive the branded
+# readiness page until migrations and provisioning create the marker.
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-1}}"
+php artisan serve --host 0.0.0.0 --port "${PORT:-10000}" &
+SERVER_PID=$!
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
+sleep 1
+if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo "The Laravel web server failed to start." >&2
+    exit 1
+fi
+
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 SEED_TIMEOUT="${SEED_TIMEOUT:-600}"
 MIGRATION_DB_URL="${DB_URL:-${DATABASE_URL:-}}"
@@ -61,6 +74,8 @@ fi
 
 php artisan optimize:clear
 php artisan storage:link || true
+touch storage/framework/app-ready
+echo "Application is ready to receive school traffic."
 
 # Run queued SMS, reports, backups, and integrations outside the web request.
 # Render's web service can host this worker while the app is small; move it to
@@ -73,7 +88,5 @@ if [ "${QUEUE_CONNECTION:-sync}" != "sync" ] && [ "${QUEUE_WORKER:-true}" = "tru
     echo "Queue workers started using ${QUEUE_CONNECTION} connection."
 fi
 
-# PHP's CLI server supports multiple worker processes. Override
-# PHP_CLI_SERVER_WORKERS when sizing a larger Render instance.
-export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-4}}"
-exec php artisan serve --host 0.0.0.0 --port "${PORT:-10000}"
+# Keep the already-listening web process in the foreground for Render.
+wait "$SERVER_PID"
