@@ -58,13 +58,18 @@ self.addEventListener('fetch', function (event) {
 });
 
 function fetchWithWakeFallback(request) {
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 8000);
-    return fetch(request, { signal: controller.signal }).then(function (response) {
-        clearTimeout(timer);
-        return response;
+    // Do not cancel Render's wake request. The branded page is returned while
+    // the original request continues, and its retry loads the live response.
+    var network = fetch(request);
+    var timeout = new Promise(function (resolve) {
+        setTimeout(function () { resolve(null); }, 1500);
+    });
+    return Promise.race([network, timeout]).then(function (response) {
+        if (response) return response;
+        return caches.match('/waking.html').then(function (fallback) {
+            return fallback || caches.match('/offline.html');
+        });
     }).catch(function () {
-        clearTimeout(timer);
         return caches.match('/waking.html').then(function (response) {
             return response || caches.match('/offline.html');
         });

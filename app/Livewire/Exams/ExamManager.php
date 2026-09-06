@@ -115,7 +115,6 @@ class ExamManager extends Component
     {
         $this->validate([
             'examName' => ['required', 'string', 'max:200'],
-            'examGrade' => ['required'],
             'examClassId' => ['required', 'exists:school_classes,id'],
             'selectedExamAreaIds' => ['required', 'array', 'min:1'],
             'selectedExamAreaIds.*' => ['integer', 'exists:learning_areas,id'],
@@ -126,7 +125,10 @@ class ExamManager extends Component
         abort_unless($this->isFullAdmin() || auth()->user()->can('manage exams'), 403);
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         $class = SchoolClass::findOrFail($this->examClassId);
-        $gradingScale = $class->gradingScale()->first();
+        $this->examGrade = (string) $class->grade_level;
+        $gradingScale = $class->gradingScales()
+            ->wherePivot('academic_year', (string) config('school.academic_year'))
+            ->where('grading_scales.is_active', true)->latest('grading_scales.id')->first();
         if (! $gradingScale) {
             $this->addError('examClassId', 'Assign an active grading scale to this class before creating an exam.');
             return;
@@ -148,6 +150,9 @@ class ExamManager extends Component
             }
         }
 
+        $creatorId = $teacher?->id ?: StaffMember::query()->value('id');
+        abort_if(!$creatorId, 422, 'Create a staff profile before creating an exam.');
+
         $attributes = [
             'name' => $this->examName, 'grade_level' => $this->examGrade, 'class_id' => $this->examClassId,
             'academic_year' => config('school.academic_year'), 'term' => $this->examTerm,
@@ -162,9 +167,9 @@ class ExamManager extends Component
             $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
             $message = 'Exam updated successfully.';
         } else {
-            $master = Exam::create($attributes + ['learning_area_id' => $selectedAreaIds->first(), 'created_by' => $teacher?->id ?? 1]);
+            $master = Exam::create($attributes + ['learning_area_id' => $selectedAreaIds->first(), 'created_by' => $creatorId]);
             foreach ($selectedAreaIds->skip(1) as $areaId) {
-                Exam::create($attributes + ['exam_group_id' => $master->id, 'learning_area_id' => $areaId, 'created_by' => $teacher?->id ?? 1]);
+                Exam::create($attributes + ['exam_group_id' => $master->id, 'learning_area_id' => $areaId, 'created_by' => $creatorId]);
             }
             $message = $selectedAreaIds->count() . ' exam subject(s) created successfully.';
         }
