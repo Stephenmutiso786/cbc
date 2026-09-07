@@ -112,6 +112,7 @@ class ExamManager extends Component
 
     public function createExam(): void
     {
+        $allExamScope = $this->canManageAllExams();
         $this->validate([
             'examName' => ['required', 'string', 'max:200'],
             'examClassId' => ['required', 'exists:school_classes,id'],
@@ -121,7 +122,7 @@ class ExamManager extends Component
             'totalMarks' => ['required', 'numeric', 'min:1', 'max:100'],
             'passMark' => ['required', 'numeric', 'min:0', 'lte:totalMarks'],
         ]);
-        abort_unless($this->isFullAdmin() || auth()->user()->can('manage exams'), 403);
+        abort_unless($allExamScope || auth()->user()->can('manage exams'), 403);
         $teacher = StaffMember::where('user_id', auth()->id())->first();
         $class = SchoolClass::findOrFail($this->examClassId);
         $this->examGrade = (string) $class->grade_level;
@@ -138,7 +139,7 @@ class ExamManager extends Component
             $this->addError('selectedExamAreaIds', 'Every selected subject must be assigned to the selected class first.');
             return;
         }
-        if (!$this->isFullAdmin()) {
+        if (! $allExamScope) {
             $allocated = TeacherSubjectAllocation::where('teacher_id', $teacher?->id)
                 ->where('class_id', $this->examClassId)->whereIn('learning_area_id', $selectedAreaIds)
                 ->where('academic_year', config('school.academic_year'))->where('term', (int) $this->examTerm)
@@ -191,6 +192,9 @@ class ExamManager extends Component
             return;
         }
 
+        // Keep the newly created exam visible when the form term differs from
+        // the currently selected list term.
+        $this->termFilter = (string) $this->examTerm;
         $this->dispatch('notify', type: 'success', message: $message);
         $this->closeExamForm();
     }
@@ -766,6 +770,14 @@ class ExamManager extends Component
         return auth()->user()->hasRole('super-admin');
     }
 
+    private function canManageAllExams(): bool
+    {
+        // School administrators manage the complete school exam register. A
+        // teacher/HOD using the teacher portal remains allocation-scoped.
+        return $this->isFullAdmin()
+            || (request()->routeIs('admin.*') && auth()->user()->can('manage exams'));
+    }
+
     public function canReviewMarks(): bool
     {
         return auth()->user()->can('review marks');
@@ -775,20 +787,22 @@ class ExamManager extends Component
     {
         $fullAdmin = $this->isFullAdmin();
         $adminPortal = request()->routeIs('admin.*');
+        $allExamScope = $this->canManageAllExams()
+            || ($adminPortal && auth()->user()->can('view exams'));
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
             ->where('academic_year', config('school.academic_year'))->where('is_active', true);
-        $allocatedExamIds = $fullAdmin ? collect() : Exam::where('academic_year', config('school.academic_year'))
+        $allocatedExamIds = $allExamScope ? collect() : Exam::where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
             ->whereIn('class_id', (clone $allocation)->pluck('class_id'))
             ->whereIn('learning_area_id', (clone $allocation)->pluck('learning_area_id'))
             ->pluck('id');
-        $allocatedGroupMasterIds = $fullAdmin ? collect() : Exam::whereIn('id', $allocatedExamIds)
+        $allocatedGroupMasterIds = $allExamScope ? collect() : Exam::whereIn('id', $allocatedExamIds)
             ->pluck('exam_group_id')->filter()->values();
         $exams = Exam::with(['learningArea', 'schoolClass', 'results', 'groupedSubjects.learningArea', 'groupedSubjects.results'])
             ->whereNull('exam_group_id')
             ->where('academic_year', config('school.academic_year'))
             ->where('term', (int) $this->termFilter)
-            ->when(!$fullAdmin, fn ($query) => $query->where(function ($query) use ($allocatedExamIds, $allocatedGroupMasterIds): void {
+            ->when(!$allExamScope, fn ($query) => $query->where(function ($query) use ($allocatedExamIds, $allocatedGroupMasterIds): void {
                 $query->whereIn('id', $allocatedExamIds)->orWhereIn('id', $allocatedGroupMasterIds);
             }))
             ->latest()->paginate(20);
@@ -822,8 +836,8 @@ class ExamManager extends Component
 
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
-            'learningAreas' => $this->availableLearningAreas($fullAdmin, $allocation),
-            'classes' => $fullAdmin ? SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
+            'learningAreas' => $this->availableLearningAreas($allExamScope, $allocation),
+            'classes' => $allExamScope ? SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
             'examScaleName' => $this->examScaleName,
