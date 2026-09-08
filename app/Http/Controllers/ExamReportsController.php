@@ -128,6 +128,41 @@ class ExamReportsController extends Controller
         ]);
     }
 
+    /**
+     * Persist the official published documents and keep only their storage
+     * references in PostgreSQL. Drive must be connected before publication.
+     */
+    public function storePublishedDocuments(Exam $exam): array
+    {
+        $this->ensureGroupPublished($exam);
+        $drive = app(GoogleDriveStorage::class);
+        abort_unless($drive->enabled(), 422, 'Connect Google Drive before publishing results so the official documents can be stored safely.');
+
+        $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
+        $reportPath = $drive->storeOrReplace(
+            $this->buildResultCardsPdf($exam),
+            $folder,
+            'exam-' . $exam->id . '-report-cards.pdf',
+            'application/pdf'
+        );
+        $meritData = $this->buildPrintableMeritList($exam);
+        $meritPath = $drive->storeOrReplace(
+            \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.exam-merit-list-print', $meritData)
+                ->setPaper('a4', 'landscape')->output(),
+            $folder,
+            'exam-' . $exam->id . '-merit-list.pdf',
+            'application/pdf'
+        );
+
+        ExamReportExport::updateOrCreate(
+            ['exam_id' => $exam->id],
+            ['requested_by' => auth()->id(), 'status' => 'complete', 'path' => $reportPath, 'error' => null, 'finished_at' => now()]
+        );
+        $exam->update(['report_cards_path' => $reportPath, 'merit_list_path' => $meritPath]);
+
+        return ['report_cards_path' => $reportPath, 'merit_list_path' => $meritPath];
+    }
+
     public function buildResultCardsPdf(Exam $exam): string
     {
         $results = $this->buildResultCardResults($exam);
@@ -186,13 +221,14 @@ class ExamReportsController extends Controller
         $html = view('reports.exam-merit-list-print', $data)->render();
 
         $drive = app(GoogleDriveStorage::class);
-        if ($drive->enabled()) {
+        if ($drive->enabled() && ! $exam->merit_list_path) {
             try {
                 $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.exam-merit-list-print', $data)
                     ->setPaper('a4', 'landscape')
                     ->output();
                 $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
-                $drive->storeOrReplace($pdf, $folder, 'exam-' . $exam->id . '-merit-list.pdf', 'application/pdf');
+                $path = $drive->storeOrReplace($pdf, $folder, 'exam-' . $exam->id . '-merit-list.pdf', 'application/pdf');
+                $exam->update(['merit_list_path' => $path]);
             } catch (Throwable $exception) {
                 Log::warning('Google Drive merit-list storage failed; keeping print view available.', [
                     'exam_id' => $exam->id,

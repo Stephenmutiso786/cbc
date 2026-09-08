@@ -41,25 +41,25 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
 
     // Administration / school leadership. HODs use the HOD teaching portal,
     // and must not inherit the institution-wide administration portal.
-    Route::middleware(['role:admin|super-admin|headteacher|principal|deputy-headteacher|deputy'])
+    Route::middleware(['role:school-admin|super-admin|headteacher|principal|deputy-headteacher|deputy'])
         ->prefix('admin')
         ->name('admin.')
         ->group(base_path('routes/admin.php'));
 
     // Teacher / Class Teacher / HOD
-    Route::middleware(['role:admin|super-admin|teacher|class-teacher|pre-primary-teacher|lower-primary-teacher|upper-primary-teacher|junior-secondary-teacher|hod|headteacher|principal|deputy-headteacher|deputy'])
+    Route::middleware(['role:school-admin|super-admin|teacher|class-teacher|pre-primary-teacher|lower-primary-teacher|upper-primary-teacher|junior-secondary-teacher|hod|headteacher|principal|deputy-headteacher|deputy'])
         ->prefix('teacher')
         ->name('teacher.')
         ->group(base_path('routes/teacher.php'));
 
     // Parent / Guardian
-    Route::middleware(['role:admin|super-admin|parent'])
+    Route::middleware(['role:school-admin|super-admin|parent'])
         ->prefix('parent')
         ->name('parent.')
         ->group(base_path('routes/parent.php'));
 
     // Finance / Bursar
-    Route::middleware(['role:admin|super-admin|bursar|headteacher|principal'])
+    Route::middleware(['role:school-admin|super-admin|bursar|headteacher|principal'])
         ->prefix('finance')
         ->name('finance.')
         ->group(base_path('routes/finance.php'));

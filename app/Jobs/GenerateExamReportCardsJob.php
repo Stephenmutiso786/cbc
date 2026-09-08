@@ -11,7 +11,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class GenerateExamReportCardsJob implements ShouldQueue
@@ -34,18 +33,10 @@ class GenerateExamReportCardsJob implements ShouldQueue
             $pdf = $reports->buildResultCardsPdf($exam);
             $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
             $filename = 'exam-' . $exam->id . '-report-cards.pdf';
-            $path = $storage->storeLocal($pdf, $folder, $filename, 'application/pdf');
-
-            if ($storage->enabled()) {
-                try {
-                    $storage->storeOrReplace($pdf, $folder, $filename, 'application/pdf');
-                } catch (Throwable $storageException) {
-                    Log::warning('Google Drive report storage failed; keeping local report.', [
-                        'exam_id' => $exam->id,
-                        'message' => $storageException->getMessage(),
-                    ]);
-                }
-            }
+            $path = $storage->enabled()
+                ? $storage->storeOrReplace($pdf, $folder, $filename, 'application/pdf')
+                : $storage->storeLocal($pdf, $folder, $filename, 'application/pdf');
+            $exam->update(['report_cards_path' => $path]);
 
             $export->update(['status' => 'complete', 'path' => $path, 'finished_at' => now()]);
         } catch (Throwable $exception) {

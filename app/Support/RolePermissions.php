@@ -14,7 +14,7 @@ final class RolePermissions
         $all = self::all();
         return [
             'super-admin' => $all,
-            'admin' => $all,
+            'school-admin' => $all,
             'principal' => array_diff($all, ['manage system settings', 'manage roles']),
             'headteacher' => array_diff($all, ['manage system settings', 'manage roles']),
             'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance'],

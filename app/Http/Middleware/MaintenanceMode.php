@@ -37,7 +37,7 @@ class MaintenanceMode
 
         $user = $request->user();
         return $user?->hasAnyRole([
-            'admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy', 'hod',
+            'school-admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy', 'hod',
         ]) || $user?->can('manage system settings') ?? false;
     }
 }
