@@ -185,8 +185,13 @@ class BackupDatabaseToDrive extends Command
             }
         }
 
+        $pgDump = env('PG_DUMP_BINARY', '/usr/lib/postgresql/17/bin/pg_dump');
+        if (!is_executable($pgDump)) {
+            $pgDump = 'pg_dump';
+        }
+
         $process = new Process([
-            'pg_dump',
+            $pgDump,
             '--format=custom',
             '--compress=9',
             '--no-owner',
