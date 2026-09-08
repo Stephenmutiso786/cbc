@@ -26,6 +26,7 @@ class StudentList extends Component
 
     public bool $showForm = false;
     public bool $showImport = false;
+    public bool $openedFromImportRoute = false;
     public $csvFile;
     public string $pasteNames = '';
     public string $importGrade = '';
@@ -45,7 +46,8 @@ class StudentList extends Component
 
     public function mount(Request $request): void
     {
-        $this->showImport = $request->boolean('import') || $request->routeIs('admin.students.import');
+        $this->openedFromImportRoute = $request->routeIs('admin.students.import');
+        $this->showImport = $request->boolean('import') || $this->openedFromImportRoute;
         if ($request->boolean('create') && auth()->user()->can('create students')) $this->create();
     }
 
@@ -103,6 +105,19 @@ class StudentList extends Component
         $this->importGrade = '';
         $this->importClassId = '';
         $this->showImport = true;
+    }
+
+    public function closeImport(): void
+    {
+        $this->showImport = false;
+        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount', 'skippedDuplicateCount']);
+        $this->resetValidation();
+
+        // The dedicated import URL opens the dialog on mount. Leave that URL
+        // after closing so a browser refresh cannot immediately reopen it.
+        if ($this->openedFromImportRoute) {
+            $this->redirectRoute('admin.students.index');
+        }
     }
 
     public function updatedImportClassId($classId): void
