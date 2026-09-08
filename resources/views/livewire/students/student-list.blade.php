@@ -142,6 +142,7 @@
             </label>
         </div>
         @if($importedCount)<p class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ $importedCount }} learner(s) imported.</p>@endif
+        @if($skippedDuplicateCount)<p class="mt-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-800">{{ $skippedDuplicateCount }} duplicate row(s) were automatically removed and skipped.</p>@endif
         @if($importErrors)<div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"><p class="font-semibold">Rows needing correction:</p><ul class="mt-1 list-disc pl-5">@foreach($importErrors as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         <div class="mt-6 flex justify-end gap-3"><button wire:click="$set('showImport', false)" class="rounded-lg border px-4 py-2 text-sm">Close</button><button wire:click="importLearners" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">Import learners</button></div>
     </div>

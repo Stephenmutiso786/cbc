@@ -33,6 +33,7 @@ class StudentList extends Component
     public array $importErrors = [];
     public array $selectedIds = [];
     public int $importedCount = 0;
+    public int $skippedDuplicateCount = 0;
     public ?int $editingId = null;
     public array $form = [
         'admission_number' => '', 'first_name' => '', 'middle_name' => '', 'last_name' => '',
@@ -98,7 +99,7 @@ class StudentList extends Component
     public function openImport(): void
     {
         abort_unless(auth()->user()->can('create students'), 403);
-        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount']);
+        $this->reset(['csvFile', 'pasteNames', 'importErrors', 'importedCount', 'skippedDuplicateCount']);
         $this->importGrade = '';
         $this->importClassId = '';
         $this->showImport = true;
@@ -135,6 +136,8 @@ class StudentList extends Component
         $rows = $this->csvFile ? $this->readCsvRows() : $this->readPastedRows();
         $this->importErrors = [];
         $this->importedCount = 0;
+        $this->skippedDuplicateCount = 0;
+        $seenNames = [];
 
         foreach ($rows as $index => $row) {
             $line = $index + 1;
@@ -151,8 +154,16 @@ class StudentList extends Component
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
             $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber((int) $row['class_id']);
 
+            $nameKey = $this->nameKey($row['first_name'], $row['middle_name'], $row['last_name'])
+                . '|' . (int) $row['class_id'] . '|' . $row['academic_year'];
+            if (isset($seenNames[$nameKey])) {
+                $this->skippedDuplicateCount++;
+                continue;
+            }
+
             if ($this->duplicateNameExists($row['first_name'], $row['middle_name'], $row['last_name'], (int) $row['class_id'], $row['academic_year'])) {
-                $this->importErrors[] = 'Row ' . $line . ': a learner with the same name already exists in this class and academic year.';
+                $seenNames[$nameKey] = true;
+                $this->skippedDuplicateCount++;
                 continue;
             }
 
@@ -174,6 +185,7 @@ class StudentList extends Component
                 continue;
             }
 
+            $seenNames[$nameKey] = true;
             try {
                 DB::transaction(fn () => Learner::create([
                     'admission_number' => $row['admission_number'],
@@ -198,6 +210,12 @@ class StudentList extends Component
         if ($this->importedCount) {
             $this->resetPage();
             session()->flash('success', "{$this->importedCount} learner(s) imported successfully.");
+        }
+        // Do not leave processed names in the form where they can be imported again.
+        $this->pasteNames = '';
+        $this->csvFile = null;
+        if ($this->skippedDuplicateCount) {
+            session()->flash('warning', "{$this->skippedDuplicateCount} duplicate learner row(s) were skipped.");
         }
         if (!$this->importErrors) {
             $this->showImport = false;
