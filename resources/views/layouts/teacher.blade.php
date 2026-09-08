@@ -27,6 +27,7 @@
                 <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
             @endif
             @endforeach
+            <a href="{{ route('learning.miyagi') }}" target="_blank" rel="noopener noreferrer" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">Miyagi AI Learning</a>
         </nav>
         <div class="px-4 py-3 border-t border-blue-800">
             <p class="text-blue-300 text-xs">{{ auth()->user()->name }}</p>

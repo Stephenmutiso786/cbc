@@ -13,6 +13,7 @@ use App\Http\Controllers\LegalConsentController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', fn() => redirect()->route('login'));
+Route::get('/learning/miyagi', fn() => redirect()->away(config('services.miyagi_labs.url')))->name('learning.miyagi');
 Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
 Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school.logo');
 Route::view('/verify', 'verify')->name('verify');

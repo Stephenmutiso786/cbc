@@ -20,7 +20,7 @@
             @foreach([
                 ['finance.dashboard','Dashboard'],['finance.payments.index','Fee Payments'],
                 ['finance.invoices.index','Invoices'],['finance.inventory.index','Inventory'],
-                ['finance.reports.index','Reports'],['finance.support.index','Support'],
+                ['finance.reports.index','Reports'],['finance.support.index','Support'],['learning.miyagi','Miyagi AI Learning'],
             ] as [$route,$label])
             <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">{{ $label }}</a>
             @endforeach
