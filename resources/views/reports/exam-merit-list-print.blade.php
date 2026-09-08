@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>{{ config('school.name') }} merit list</title>
     <style>
-        @page { size: A4 landscape; margin: 10mm; }
+        @page { size: 297mm 210mm; margin: 10mm; }
         * { box-sizing: border-box; }
         body { margin: 0; color: #172033; font-family: Arial, sans-serif; font-size: 8px; }
         .toolbar { padding: 12px; text-align: center; background: #f3f4f6; }
