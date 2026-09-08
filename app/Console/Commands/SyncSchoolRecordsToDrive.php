@@ -38,7 +38,7 @@ class SyncSchoolRecordsToDrive extends Command
                     $number + 1,
                     $learner->admission_number,
                     $learner->full_name,
-                    (string) $learner->grade_level,
+                    $this->gradeValue($learner->grade_level),
                     $learner->stream,
                     $learner->academic_year,
                     $learner->is_active ? 'Active' : 'Inactive',
@@ -51,7 +51,7 @@ class SyncSchoolRecordsToDrive extends Command
                 throw new \RuntimeException('A class list could not be read.');
             }
 
-            $fileName = 'class-list-' . $year . '-' . Str::slug((string) $class->grade_level . '-' . $class->name) . '.csv';
+            $fileName = 'class-list-' . $year . '-' . Str::slug($this->gradeValue($class->grade_level) . '-' . $class->name) . '.csv';
             $drive->storeOrReplace($csv, 'records/classes', $fileName, 'text/csv');
         }
 
@@ -64,7 +64,7 @@ class SyncSchoolRecordsToDrive extends Command
                 ->map(fn (SchoolClass $class): array => [
                     'id' => $class->id,
                     'name' => $class->name,
-                    'grade_level' => $class->grade_level,
+                    'grade_level' => $this->gradeValue($class->grade_level),
                     'stream' => $class->stream,
                     'academic_year' => $class->academic_year,
                     'is_active' => $class->is_active,
@@ -99,5 +99,10 @@ class SyncSchoolRecordsToDrive extends Command
         $this->line('Drive reference: ' . $path);
 
         return self::SUCCESS;
+    }
+
+    private function gradeValue(mixed $grade): string
+    {
+        return $grade instanceof \BackedEnum ? (string) $grade->value : (string) $grade;
     }
 }
