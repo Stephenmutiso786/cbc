@@ -3,6 +3,7 @@
 namespace App\Livewire\Support;
 
 use App\Models\SupportTicket;
+use App\Models\DatabaseBackup;
 use App\Services\GoogleDriveStorage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -36,6 +37,14 @@ class DiagnosticCenter extends Component
 
             $count = DB::table('failed_jobs')->count();
             return $count === 0 ? 'No failed queued jobs.' : $count . ' failed queued job(s) require attention.';
+        });
+        $this->check('Latest Drive backup', function (): string {
+            $backup = DatabaseBackup::query()->latest('id')->first();
+            if (! $backup) {
+                return 'No database backup has been recorded yet.';
+            }
+
+            return 'Latest backup is ' . $backup->status . ' (' . $backup->created_at?->toDateTimeString() . ').';
         });
     }
 

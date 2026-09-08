@@ -74,6 +74,15 @@ fi
 php artisan optimize:clear
 php artisan storage:link || true
 
+# Railway runs this web container without a separate scheduler process. Keep
+# Laravel's scheduler alive so daily Drive backups and record snapshots run.
+if [ "${RUN_SCHEDULER:-true}" = "true" ]; then
+    php artisan schedule:work --no-interaction &
+    SCHEDULER_PID=$!
+    trap 'kill "$SCHEDULER_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
+    echo "Laravel scheduler started for automatic backups and Drive record sync."
+fi
+
 # Run queued SMS, reports, backups, and integrations outside the web request.
 # Render's web service can host this worker while the app is small; move it to
 # a dedicated worker service when the deployment is scaled horizontally.
