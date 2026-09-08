@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\SchoolAssetController;
+use App\Http\Controllers\LegalConsentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,6 +16,10 @@ Route::get('/', fn() => redirect()->route('login'));
 Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
 Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school.logo');
 Route::view('/verify', 'verify')->name('verify');
+Route::view('/terms', 'legal.terms')->name('legal.terms');
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/legal/acceptance', 'legal.acceptance')->middleware('auth')->name('legal.acceptance');
+Route::post('/legal/acceptance', [LegalConsentController::class, 'accept'])->middleware('auth')->name('legal.accept');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);

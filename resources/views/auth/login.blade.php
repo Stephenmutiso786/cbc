@@ -75,7 +75,7 @@
         </div>
 
         <p class="text-center text-green-300 text-xs mt-6">
-            CBC School Management System &copy; {{ date('Y') }}
+            CBC School Management System &copy; {{ date('Y') }} · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
         </p>
     </div>
     <script>

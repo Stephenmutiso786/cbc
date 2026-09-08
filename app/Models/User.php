@@ -13,7 +13,12 @@ class User extends Authenticatable
 
     protected $fillable = ['name', 'email', 'password'];
     protected $hidden   = ['password', 'remember_token'];
-    protected $casts    = ['email_verified_at' => 'datetime', 'password' => 'hashed'];
+    protected $casts    = [
+        'email_verified_at' => 'datetime',
+        'legal_terms_accepted_at' => 'datetime',
+        'legal_privacy_accepted_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
     public function staffMember() { return $this->hasOne(StaffMember::class); }
     public function guardian()    { return $this->hasOne(Guardian::class); }
