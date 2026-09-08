@@ -123,7 +123,7 @@
 @if($showImport)
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
-        <div class="mb-5 flex items-center justify-between"><h3 class="text-lg font-bold text-gray-900">Bulk import learners</h3><button wire:click="$set('showImport', false)" class="text-gray-400 hover:text-gray-700" aria-label="Close">&times;</button></div>
+        <div class="mb-5 flex items-center justify-between"><h3 class="text-lg font-bold text-gray-900">Bulk import learners</h3><button type="button" wire:click="closeImport" class="text-gray-400 hover:text-gray-700" aria-label="Close">&times;</button></div>
         <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label class="block text-sm text-gray-700">Default grade
@@ -144,7 +144,7 @@
         @if($importedCount)<p class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ $importedCount }} learner(s) imported.</p>@endif
         @if($skippedDuplicateCount)<p class="mt-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-800">{{ $skippedDuplicateCount }} duplicate row(s) were automatically removed and skipped.</p>@endif
         @if($importErrors)<div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"><p class="font-semibold">Rows needing correction:</p><ul class="mt-1 list-disc pl-5">@foreach($importErrors as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-        <div class="mt-6 flex justify-end gap-3"><button wire:click="$set('showImport', false)" class="rounded-lg border px-4 py-2 text-sm">Close</button><button wire:click="importLearners" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">Import learners</button></div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" wire:click="closeImport" class="rounded-lg border px-4 py-2 text-sm">Close</button><button type="button" wire:click="importLearners" wire:loading.attr="disabled" class="rounded-lg bg-green-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">Import learners</button></div>
     </div>
 </div>
 @endif
