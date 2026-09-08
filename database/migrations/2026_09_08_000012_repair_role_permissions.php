@@ -17,11 +17,16 @@ return new class extends Migration {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         foreach (RolePermissions::byRole() as $roleName => $permissions) {
             $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
-            if ($role) {
-                DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
-                $role->syncPermissions($permissions);
+            if (! $role) {
+                continue;
             }
+
+            // Remove stale permission ids before Spatie reads them while
+            // rebuilding the role's complete permission set.
+            DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
+            $role->syncPermissions($permissions);
         }
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function down(): void {}

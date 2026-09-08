@@ -19,6 +19,10 @@ return new class extends Migration {
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         foreach (RolePermissions::byRole() as $roleName => $permissionNames) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            // Older deployments may contain pivots for permissions removed
+            // from the catalog. Spatie resolves those pivots before
+            // syncPermissions(), so clear them before rebuilding the role.
+            DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
             $role->syncPermissions($permissionNames);
         }
 
