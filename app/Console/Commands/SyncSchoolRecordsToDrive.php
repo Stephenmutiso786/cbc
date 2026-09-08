@@ -7,6 +7,7 @@ use App\Models\StaffMember;
 use App\Services\DataTransferPolicy;
 use App\Services\GoogleDriveStorage;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 class SyncSchoolRecordsToDrive extends Command
 {
@@ -22,14 +23,44 @@ class SyncSchoolRecordsToDrive extends Command
         }
 
         $year = (string) config('school.academic_year');
+        $classes = SchoolClass::query()
+            ->with(['learners:id,class_id,admission_number,first_name,middle_name,last_name,grade_level,stream,academic_year,is_active'])
+            ->orderBy('grade_level')->orderBy('name')->get();
+
+        foreach ($classes as $class) {
+            $stream = fopen('php://temp', 'w+');
+            if ($stream === false) {
+                throw new \RuntimeException('A class list could not be prepared.');
+            }
+            fputcsv($stream, ['No.', 'Admission number', 'Learner name', 'Grade', 'Stream', 'Academic year', 'Status']);
+            foreach ($class->learners->sortBy([['last_name', 'asc'], ['first_name', 'asc']])->values() as $number => $learner) {
+                fputcsv($stream, [
+                    $number + 1,
+                    $learner->admission_number,
+                    $learner->full_name,
+                    (string) $learner->grade_level,
+                    $learner->stream,
+                    $learner->academic_year,
+                    $learner->is_active ? 'Active' : 'Inactive',
+                ]);
+            }
+            rewind($stream);
+            $csv = stream_get_contents($stream);
+            fclose($stream);
+            if (! is_string($csv)) {
+                throw new \RuntimeException('A class list could not be read.');
+            }
+
+            $fileName = 'class-list-' . $year . '-' . Str::slug((string) $class->grade_level . '-' . $class->name) . '.csv';
+            $drive->storeOrReplace($csv, 'records/classes', $fileName, 'text/csv');
+        }
+
         $snapshot = [
             'format' => 'cbc-school-records-v1',
             'generated_at' => now()->toIso8601String(),
             'academic_year' => $year,
             'current_term' => (string) config('school.current_term'),
-            'classes' => SchoolClass::query()
-                ->with(['learners:id,class_id,admission_number,first_name,middle_name,last_name,grade_level,stream,academic_year,is_active'])
-                ->orderBy('grade_level')->orderBy('name')->get()
+            'classes' => $classes
                 ->map(fn (SchoolClass $class): array => [
                     'id' => $class->id,
                     'name' => $class->name,
