@@ -20,6 +20,8 @@
         @foreach([['parent.dashboard','Dashboard'],['parent.progress.index','Progress'],['parent.fees.index','Fees'],['parent.notes.index','Notes'],['parent.support.index','Support']] as [$r,$l])
         <a href="{{ route($r) }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700">{{ $l }}</a>
         @endforeach
+        <a href="{{ route('legal.terms') }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700">Terms and Conditions</a>
+        <a href="{{ route('legal.privacy') }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700">Privacy Policy</a>
         <a href="{{ route('learning.miyagi') }}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg text-sm font-medium bg-green-700 text-white hover:bg-green-800">Miyagi AI Learning</a>
     </nav>
     @yield('content')

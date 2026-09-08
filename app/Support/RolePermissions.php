@@ -12,7 +12,7 @@ final class RolePermissions
     public static function byRole(): array
     {
         $all = self::all();
-        $superAdminOnly = ['manage roles', 'run diagnostics', 'manage legal policies'];
+        $superAdminOnly = ['manage roles', 'run diagnostics', 'manage legal policies', 'manage support tickets'];
         return [
             'super-admin' => $all,
             'school-admin' => array_diff($all, $superAdminOnly),

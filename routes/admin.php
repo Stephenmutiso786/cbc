@@ -34,7 +34,9 @@ use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\UserAccountManager;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
-Route::get('/support', SupportTicketCenter::class)->middleware('permission:manage support tickets')->name('support.index');
+// School administrators can submit and track their own tickets. Only the
+// super-admin receives the management permission and can see every ticket.
+Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
 Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');

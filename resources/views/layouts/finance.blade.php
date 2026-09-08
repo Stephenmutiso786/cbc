@@ -24,6 +24,8 @@
             ] as [$route,$label])
             <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">{{ $label }}</a>
             @endforeach
+            <a href="{{ route('legal.terms') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">Terms and Conditions</a>
+            <a href="{{ route('legal.privacy') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">Privacy Policy</a>
         </nav>
         <div class="px-4 py-3 border-t border-indigo-800">
             <p class="text-indigo-300 text-xs">{{ auth()->user()->name }}</p>
