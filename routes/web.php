@@ -32,6 +32,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+Route::post('/impersonate-stop', [\App\Http\Controllers\ImpersonationController::class, 'stop'])
+    ->middleware('auth')->name('impersonate.stop.global');
+
 Route::get('/files/notes/{note}', [StoredFileController::class, 'note'])
     ->middleware(['auth', 'verified'])->name('files.notes');
 

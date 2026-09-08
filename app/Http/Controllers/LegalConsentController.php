@@ -19,7 +19,7 @@ class LegalConsentController extends Controller
         $request->user()->forceFill([
             'legal_terms_accepted_at' => now(),
             'legal_privacy_accepted_at' => now(),
-            'legal_acceptance_version' => config('legal.version'),
+            'legal_acceptance_version' => config('school.legal_policy_version', config('legal.version')),
             'legal_acceptance_ip' => $request->ip(),
             'legal_acceptance_user_agent' => substr((string) $request->userAgent(), 0, 1000),
         ])->save();
@@ -29,6 +29,9 @@ class LegalConsentController extends Controller
 
     private function portalFor($user): string
     {
+        if ($user->hasRole('parent')) {
+            return route('parent.dashboard');
+        }
         if ($user->canAny(['manage system settings', 'manage roles', 'manage staff', 'manage curriculum'])) {
             return route('admin.dashboard');
         }

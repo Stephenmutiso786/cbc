@@ -10,7 +10,7 @@
         @csrf
         <label class="flex items-start gap-3 rounded-lg border p-4"><input type="checkbox" name="accept_terms" value="1" required class="mt-1"><span>I have read and accept the Terms and Conditions.</span></label>
         <label class="flex items-start gap-3 rounded-lg border p-4"><input type="checkbox" name="accept_privacy" value="1" required class="mt-1"><span>I have read and acknowledge the Privacy Policy.</span></label>
-        <p class="text-xs text-gray-500">Policy version {{ config('legal.version') }}. Your acceptance time, IP address, browser, and policy version are recorded for accountability.</p>
+        <p class="text-xs text-gray-500">Policy version {{ config('school.legal_policy_version', config('legal.version')) }}. Your acceptance time, IP address, browser, and policy version are recorded for accountability.</p>
         <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white hover:bg-green-800">Accept and continue</button>
     </form>
     <form method="POST" action="{{ route('logout') }}" class="mt-4 text-center">@csrf<button class="text-sm text-red-700 underline">Sign out instead</button></form>

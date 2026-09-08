@@ -11,6 +11,7 @@
 </head>
 <body class="overflow-x-hidden bg-gray-100 font-sans antialiased">
 <div class="min-h-screen">
+    @include('layouts.partials.impersonation-banner')
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center bg-green-900 px-5">
@@ -23,13 +24,13 @@
                 'People' => [['admin.students.index', 'Learners', 'view students'], ['admin.students.import', 'Import Learners', 'create students'], ['admin.staff.index', 'Staff', 'view staff'], ['admin.staff.import', 'Import Staff', 'manage staff'], ['admin.parents.index', 'Parent Management', 'view students']],
                 'Academics' => [['admin.classes.index', 'Classes', 'manage curriculum'], ['admin.subjects.index', 'Subjects', 'manage curriculum'], ['admin.grades.index', 'Grade Management', 'manage curriculum'], ['admin.promotions.index', 'Promotions', 'manage promotions'], ['admin.assessment.index', 'Assessments', 'view assessments'], ['admin.exams.index', 'Exams', 'view exams'], ['admin.notes.index', 'Learning Notes', 'view notes'], ['admin.timetable.index', 'Timetable', 'view timetable'], ['admin.exam-timetable.index', 'Exam Timetable', 'view timetable']],
                 'Finance' => [['finance.payments.index', 'Fees and Payments', 'view fees'], ['finance.invoices.index', 'Invoices', 'view fees'], ['finance.reports.index', 'Finance Reports', 'view finance reports']],
-                'Operations' => [['admin.inventory.index', 'Inventory', 'view inventory'], ['admin.sms.index', 'SMS Center', 'view notifications'], ['admin.notifications.index', 'Notifications', 'view notifications'], ['admin.reports.index', 'Analytics and Reports', 'view analytics']],
-                'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.drive-store.index', 'Google Drive Store', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis']],
+                'Operations' => [['admin.inventory.index', 'Inventory', 'view inventory'], ['admin.sms.index', 'SMS Center', 'view notifications'], ['admin.notifications.index', 'Notifications', 'view notifications'], ['admin.reports.index', 'Analytics and Reports', 'view analytics'], ['admin.support.index', 'Support Tickets', 'manage support tickets']],
+                'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.drive-store.index', 'Google Drive Store', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis'], ['admin.legal-policies.index', 'Legal Policies', 'manage legal policies'], ['admin.diagnostics.index', 'System Diagnostics', 'run diagnostics'], ['admin.impersonate.index', 'Impersonate User', '__super_admin__']],
             ] as $section => $links)
                 <div>
                     <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
                     @foreach($links as [$route, $label, $permission])
-                        @if($permission === null || auth()->user()->can($permission))
+                        @if($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission)))
                             <a href="{{ route($route) }}" class="block rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>
                         @endif
                     @endforeach
@@ -54,6 +55,7 @@
             @yield('content')
             @isset($slot){{ $slot }}@endisset
         </main>
+        <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms and Conditions</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy Policy</a></footer>
     </div>
 </div>
 @livewireScripts

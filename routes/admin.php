@@ -25,8 +25,17 @@ use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\MarksImportTemplateController;
 use App\Http\Controllers\DriveStoreController;
+use App\Http\Controllers\ImpersonationController;
+use App\Livewire\Support\SupportTicketCenter;
+use App\Livewire\Support\DiagnosticCenter;
+use App\Livewire\Admin\LegalPolicyManager;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
+Route::get('/support', SupportTicketCenter::class)->middleware('permission:manage support tickets')->name('support.index');
+Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
+Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
+Route::get('/impersonate', [ImpersonationController::class, 'index'])->middleware('role:super-admin')->name('impersonate.index');
+Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->middleware('role:super-admin')->name('impersonate.start');
 Route::get('/students', StudentList::class)->middleware('permission:view students')->name('students.index');
 Route::get('/students/import', StudentList::class)->middleware('permission:create students')->name('students.import');
 Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->middleware('permission:view report cards')->name('students.report-card');
