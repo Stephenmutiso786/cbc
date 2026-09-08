@@ -70,6 +70,8 @@ class SendNotification extends Component
             'type'              => $this->type,
             'channel'           => $this->channel,
             'target_grade'      => $this->targetGrade ?: null,
+            'target_group'      => $this->targetGroup,
+            'target_class_id'   => $this->targetClassId,
             'total_recipients'  => $this->getRecipientsCount(),
             'status'            => 'queued',
             'scheduled_at'      => now(),
