@@ -50,7 +50,7 @@ class RoleManager extends Component
     {
         abort_unless($this->canManage(), 403);
         $role = Role::findOrFail($id);
-        abort_if(in_array($role->name, ['admin', 'super-admin', 'headteacher']), 403, 'Core roles are protected.');
+        abort_if(in_array($role->name, ['school-admin', 'super-admin', 'headteacher']), 403, 'Core roles are protected.');
         $role->delete();
         $this->resetForm();
         $this->notice = 'Role deleted.';

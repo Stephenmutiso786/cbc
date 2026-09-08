@@ -16,7 +16,7 @@ class LearnerList extends Component
     {
         $user = auth()->user();
         $staff = $user->staffMember;
-        $isAdmin = $user->hasAnyRole(['admin', 'super-admin']);
+        $isAdmin = $user->hasAnyRole(['school-admin', 'super-admin']);
         $bandLevels = $user->gradeBandLevels();
         $allocatedIds = $staff
             ? TeacherSubjectAllocation::where('teacher_id', $staff->id)->where('is_active', true)->pluck('class_id')

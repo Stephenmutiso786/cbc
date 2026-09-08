@@ -15,6 +15,7 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\SendExamResultsSmsJob;
+use App\Http\Controllers\ExamReportsController;
 use App\Models\SchoolNotification;
 use Throwable;
 
@@ -629,6 +630,14 @@ class ExamManager extends Component
                 'status' => 'published',
             ]);
         });
+        try {
+            app(ExamReportsController::class)->storePublishedDocuments($exam->fresh());
+        } catch (\Throwable $exception) {
+            Exam::whereIn('id', $group->pluck('id'))->update(['exam_state' => 'finalized', 'status' => 'completed']);
+            report($exception);
+            $this->addError('results', $exception->getMessage());
+            return;
+        }
         $this->tab = 'exams';
         session()->flash('success', 'Exam published. Report cards, merit lists, and result SMS are now available.');
     }
