@@ -74,6 +74,10 @@
             </form>
         </div>
 
+        <a href="{{ route('learning.miyagi') }}" target="_blank" rel="noopener noreferrer" class="mt-5 flex items-center justify-center rounded-lg border border-green-200 bg-white/95 px-4 py-3 text-sm font-semibold text-green-800 shadow hover:bg-green-50">
+            Open Miyagi AI Learning
+        </a>
+
         <p class="text-center text-green-300 text-xs mt-6">
             CBC School Management System &copy; {{ date('Y') }} · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
         </p>

@@ -28,6 +28,10 @@ return [
         'project_id' => env('FIREBASE_PROJECT_ID'),
     ],
 
+    'miyagi_labs' => [
+        'url' => env('MIYAGI_LABS_URL', 'https://miyagilabs.ai'),
+    ],
+
     'kemis' => [
         'api_url'     => env('KEMIS_API_URL', 'https://kemis.education.go.ke/api'),
         'api_key'     => env('KEMIS_API_KEY'),
