@@ -29,11 +29,13 @@ use App\Http\Controllers\ImpersonationController;
 use App\Livewire\Support\SupportTicketCenter;
 use App\Livewire\Support\DiagnosticCenter;
 use App\Livewire\Admin\LegalPolicyManager;
+use App\Livewire\Admin\BackupCenter;
 
 Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:manage support tickets')->name('support.index');
 Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
+Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/impersonate', [ImpersonationController::class, 'index'])->middleware('role:super-admin')->name('impersonate.index');
 Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->middleware('role:super-admin')->name('impersonate.start');
 Route::get('/students', StudentList::class)->middleware('permission:view students')->name('students.index');
