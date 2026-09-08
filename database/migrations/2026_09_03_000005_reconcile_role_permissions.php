@@ -14,6 +14,9 @@ return new class extends Migration {
         foreach (RolePermissions::all() as $name) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
+        // Spatie caches permissions; clear it after creating the full catalog
+        // so syncPermissions can resolve every permission on a fresh database.
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         foreach (RolePermissions::byRole() as $roleName => $permissionNames) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
             $role->syncPermissions($permissionNames);

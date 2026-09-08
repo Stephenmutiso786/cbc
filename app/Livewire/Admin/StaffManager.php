@@ -72,6 +72,7 @@ class StaffManager extends Component
         abort_if($ids === [], 422, 'Select at least one staff member.');
         DB::transaction(function () use ($ids): void {
             StaffMember::whereIn('id', $ids)->with('user')->get()->each(function (StaffMember $member): void {
+                abort_if($member->user?->hasRole('super-admin'), 403, 'Super Admin accounts are protected.');
                 $member->user?->syncRoles([]);
                 $member->delete();
             });
@@ -84,6 +85,7 @@ class StaffManager extends Component
     {
         $this->resetValidation();
         $staff = StaffMember::with('user')->findOrFail($id);
+        abort_if($staff->user?->hasRole('super-admin'), 403, 'Super Admin accounts are protected.');
         $this->editingId = $id;
         $this->signatureFile = null;
         $this->form = array_merge($staff->only(['staff_number', 'first_name', 'last_name', 'email', 'phone_number', 'employment_type', 'staff_type', 'designation', 'date_joined']), ['role' => $staff->user?->getRoleNames()->first() ?: 'teacher', 'password' => '']);
@@ -94,6 +96,7 @@ class StaffManager extends Component
     public function save(): void
     {
         $staff = $this->editingId ? StaffMember::findOrFail($this->editingId) : null;
+        abort_if($staff?->user?->hasRole('super-admin'), 403, 'Super Admin accounts are protected.');
         $data = $this->validate([
             'form.staff_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('staff_members', 'staff_number')->ignore($this->editingId)],
             'form.first_name' => ['required', 'string', 'max:255'], 'form.last_name' => ['required', 'string', 'max:255'],

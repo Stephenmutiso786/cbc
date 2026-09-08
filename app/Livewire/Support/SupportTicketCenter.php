@@ -74,7 +74,10 @@ class SupportTicketCenter extends Component
             ->when(! $isSuperAdmin, fn ($query) => $query->where('created_by', auth()->id()))
             ->latest()->paginate(15);
 
-        return view('livewire.support.ticket-center', compact('tickets', 'isSuperAdmin'))
-            ->layout($isSuperAdmin || request()->routeIs('admin.*') ? 'layouts.admin' : 'layouts.teacher');
+        $layout = $isSuperAdmin || request()->routeIs('admin.*')
+            ? 'layouts.admin'
+            : (request()->routeIs('parent.*') ? 'layouts.parent' : (request()->routeIs('finance.*') ? 'layouts.finance' : 'layouts.teacher'));
+
+        return view('livewire.support.ticket-center', compact('tickets', 'isSuperAdmin'))->layout($layout);
     }
 }
