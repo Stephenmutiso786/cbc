@@ -27,6 +27,10 @@
                 <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
             @endif
             @endforeach
+            <div class="mt-3 border-t border-blue-800 pt-3">
+                <a href="{{ route('legal.terms') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">Terms and Conditions</a>
+                <a href="{{ route('legal.privacy') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">Privacy Policy</a>
+            </div>
             <a href="{{ route('learning.miyagi') }}" target="_blank" rel="noopener noreferrer" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">Miyagi AI Learning</a>
         </nav>
         <div class="px-4 py-3 border-t border-blue-800">
