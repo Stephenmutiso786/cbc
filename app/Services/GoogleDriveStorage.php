@@ -175,27 +175,27 @@ class GoogleDriveStorage
         }
         $this->transferPolicy->reserve($bytes, 'Google Drive upload');
 
-        $stream = fopen($path, 'rb');
-        if ($stream === false) {
-            throw new \RuntimeException('The file could not be opened for upload.');
+        // The Google PHP client expects string data here. Passing a stream
+        // resource makes it call base64_encode() on the resource and fails.
+        // Backup parts are deliberately capped below the transfer limit, so
+        // reading one part into memory is bounded and safe.
+        $contents = file_get_contents($path);
+        if (!is_string($contents)) {
+            throw new \RuntimeException('The file could not be read for upload.');
         }
 
-        try {
-            $driveFile = new DriveFile([
-                'name' => $name ?? basename($path),
-                'parents' => [config('services.google_drive.folder_id')],
-                'description' => 'CBC School Management - ' . trim($folder, '/'),
-            ]);
+        $driveFile = new DriveFile([
+            'name' => $name ?? basename($path),
+            'parents' => [config('services.google_drive.folder_id')],
+            'description' => 'CBC School Management - ' . trim($folder, '/'),
+        ]);
 
-            $created = $this->drive()->files->create($driveFile, [
-                'data' => $stream,
-                'mimeType' => $mime ?? 'application/octet-stream',
-                'uploadType' => 'resumable',
-                'fields' => 'id',
-            ]);
-        } finally {
-            fclose($stream);
-        }
+        $created = $this->drive()->files->create($driveFile, [
+            'data' => $contents,
+            'mimeType' => $mime ?? 'application/octet-stream',
+            'uploadType' => 'multipart',
+            'fields' => 'id',
+        ]);
 
         return 'gdrive:' . $created->getId();
     }
