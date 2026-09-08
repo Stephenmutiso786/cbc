@@ -24,7 +24,8 @@
                 ['teacher.timetable.index','Timetable','view timetable'],['teacher.support.index','Support Tickets','submit support tickets'],
             ] as [$route,$label,$permission])
             @if($permission === null || collect(explode('|', $permission))->contains(fn ($ability) => auth()->user()->can($ability)))
-                <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
+                @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
+                <a href="{{ route($route) }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors"><span>{{ $label }}</span>@if($badgeModule)<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
             @endif
             @endforeach
             <div class="mt-3 border-t border-blue-800 pt-3">
