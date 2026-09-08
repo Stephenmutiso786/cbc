@@ -14,7 +14,7 @@ class ExamPolicy
     public function markForClass(User $user, Exam $exam, int $classId): bool
     {
         if ($exam->isLocked() || !$user->can('enter marks')) return false;
-        if ($user->hasAnyRole(['school-admin', 'super-admin'])) return true;
+        if ($user->hasRole('super-admin') || $user->hasRole('school-admin')) return true;
         $teacher = StaffMember::where('user_id', $user->id)->first();
         return $teacher && TeacherSubjectAllocation::where([
             'teacher_id' => $teacher->id, 'class_id' => $classId,

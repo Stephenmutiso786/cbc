@@ -10,6 +10,7 @@
 </head>
 <body class="overflow-x-hidden font-sans antialiased bg-gray-100">
 <div class="min-h-screen">
+    @include('layouts.partials.impersonation-banner')
     <div data-sidebar-overlay class="fixed inset-0 z-40 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-blue-900 transition-transform duration-300 md:translate-x-0">
         <div class="h-16 flex items-center px-5 bg-blue-950">
@@ -20,7 +21,7 @@
             @foreach([
                 ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Marks Entry','enter marks'],['teacher.results.index','View Results','view results'],
                 ['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature', null],['teacher.attendance.index','Attendance','view attendance'],
-                ['teacher.timetable.index','Timetable','view timetable'],
+                ['teacher.timetable.index','Timetable','view timetable'],['teacher.support.index','Support Tickets','submit support tickets'],
             ] as [$route,$label,$permission])
             @if($permission === null || auth()->user()->can($permission))
                 <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
@@ -45,6 +46,7 @@
                 {{ $slot }}
             @endisset
         </main>
+        <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a></footer>
     </div>
 </div>
 @livewireScripts

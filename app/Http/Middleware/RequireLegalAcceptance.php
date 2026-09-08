@@ -17,7 +17,7 @@ class RequireLegalAcceptance
 
         if ($user->legal_terms_accepted_at
             && $user->legal_privacy_accepted_at
-            && $user->legal_acceptance_version === config('legal.version')) {
+            && $user->legal_acceptance_version === config('school.legal_policy_version', config('legal.version'))) {
             return $next($request);
         }
 
@@ -29,6 +29,6 @@ class RequireLegalAcceptance
         return $request->is('up')
             || $request->is('school-logo')
             || $request->is('files/*')
-            || $request->routeIs('login', 'logout', 'legal.*', 'password.*', 'forgot-password', 'maintenance.login');
+            || $request->routeIs('login', 'logout', 'legal.*', 'password.*', 'forgot-password', 'maintenance.login', 'impersonate.stop.global');
     }
 }

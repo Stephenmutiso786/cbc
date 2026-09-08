@@ -1,8 +1,10 @@
 @extends('layouts.legal', ['title' => 'Terms and Conditions'])
 
 @section('content')
+@php($custom = config('school.legal_terms_content'))
 <article class="space-y-6 rounded-xl bg-white p-6 shadow-sm md:p-10">
-    <div><p class="text-sm font-semibold uppercase tracking-wide text-green-700">Version {{ config('legal.version') }}</p><h1 class="mt-2 text-3xl font-bold">Terms and Conditions</h1><p class="mt-2 text-sm text-gray-500">Effective {{ now()->format('d F Y') }}</p></div>
+    <div><p class="text-sm font-semibold uppercase tracking-wide text-green-700">Version {{ config('school.legal_policy_version', config('legal.version')) }}</p><h1 class="mt-2 text-3xl font-bold">Terms and Conditions</h1><p class="mt-2 text-sm text-gray-500">Effective {{ now()->format('d F Y') }}</p></div>
+    @if($custom)<div class="whitespace-pre-wrap">{{ $custom }}</div>@else
     <p>These Terms and Conditions govern use of the {{ config('school.name') }} school management system (the "System"). By using the System, you agree to follow these terms on behalf of yourself and, where applicable, the school or organisation that authorised your account.</p>
     <section><h2 class="text-xl font-bold">1. Authorised use</h2><p class="mt-2">The System is provided for legitimate school administration, teaching, learner records, assessments, examinations, finance, communication, reporting, and related operational purposes. You must use only the account and information assigned to you.</p></section>
     <section><h2 class="text-xl font-bold">2. Account security</h2><p class="mt-2">Keep your password and sign-in details confidential. Do not share accounts, impersonate another user, bypass permissions, or attempt to access records outside your assigned role, school, class, or subject. Report suspected unauthorised access promptly to the school administrator.</p></section>
@@ -12,6 +14,6 @@
     <section><h2 class="text-xl font-bold">6. Prohibited conduct</h2><p class="mt-2">Do not misuse the System, introduce malicious code, scrape or copy records without authority, interfere with availability, disclose learner information improperly, or use the System for unlawful discrimination, harassment, fraud, or unauthorised commercial activity.</p></section>
     <section><h2 class="text-xl font-bold">7. Responsibility</h2><p class="mt-2">The school is responsible for assigning roles and reviewing records. Each user is responsible for activity performed through their account. Nothing in these terms removes rights or responsibilities that cannot legally be excluded under applicable Kenyan law.</p></section>
     <section><h2 class="text-xl font-bold">8. Contact</h2><p class="mt-2">For questions, corrections, access requests, or suspected misuse, contact the school's authorised administrator using the contact details published in the System.</p></section>
-    <p class="border-t pt-5 text-sm text-gray-500">If you do not agree, do not use the System and contact the school administrator to close or review your account.</p>
+    <p class="border-t pt-5 text-sm text-gray-500">If you do not agree, do not use the System and contact the school administrator to close or review your account.</p>@endif
 </article>
 @endsection

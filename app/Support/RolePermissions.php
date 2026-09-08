@@ -6,17 +6,18 @@ final class RolePermissions
 {
     public static function all(): array
     {
-        return ['view students','create students','edit students','delete students','view assessments','create assessments','edit assessments','delete assessments','view report cards','generate report cards','view fees','manage fees','record payments','view finance reports','export finance','view inventory','manage inventory','issue items','receive items','view staff','manage staff','manage payroll','view timetable','manage timetable','view notes','upload notes','manage curriculum','publish notes','view exams','manage exams','enter marks','view results','review marks','publish results','view attendance','mark attendance','send notifications','view notifications','sync kemis','export kemis','view analytics','export reports','manage system settings','manage users','manage roles','manage promotions'];
+        return ['view students','create students','edit students','delete students','view assessments','create assessments','edit assessments','delete assessments','view report cards','generate report cards','view fees','manage fees','record payments','view finance reports','export finance','view inventory','manage inventory','issue items','receive items','view staff','manage staff','manage payroll','view timetable','manage timetable','view notes','upload notes','manage curriculum','publish notes','view exams','manage exams','enter marks','view results','review marks','publish results','view attendance','mark attendance','send notifications','view notifications','sync kemis','export kemis','view analytics','export reports','manage system settings','manage users','manage roles','manage promotions','submit support tickets','manage support tickets','run diagnostics','manage legal policies'];
     }
 
     public static function byRole(): array
     {
         $all = self::all();
+        $superAdminOnly = ['manage roles', 'run diagnostics', 'manage legal policies'];
         return [
             'super-admin' => $all,
-            'school-admin' => $all,
-            'principal' => array_diff($all, ['manage system settings', 'manage roles']),
-            'headteacher' => array_diff($all, ['manage system settings', 'manage roles']),
+            'school-admin' => array_diff($all, $superAdminOnly),
+            'principal' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),
+            'headteacher' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),
             'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance'],
             'deputy' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance'],
             'hod' => ['view students','view assessments','create assessments','edit assessments','view notes','upload notes','publish notes','manage curriculum','view timetable','view exams','manage exams','enter marks','view results','review marks','view report cards'],
@@ -37,6 +38,6 @@ final class RolePermissions
 
     private static function teacherPermissions(): array
     {
-        return ['view students','view assessments','create assessments','view notes','upload notes','view timetable','enter marks','view results','send notifications'];
+        return ['view students','view assessments','create assessments','view notes','upload notes','view timetable','enter marks','view results','send notifications','submit support tickets'];
     }
 }

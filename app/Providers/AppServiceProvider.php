@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Exam::class, ExamPolicy::class);
         Gate::before(function ($user, string $ability) {
-            return $user->hasAnyRole(['school-admin', 'super-admin']) ? true : null;
+            return $user->hasRole('super-admin') ? true : null;
         });
 
         if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {

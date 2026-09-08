@@ -1,8 +1,10 @@
 @extends('layouts.legal', ['title' => 'Privacy Policy'])
 
 @section('content')
+@php($custom = config('school.legal_privacy_content'))
 <article class="space-y-6 rounded-xl bg-white p-6 shadow-sm md:p-10">
-    <div><p class="text-sm font-semibold uppercase tracking-wide text-green-700">Version {{ config('legal.version') }}</p><h1 class="mt-2 text-3xl font-bold">Privacy Policy</h1><p class="mt-2 text-sm text-gray-500">Effective {{ now()->format('d F Y') }}</p></div>
+    <div><p class="text-sm font-semibold uppercase tracking-wide text-green-700">Version {{ config('school.legal_policy_version', config('legal.version')) }}</p><h1 class="mt-2 text-3xl font-bold">Privacy Policy</h1><p class="mt-2 text-sm text-gray-500">Effective {{ now()->format('d F Y') }}</p></div>
+    @if($custom)<div class="whitespace-pre-wrap">{{ $custom }}</div>@else
     <p>This Privacy Policy explains how {{ config('school.name') }} and authorised System administrators handle personal information used in school operations. The school should review this policy with its legal adviser and update the contact details and retention periods to match its own governance requirements.</p>
     <section><h2 class="text-xl font-bold">1. Information we handle</h2><p class="mt-2">Depending on your role, the System may contain names, admission numbers, contact details, guardian information, staff records, attendance, assessments, examination marks, fees, messages, signatures, uploaded school assets, audit information, and account security details.</p></section>
     <section><h2 class="text-xl font-bold">2. Why information is used</h2><p class="mt-2">Information is used to maintain school records, deliver teaching and assessment, produce official reports and merit lists, manage fees and attendance, communicate with authorised contacts, meet education obligations, protect the System, and provide requested integrations.</p></section>
@@ -11,6 +13,6 @@
     <section><h2 class="text-xl font-bold">5. Security and retention</h2><p class="mt-2">The System uses authentication, permission checks, encrypted secrets where configured, audit-related records, and provider security controls. No online service is risk-free. The school should retain records only for as long as required for education, financial, legal, audit, and safeguarding purposes, then securely delete or anonymise them.</p></section>
     <section><h2 class="text-xl font-bold">6. Your requests</h2><p class="mt-2">You may ask the school administrator about access, correction, deletion, restriction, or a copy of personal information, subject to legal, safeguarding, examination, and record-keeping requirements. Requests should be sent to the school using its published contact details.</p></section>
     <section><h2 class="text-xl font-bold">7. Cookies and technical data</h2><p class="mt-2">The System may use session cookies, security tokens, service-worker storage, and technical logs needed for sign-in, security, reliability, and the installable web application. These are not used to sell personal information.</p></section>
-    <section><h2 class="text-xl font-bold">8. Changes and contact</h2><p class="mt-2">A new version may require renewed acceptance. Contact the authorised school administrator for privacy questions, complaints, or requests.</p></section>
+    <section><h2 class="text-xl font-bold">8. Changes and contact</h2><p class="mt-2">A new version may require renewed acceptance. Contact the authorised school administrator for privacy questions, complaints, or requests.</p></section>@endif
 </article>
 @endsection

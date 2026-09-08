@@ -8,8 +8,10 @@ use App\Livewire\Teacher\LearnerList;
 use App\Livewire\Teacher\ViewResults;
 use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\MarksImportTemplateController;
+use App\Livewire\Support\SupportTicketCenter;
 
 Route::get('/dashboard', fn() => view('teacher.dashboard'))->name('dashboard');
+Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
 Route::get('/learners', LearnerList::class)->middleware('permission:view students')->name('learners.index');
 Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:view assessments')->name('assessment.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams|enter marks')->name('exams.index');
