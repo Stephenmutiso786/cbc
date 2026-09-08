@@ -111,12 +111,26 @@ class GoogleDriveStorage
         ])->getFiles()[0] ?? null;
         $metadata = new DriveFile([
             'name' => $name,
-            'parents' => [config('services.google_drive.folder_id')],
             'description' => 'CBC School Management - ' . trim($folder, '/'),
         ]);
-        $saved = $existing
-            ? $drive->files->update($existing->getId(), $metadata, ['data' => $contents, 'mimeType' => $mime, 'uploadType' => 'multipart', 'fields' => 'id'])
-            : $drive->files->create($metadata, ['data' => $contents, 'mimeType' => $mime, 'uploadType' => 'multipart', 'fields' => 'id']);
+        if ($existing) {
+            // Google Drive does not allow parents in update requests. The
+            // existing file already has the correct parent folder.
+            $saved = $drive->files->update($existing->getId(), $metadata, [
+                'data' => $contents,
+                'mimeType' => $mime,
+                'uploadType' => 'multipart',
+                'fields' => 'id',
+            ]);
+        } else {
+            $metadata->setParents([config('services.google_drive.folder_id')]);
+            $saved = $drive->files->create($metadata, [
+                'data' => $contents,
+                'mimeType' => $mime,
+                'uploadType' => 'multipart',
+                'fields' => 'id',
+            ]);
+        }
 
         return 'gdrive:' . $saved->getId();
     }
