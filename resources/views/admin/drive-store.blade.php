@@ -8,13 +8,19 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">School documents</h2>
-                <p class="mt-1 text-sm text-gray-500">Generated result cards and merit lists stored in the connected Google Drive folder.</p>
+                <p class="mt-1 text-sm text-gray-500">Generated documents and automatically updated class lists stored in the connected Google Drive folder.</p>
             </div>
-            @can('manage system settings')
-                <a href="{{ route('admin.settings.index') }}" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">Drive settings</a>
-            @endcan
+            <div class="flex flex-wrap gap-2">
+                @can('manage system settings')
+                    <form method="POST" action="{{ route('admin.drive-store.sync') }}">@csrf<button type="submit" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">Sync class records now</button></form>
+                    <a href="{{ route('admin.settings.index') }}" class="rounded-lg border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50">Drive settings</a>
+                @endcan
+            </div>
         </div>
     </div>
+
+    @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $errors->first() }}</div>@endif
 
     @if($error)
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $error }}</div>
