@@ -20,7 +20,7 @@
             @foreach([
                 ['finance.dashboard','Dashboard'],['finance.payments.index','Fee Payments'],
                 ['finance.invoices.index','Invoices'],['finance.inventory.index','Inventory'],
-                ['finance.reports.index','Reports'],
+                ['finance.reports.index','Reports'],['finance.support.index','Support'],
             ] as [$route,$label])
             <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">{{ $label }}</a>
             @endforeach
@@ -43,6 +43,7 @@
                 {{ $slot }}
             @endisset
         </main>
+        <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a></footer>
     </div>
 </div>
 @livewireScripts

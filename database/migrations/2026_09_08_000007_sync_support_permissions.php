@@ -11,6 +11,7 @@ return new class extends Migration {
         foreach (RolePermissions::all() as $name) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         foreach (RolePermissions::byRole() as $roleName => $permissions) {
             $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
             if ($role) $role->syncPermissions($permissions);
