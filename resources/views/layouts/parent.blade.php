@@ -17,7 +17,7 @@
         <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="text-sm text-red-600">Logout</button></form>
     </div>
     <nav class="mb-6 flex flex-wrap gap-2">
-        @foreach([['parent.dashboard','Dashboard'],['parent.progress.index','Progress'],['parent.fees.index','Fees'],['parent.notes.index','Notes'],['parent.support.index','Support']] as [$r,$l])
+        @foreach([['parent.dashboard','Dashboard'],['parent.progress.index','Progress'],['parent.fees.index','Fees'],['parent.notes.index','Notes'],['parent.notifications.index','Notifications'],['parent.support.index','Support']] as [$r,$l])
         @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($r))
         <a href="{{ route($r) }}" class="flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium bg-white border hover:bg-green-50 text-gray-700"><span>{{ $l }}</span>@if($badgeModule)<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
         @endforeach

@@ -35,7 +35,9 @@ class ModuleNotificationService
                 'notes' => LearningNote::where('created_at', '>=', $since)->count(),
                 'payments' => FeePayment::where('created_at', '>=', $since)->count(),
                 'inventory' => InventoryItem::where('created_at', '>=', $since)->count(),
-                'notifications' => SchoolNotification::where('created_at', '>=', $since)->count(),
+                'notifications' => $this->notificationsFor($userId)
+                    ->where('created_at', '>=', $since)
+                    ->count(),
                 'support' => SupportTicket::query()
                     ->when(! $isSuperAdmin, fn ($query) => $query->where('created_by', $userId))
                     ->where('status', 'open')
@@ -51,6 +53,44 @@ class ModuleNotificationService
             // A missing table during first deployment must not break navigation.
             return 0;
         }
+    }
+
+    public function notificationsFor(?int $userId)
+    {
+        $query = SchoolNotification::query()->whereIn('status', ['queued', 'sent', 'partial']);
+        $user = $userId ? User::with('guardian.learners')->find($userId) : null;
+        $guardian = $user?->guardian;
+
+        if (! $guardian) {
+            return $query;
+        }
+
+        $learners = $guardian->learners->where('is_active', true);
+        $grades = $learners->pluck('grade_level')->filter()->unique()->values();
+        $classIds = $learners->pluck('class_id')->filter()->unique()->values();
+        $hasBoarding = $learners->contains(fn ($learner) => $learner->boarding_status === 'boarding');
+        $hasDay = $learners->contains(fn ($learner) => $learner->boarding_status === 'day');
+
+        return $query->where(function ($notifications) use ($grades, $classIds, $hasBoarding, $hasDay): void {
+            $notifications->where(function ($general): void {
+                $general->where('target_group', 'all')
+                    ->whereNull('target_grade')
+                    ->whereNull('target_class_id');
+            });
+
+            if ($grades->isNotEmpty()) {
+                $notifications->orWhereIn('target_grade', $grades);
+            }
+            if ($classIds->isNotEmpty()) {
+                $notifications->orWhereIn('target_class_id', $classIds);
+            }
+            if ($hasBoarding) {
+                $notifications->orWhere('target_group', 'boarding');
+            }
+            if ($hasDay) {
+                $notifications->orWhere('target_group', 'day');
+            }
+        });
     }
 
     public function moduleForRoute(string $route): ?string
