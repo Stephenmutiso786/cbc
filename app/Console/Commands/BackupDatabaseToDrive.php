@@ -15,7 +15,7 @@ class BackupDatabaseToDrive extends Command
         {--threshold=100 : Minimum database size in megabytes before a backup is created}
         {--force : Create a backup even when the threshold has not been reached}';
 
-    protected $description = 'Compress the database and upload a threshold backup to Google Drive';
+    protected $description = 'Create a complete compressed PostgreSQL backup and upload it to Google Drive';
 
     public function handle(GoogleDriveStorage $drive, DataTransferPolicy $transferPolicy): int
     {
