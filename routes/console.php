@@ -16,7 +16,7 @@ if (filter_var(env('GOOGLE_DRIVE_DAILY_BACKUP', true), FILTER_VALIDATE_BOOLEAN))
         ->dailyAt(env('GOOGLE_DRIVE_BACKUP_TIME', '02:00'))
         ->withoutOverlapping(30);
     Schedule::command('records:drive')
-        ->dailyAt(env('GOOGLE_DRIVE_RECORDS_SYNC_TIME', '02:15'))
+        ->everyFifteenMinutes()
         ->withoutOverlapping(30);
 } else {
     Schedule::command('backup:drive --threshold=100')

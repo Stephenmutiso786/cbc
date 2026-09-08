@@ -8,11 +8,13 @@ use App\Livewire\Teacher\LearnerList;
 use App\Livewire\Teacher\ViewResults;
 use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\MarksImportTemplateController;
+use App\Http\Controllers\TeacherClassListController;
 use App\Livewire\Support\SupportTicketCenter;
 
 Route::get('/dashboard', fn() => view('teacher.dashboard'))->name('dashboard');
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
 Route::get('/learners', LearnerList::class)->middleware('permission:view students')->name('learners.index');
+Route::get('/classes/{schoolClass}/print', [TeacherClassListController::class, 'print'])->middleware('permission:view students')->name('classes.print');
 Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:view assessments')->name('assessment.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams|enter marks')->name('exams.index');
 Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->middleware('permission:enter marks')->name('exams.marks-template');
