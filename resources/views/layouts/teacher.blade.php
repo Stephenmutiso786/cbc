@@ -19,11 +19,11 @@
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1">
             @foreach([
-                ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Marks Entry','enter marks'],['teacher.results.index','View Results','view results'],
-                ['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature', null],['teacher.attendance.index','Attendance','view attendance'],
+                ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Exams & Marks','view exams|enter marks'],['teacher.results.index','View Results','view results'],
+                ['teacher.assessment.index','Assessments','view assessments'],['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature','enter marks'],['teacher.attendance.index','Attendance','view attendance|mark attendance'],
                 ['teacher.timetable.index','Timetable','view timetable'],['teacher.support.index','Support Tickets','submit support tickets'],
             ] as [$route,$label,$permission])
-            @if($permission === null || auth()->user()->can($permission))
+            @if($permission === null || collect(explode('|', $permission))->contains(fn ($ability) => auth()->user()->can($ability)))
                 <a href="{{ route($route) }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors">{{ $label }}</a>
             @endif
             @endforeach
