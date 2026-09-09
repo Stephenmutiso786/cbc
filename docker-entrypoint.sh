@@ -59,6 +59,14 @@ if ! timeout "${MIGRATION_TIMEOUT}" env SKIP_DB_SETTINGS_BOOT=true DB_URL="${MIG
     exit 1
 fi
 
+# Repair permission pivots on every deployment as well as through migrations.
+# This also fixes databases where the older migration was already marked as
+# run before its stale-pivot repair was added.
+if ! timeout "${PERMISSION_REPAIR_TIMEOUT:-120}" php artisan permissions:repair; then
+    echo "Role permissions could not be repaired. Refusing to start with broken authorization data." >&2
+    exit 1
+fi
+
 # Provision only the administrator accounts automatically. The migration chain
 # already creates roles, classes, subjects, grading scales, and screenshot
 # teachers; rerunning the full DatabaseSeeder made a fresh Render boot slow.
