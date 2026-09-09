@@ -26,13 +26,3 @@
         <p class="mt-2 text-[11px] text-gray-400">Active within the last 5 minutes</p>
     </div>
 </details>
-<script>
-    (() => {
-        const ping = () => fetch(@json(route('presence.ping')), {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-            cache: 'no-store'
-        }).catch(() => {});
-        window.setInterval(ping, 60000);
-    })();
-</script>
