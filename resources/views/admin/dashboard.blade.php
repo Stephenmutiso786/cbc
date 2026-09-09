@@ -5,33 +5,42 @@
 @php
     use Illuminate\Support\Facades\Schema;
 
-    $learnerTable = (new \App\Models\Learner())->getTable();
-    $staffTable = (new \App\Models\StaffMember())->getTable();
-    $feePaymentTable = (new \App\Models\FeePayment())->getTable();
-    $feeInvoiceTable = (new \App\Models\FeeInvoice())->getTable();
-    $schoolClassTable = (new \App\Models\SchoolClass())->getTable();
+    $totalLearners = $totalStaff = $feesCollected = $feeArrears = $totalClasses = 0;
+    $recentPayments = $recentLearners = $assessmentCounts = collect();
 
-    $hasLearners = Schema::hasTable($learnerTable);
-    $hasStaff = Schema::hasTable($staffTable);
-    $hasFeePayments = Schema::hasTable($feePaymentTable);
-    $hasFeeInvoices = Schema::hasTable($feeInvoiceTable);
-    $hasClasses = Schema::hasTable($schoolClassTable);
-    $hasAssessments = Schema::hasTable((new \App\Models\Assessment())->getTable());
+    // Dashboard cards are useful but must not prevent a user from entering the
+    // portal when an optional legacy table or column is unavailable.
+    try {
+        $learnerTable = (new \App\Models\Learner())->getTable();
+        $staffTable = (new \App\Models\StaffMember())->getTable();
+        $feePaymentTable = (new \App\Models\FeePayment())->getTable();
+        $feeInvoiceTable = (new \App\Models\FeeInvoice())->getTable();
+        $schoolClassTable = (new \App\Models\SchoolClass())->getTable();
 
-    $totalLearners = $hasLearners ? \App\Models\Learner::count() : 0;
-    $totalStaff = $hasStaff ? \App\Models\StaffMember::count() : 0;
-    $feesCollected = $hasFeePayments && $hasFeeInvoices
-        ? \App\Models\FeePayment::whereHas('invoice', fn($q) => $q->whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year')))->sum('amount')
-        : 0;
-    $feeArrears = $hasFeeInvoices
-        ? \App\Models\FeeInvoice::whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year'))->sum('balance')
-        : 0;
-    $totalClasses = $hasClasses ? \App\Models\SchoolClass::whereAcademicYear(config('school.current_academic_year'))->count() : 0;
-    $recentPayments = $hasFeePayments ? \App\Models\FeePayment::with('invoice.learner')->latest()->take(5)->get() : collect();
-    $recentLearners = $hasLearners ? \App\Models\Learner::latest()->take(5)->get() : collect();
-    $assessmentCounts = $hasAssessments
-        ? \App\Models\Assessment::query()->where('term', config('school.current_term'))->where('academic_year', config('school.current_academic_year'))->selectRaw('rubric_level, count(*) as total')->groupBy('rubric_level')->pluck('total', 'rubric_level')
-        : collect();
+        $hasLearners = Schema::hasTable($learnerTable);
+        $hasStaff = Schema::hasTable($staffTable);
+        $hasFeePayments = Schema::hasTable($feePaymentTable);
+        $hasFeeInvoices = Schema::hasTable($feeInvoiceTable);
+        $hasClasses = Schema::hasTable($schoolClassTable);
+        $hasAssessments = Schema::hasTable((new \App\Models\Assessment())->getTable());
+
+        $totalLearners = $hasLearners ? \App\Models\Learner::count() : 0;
+        $totalStaff = $hasStaff ? \App\Models\StaffMember::count() : 0;
+        $feesCollected = $hasFeePayments && $hasFeeInvoices
+            ? \App\Models\FeePayment::whereHas('invoice', fn($q) => $q->whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year')))->sum('amount')
+            : 0;
+        $feeArrears = $hasFeeInvoices
+            ? \App\Models\FeeInvoice::whereTerm(config('school.current_term'))->whereAcademicYear(config('school.current_academic_year'))->sum('balance')
+            : 0;
+        $totalClasses = $hasClasses ? \App\Models\SchoolClass::whereAcademicYear(config('school.current_academic_year'))->count() : 0;
+        $recentPayments = $hasFeePayments ? \App\Models\FeePayment::with('invoice.learner')->latest()->take(5)->get() : collect();
+        $recentLearners = $hasLearners ? \App\Models\Learner::latest()->take(5)->get() : collect();
+        $assessmentCounts = $hasAssessments
+            ? \App\Models\Assessment::query()->where('term', config('school.current_term'))->where('academic_year', config('school.current_academic_year'))->selectRaw('rubric_level, count(*) as total')->groupBy('rubric_level')->pluck('total', 'rubric_level')
+            : collect();
+    } catch (\Throwable $exception) {
+        report($exception);
+    }
 @endphp
 
 {{-- Top Stats Row --}}
