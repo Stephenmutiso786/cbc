@@ -23,7 +23,7 @@
                 ['finance.reports.index','Reports'],['finance.notifications.index','Notifications'],['finance.support.index','Support'],['learning.miyagi','Miyagi AI Learning'],
             ] as [$route,$label])
             @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
-            <a href="{{ route($route) }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors"><span>{{ $label }}</span>@if($badgeModule)<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
+            <a href="{{ route($route) }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
             @endforeach
             <a href="{{ route('legal.terms') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">Terms and Conditions</a>
             <a href="{{ route('legal.privacy') }}" class="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-indigo-100 hover:bg-indigo-800 transition-colors">Privacy Policy</a>

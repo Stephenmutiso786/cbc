@@ -33,7 +33,7 @@
                     @foreach($links as [$route, $label, $permission])
                         @if($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission)))
                             @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
-                            <a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule)<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
+                            <a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
                         @endif
                     @endforeach
                 </div>
