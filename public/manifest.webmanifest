@@ -1,6 +1,6 @@
 {
-  "name": "CBC School Management System",
-  "short_name": "CBC School",
+  "name": "CBE School Management System",
+  "short_name": "CBE School",
   "description": "School management for learners, staff, fees, assessment and reports.",
   "id": "/",
   "start_url": "/login",

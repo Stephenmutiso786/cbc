@@ -1,4 +1,4 @@
-# 🚀 CBC School Management System — Laravel 12 Setup Guide
+# 🚀 CBE School Management System — Laravel 12 Setup Guide
 
 > Laravel 12 | PHP 8.2+ | MySQL 8.0 | Livewire 3 | Tailwind CSS
 
@@ -127,7 +127,7 @@ php artisan key:generate
 
 Edit `.env`:
 ```env
-APP_NAME="CBC School Management System"
+APP_NAME="CBE School Management System"
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost:8000

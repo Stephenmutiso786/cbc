@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name'            => env('APP_NAME', 'CBC School Management System'),
+    'name'            => env('APP_NAME', 'CBE School Management System'),
     'env'             => env('APP_ENV', 'production'),
     'debug'           => (bool) env('APP_DEBUG', false),
     'url'             => env('APP_URL', 'http://localhost'),

@@ -1,7 +1,7 @@
 {
     "name": "school/cbc-management",
-    "description": "CBC School Management System — Laravel 12",
-    "keywords": ["laravel", "cbc", "kenya", "school"],
+    "description": "CBE School Management System — Laravel 12",
+    "keywords": ["laravel", "cbe", "kenya", "school"],
     "license": "MIT",
     "require": {
         "php": "^8.2",

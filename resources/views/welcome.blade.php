@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="0;url=/login">
-    <title>CBC School Management System</title>
+    <title>CBE School Management System</title>
 </head>
 <body>
     <p>Redirecting to login...</p>

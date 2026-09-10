@@ -130,6 +130,6 @@ class LearningAreasSeeder extends Seeder
             }
         }
 
-        $this->command->info('CBC Curriculum seeded: ' . LearningArea::count() . ' learning areas, ' . Strand::count() . ' strands, ' . SubStrand::count() . ' sub-strands.');
+        $this->command->info('CBE Curriculum seeded: ' . LearningArea::count() . ' learning areas, ' . Strand::count() . ' strands, ' . SubStrand::count() . ' sub-strands.');
     }
 }

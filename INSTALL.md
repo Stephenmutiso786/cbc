@@ -1,4 +1,4 @@
-# 🛠️ Installation Guide — CBC School Management System
+# 🛠️ Installation Guide — CBE School Management System
 
 Follow these steps **in order**. Do not skip any step.
 
@@ -201,4 +201,3 @@ To access as `http://cbc-school.local` instead of `http://localhost:8000`:
    127.0.0.1   cbc-school.local
    ```
 3. Restart Apache from XAMPP Control Panel.
-
