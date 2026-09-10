@@ -1,7 +1,7 @@
 <div>
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">Bulk Assessment Entry</h2>
-        <span class="text-sm text-gray-500 bg-green-50 px-3 py-1 rounded-full border border-green-200">CBC Rubric: EE · ME · AE · BE</span>
+        <span class="text-sm text-gray-500 bg-green-50 px-3 py-1 rounded-full border border-green-200">CBE Rubric: EE · ME · AE · BE</span>
     </div>
 
     {{-- Filters --}}

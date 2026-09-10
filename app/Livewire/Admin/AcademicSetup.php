@@ -60,8 +60,8 @@ class AcademicSetup extends Component
         $class->fill($data)->save();
         if (! $this->editingClassId) {
             $scaleName = match (true) {
-                in_array($class->grade_level, ['Grade 1', 'Grade 2', 'Grade 3'], true) => 'CBC Lower Primary (Grades 1-3)',
-                in_array($class->grade_level, ['Grade 4', 'Grade 5', 'Grade 6'], true) => 'CBC Upper Primary (Grades 4-6)',
+                in_array($class->grade_level, ['Grade 1', 'Grade 2', 'Grade 3'], true) => 'CBE Lower Primary (Grades 1-3)',
+                in_array($class->grade_level, ['Grade 4', 'Grade 5', 'Grade 6'], true) => 'CBE Upper Primary (Grades 4-6)',
                 in_array($class->grade_level, ['Grade 7', 'Grade 8', 'Grade 9'], true) => 'KJSEA Eight-Point Scale (Grades 7-9)',
                 default => null,
             };

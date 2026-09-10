@@ -107,10 +107,10 @@
 {{-- Second Row --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
 
-    {{-- CBC Assessment Overview --}}
+    {{-- CBE Assessment Overview --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-gray-800">CBC Assessment Levels</h3>
+            <h3 class="font-semibold text-gray-800">CBE Assessment Levels</h3>
             <span class="text-xs text-gray-400">Current Term</span>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -293,9 +293,9 @@
 {{-- Fourth Row --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-    {{-- CBC Grade Distribution --}}
+    {{-- CBE Grade Distribution --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-800 mb-4">CBC Grade Levels</h3>
+        <h3 class="font-semibold text-gray-800 mb-4">CBE Grade Levels</h3>
         <div class="space-y-2">
             @foreach([
                 'Pre-Primary (PP1–PP2)' => 'green',

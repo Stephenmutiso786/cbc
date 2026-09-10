@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\SchoolAssetController;
 use App\Http\Controllers\LegalConsentController;
+use App\Http\Controllers\CookieConsentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,7 @@ Route::view('/terms', 'legal.terms')->name('legal.terms');
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
 Route::view('/legal/acceptance', 'legal.acceptance')->middleware('auth')->name('legal.acceptance');
 Route::post('/legal/acceptance', [LegalConsentController::class, 'accept'])->middleware('auth')->name('legal.accept');
+Route::post('/cookie-consent', [CookieConsentController::class, 'store'])->name('cookie-consent.store');
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);

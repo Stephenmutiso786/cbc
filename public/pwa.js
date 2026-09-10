@@ -20,10 +20,10 @@
         if (helpPanel) return;
         helpPanel = document.createElement('div');
         helpPanel.setAttribute('role', 'dialog');
-        helpPanel.setAttribute('aria-label', 'Install CBC School app');
+        helpPanel.setAttribute('aria-label', 'Install CBE School app');
         helpPanel.style.cssText = 'position:fixed;right:1rem;bottom:4.5rem;z-index:61;max-width: min( calc(100vw - 2rem), 22rem);border:1px solid #bbf7d0;border-radius:1rem;background:#fff;color:#172016;padding:1rem;box-shadow:0 14px 40px rgba(0,0,0,.22);font:14px/1.45 sans-serif';
         var title = document.createElement('strong');
-        title.textContent = 'Install CBC School';
+        title.textContent = 'Install CBE School';
         title.style.cssText = 'display:block;margin-bottom:.45rem;font-size:15px';
         var instructions = document.createElement('p');
         instructions.style.margin = '0 0 .75rem';
@@ -49,7 +49,7 @@
         installButton.id = installButtonId;
         installButton.type = 'button';
         installButton.textContent = 'Install app';
-        installButton.setAttribute('aria-label', 'Install CBC School app');
+        installButton.setAttribute('aria-label', 'Install CBE School app');
         installButton.style.cssText = 'position:fixed;right:1rem;bottom:1rem;z-index:60;border:0;border-radius:9999px;background:#166534;color:#fff;padding:.7rem 1rem;font:600 14px sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);cursor:pointer';
         installButton.addEventListener('click', function () {
             if (!deferredPrompt) {
@@ -107,7 +107,7 @@
             }).catch(function (error) {
                 // Keep the install control available even if offline support
                 // is blocked by an insecure origin or browser policy.
-                console.warn('CBC School service worker registration failed:', error);
+                console.warn('CBE School service worker registration failed:', error);
             });
         });
     }

@@ -12,8 +12,8 @@ class DefaultGradingScalesSeeder extends Seeder
     {
         $scales = [
             [
-                'name' => 'CBC Lower Primary (Grades 1-3)',
-                'description' => 'Qualitative four-level CBC rubric for lower primary.',
+                'name' => 'CBE Lower Primary (Grades 1-3)',
+                'description' => 'Qualitative four-level CBE rubric for lower primary.',
                 'type' => 'rubric',
                 'bands' => [
                     ['code' => 'EE', 'min' => 75, 'max' => 100, 'label' => 'Exceeds Expectations'],
@@ -24,8 +24,8 @@ class DefaultGradingScalesSeeder extends Seeder
                 'grades' => ['Grade 1', 'Grade 2', 'Grade 3'],
             ],
             [
-                'name' => 'CBC Upper Primary (Grades 4-6)',
-                'description' => 'Four-point CBC scale: EE 4, ME 3, AE 2, BE 1.',
+                'name' => 'CBE Upper Primary (Grades 4-6)',
+                'description' => 'Four-point CBE scale: EE 4, ME 3, AE 2, BE 1.',
                 'type' => 'rubric',
                 'bands' => [
                     ['code' => 'EE', 'min' => 80, 'max' => 100, 'points' => 4, 'label' => 'Exceeds Expectations'],

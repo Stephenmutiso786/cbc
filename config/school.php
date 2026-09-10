@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name'          => env('SCHOOL_NAME', 'CBC School Management System'),
+    'name'          => env('SCHOOL_NAME', 'CBE School Management System'),
     'motto'         => env('SCHOOL_MOTTO', 'Excellence Through Competency'),
     'type'          => env('SCHOOL_TYPE', 'primary'), // primary, secondary, mixed
     'address'       => env('SCHOOL_ADDRESS', ''),

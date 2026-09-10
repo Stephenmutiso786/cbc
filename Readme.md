@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">⚡ ElimuMS</h1>
-<h3 align="center">Kenya's Most Complete CBC School Management System</h3>
+<h3 align="center">Kenya's Most Complete CBE School Management System</h3>
 
 <p align="center">
   One platform. Every school need. Built for Kenyan schools. Powered by AI.

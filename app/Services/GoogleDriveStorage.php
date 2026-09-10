@@ -111,7 +111,7 @@ class GoogleDriveStorage
         ])->getFiles()[0] ?? null;
         $metadata = new DriveFile([
             'name' => $name,
-            'description' => 'CBC School Management - ' . trim($folder, '/'),
+            'description' => 'CBE School Management - ' . trim($folder, '/'),
         ]);
         if ($existing) {
             // Google Drive does not allow parents in update requests. The
@@ -150,7 +150,7 @@ class GoogleDriveStorage
             return $path;
         }
         $this->transferPolicy->reserve(strlen($contents), 'Google Drive upload');
-        $driveFile = new DriveFile(['name' => $name, 'parents' => [config('services.google_drive.folder_id')], 'description' => 'CBC School Management - ' . trim($folder, '/')]);
+        $driveFile = new DriveFile(['name' => $name, 'parents' => [config('services.google_drive.folder_id')], 'description' => 'CBE School Management - ' . trim($folder, '/')]);
         $created = $this->drive()->files->create($driveFile, ['data' => $contents, 'mimeType' => $mime, 'uploadType' => 'multipart', 'fields' => 'id']);
 
         return 'gdrive:' . $created->getId();
@@ -201,7 +201,7 @@ class GoogleDriveStorage
         $driveFile = new DriveFile([
             'name' => $name ?? basename($path),
             'parents' => [config('services.google_drive.folder_id')],
-            'description' => 'CBC School Management - ' . trim($folder, '/'),
+            'description' => 'CBE School Management - ' . trim($folder, '/'),
         ]);
 
         $created = $this->drive()->files->create($driveFile, [
