@@ -58,14 +58,31 @@ class ModuleNotificationService
     public function notificationsFor(?int $userId)
     {
         $query = SchoolNotification::query()->whereIn('status', ['queued', 'sent', 'partial']);
-        $user = $userId ? User::with('guardian.learners')->find($userId) : null;
+        $user = $userId ? User::with(['guardian.learners', 'learner.schoolClass'])->find($userId) : null;
         $guardian = $user?->guardian;
 
-        if (! $guardian) {
+        if ($guardian) {
+            return $this->filterForLearners($query, $guardian->learners);
+        }
+
+        $learner = $user?->learner;
+        if (! $learner || ! $learner->is_active) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $this->filterForLearners($query, collect([$learner]));
+    }
+
+    private function filterForLearners($query, $learners)
+    {
+        if ($learners->isEmpty()) {
             return $query;
         }
 
-        $learners = $guardian->learners->where('is_active', true);
+        $learners = $learners->where('is_active', true);
+        if ($learners->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
         $grades = $learners->pluck('grade_level')->filter()->unique()->values();
         $classIds = $learners->pluck('class_id')->filter()->unique()->values();
         $hasBoarding = $learners->contains(fn ($learner) => $learner->boarding_status === 'boarding');

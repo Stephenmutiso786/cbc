@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — {{ config('school.name') }}</title>
     @include('layouts.partials.pwa')
+    @include('layouts.partials.theme')
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gradient-to-br from-green-900 to-green-700 min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md">
+        <div class="mb-3 flex justify-end">@include('layouts.partials.theme-toggle')</div>
         {{-- Logo / School Name --}}
         <div class="text-center mb-8">
             <div class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-lg mb-4">

@@ -3,13 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\LearningNote;
+use App\Services\DataTransferPolicy;
 use App\Services\GoogleDriveStorage;
 
 class StoredFileController extends Controller
 {
-    public function note(LearningNote $note, GoogleDriveStorage $storage)
+    public function note(LearningNote $note, GoogleDriveStorage $storage, DataTransferPolicy $transferPolicy)
     {
-        abort_unless($note->is_published || auth()->user()->can('view notes'), 403);
+        $user = auth()->user();
+        if ($user->hasRole('learner')) {
+            $learner = $user->learner;
+            $grade = $learner?->grade_level instanceof \BackedEnum
+                ? $learner->grade_level->value
+                : $learner?->grade_level;
+            abort_unless($learner && $note->is_published && (string) $note->grade_level === (string) $grade, 403);
+        } else {
+            abort_unless($note->is_published || $user->can('view notes'), 403);
+        }
         abort_unless($note->file_path, 404);
 
         $contents = $storage->contents($note->file_path);

@@ -74,4 +74,9 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
         ->prefix('finance')
         ->name('finance.')
         ->group(base_path('routes/finance.php'));
+
+    Route::middleware(['role:learner'])
+        ->prefix('student')
+        ->name('student.')
+        ->group(base_path('routes/student.php'));
 });
