@@ -32,7 +32,7 @@ final class RolePermissions
             'librarian' => ['view inventory','manage inventory','issue items','receive items'],
             'storekeeper' => ['view inventory','manage inventory','issue items','receive items'],
             'parent' => ['view report cards','view notes','view fees','submit support tickets'],
-            'learner' => ['view notes','view timetable','submit support tickets'],
+            'learner' => ['view notes', 'view results', 'view timetable', 'submit support tickets'],
         ];
     }
 

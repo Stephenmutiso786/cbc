@@ -5,6 +5,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} — Finance</title>
     @include('layouts.partials.pwa')
+    @include('layouts.partials.theme')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
@@ -38,6 +39,7 @@
             <button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button>
             <h1 class="text-lg font-semibold text-gray-800">{{ $header ?? 'Finance' }}</h1>
             @include('layouts.partials.online-users')
+            @include('layouts.partials.theme-toggle')
             <form method="POST" action="{{ route('logout') }}" class="ml-auto">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form>
         </header>
         <main class="min-w-0 overflow-x-hidden p-4 md:p-6">

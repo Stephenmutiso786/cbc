@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password — {{ config('school.name') }}</title>
     @include('layouts.partials.pwa')
+    @include('layouts.partials.theme')
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gradient-to-br from-green-900 to-green-700 min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md">
+        <div class="mb-3 flex justify-end">@include('layouts.partials.theme-toggle')</div>
         <div class="bg-white rounded-2xl shadow-2xl p-8">
             <h2 class="text-gray-800 text-xl font-semibold mb-1">Reset Password</h2>
             <p class="text-gray-500 text-sm mb-6">Enter your email and we'll send a reset link.</p>

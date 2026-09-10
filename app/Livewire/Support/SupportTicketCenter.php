@@ -76,7 +76,7 @@ class SupportTicketCenter extends Component
 
         $layout = $isSuperAdmin || request()->routeIs('admin.*')
             ? 'layouts.admin'
-            : (request()->routeIs('parent.*') ? 'layouts.parent' : (request()->routeIs('finance.*') ? 'layouts.finance' : 'layouts.teacher'));
+            : (request()->routeIs('student.*') ? 'layouts.student' : (request()->routeIs('parent.*') ? 'layouts.parent' : (request()->routeIs('finance.*') ? 'layouts.finance' : 'layouts.teacher')));
 
         return view('livewire.support.ticket-center', compact('tickets', 'isSuperAdmin'))->layout($layout);
     }

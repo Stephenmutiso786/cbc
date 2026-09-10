@@ -5,6 +5,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} — Parent Portal</title>
     @include('layouts.partials.pwa')
+    @include('layouts.partials.theme')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
@@ -14,6 +15,7 @@
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-green-900">{{ config('school.name') }}</h1>
         @include('layouts.partials.online-users')
+        @include('layouts.partials.theme-toggle')
         <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="text-sm text-red-600">Logout</button></form>
     </div>
     <nav class="mb-6 flex flex-wrap gap-2">

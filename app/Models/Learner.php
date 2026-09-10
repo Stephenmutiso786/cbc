@@ -12,7 +12,7 @@ class Learner extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'admission_number', 'kemis_upi', 'first_name', 'middle_name', 'last_name',
+        'user_id', 'admission_number', 'kemis_upi', 'first_name', 'middle_name', 'last_name',
         'date_of_birth', 'gender', 'grade_level', 'class_id', 'stream',
         'admission_date', 'boarding_status', 'special_needs', 'special_needs_details',
         'previous_school', 'birth_certificate_number', 'nhif_number',
@@ -29,6 +29,7 @@ class Learner extends Model
 
     // ── Relationships ────────────────────────────────────────────
     public function schoolClass()   { return $this->belongsTo(SchoolClass::class, 'class_id'); }
+    public function user()          { return $this->belongsTo(User::class); }
     public function guardians()     { return $this->belongsToMany(Guardian::class, 'learner_guardian')->withPivot('is_primary'); }
     public function assessments()   { return $this->hasMany(Assessment::class); }
     public function attendance()    { return $this->hasMany(Attendance::class); }

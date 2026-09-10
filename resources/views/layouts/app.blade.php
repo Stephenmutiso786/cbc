@@ -5,6 +5,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('school.name') }} - {{ $title ?? 'Administration' }}</title>
     @include('layouts.partials.pwa')
+    @include('layouts.partials.theme')
     <script src="https://cdn.tailwindcss.com"></script>
     @livewireStyles
 </head>
@@ -29,7 +30,7 @@
         <div class="border-t border-green-700 px-4 py-3"><p class="truncate text-xs text-green-200">{{ auth()->user()->name }}</p><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="mt-1 text-xs text-green-300 hover:text-white">Sign out</button></form></div>
     </aside>
     <div class="md:pl-64">
-        <header class="flex h-16 items-center justify-between gap-2 bg-white px-4 shadow-sm md:px-6"><button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button><h1 class="min-w-0 truncate text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1><div class="flex shrink-0 items-center gap-2"><span class="hidden text-sm text-gray-500 sm:inline">{{ config('school.academic_year') }}</span>@include('layouts.partials.online-users')<form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form></div></header>
+        <header class="flex h-16 items-center justify-between gap-2 bg-white px-4 shadow-sm md:px-6"><button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden" aria-label="Open menu">&#9776;</button><h1 class="min-w-0 truncate text-xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1><div class="flex shrink-0 items-center gap-2"><span class="hidden text-sm text-gray-500 sm:inline">{{ config('school.academic_year') }}</span>@include('layouts.partials.online-users')@include('layouts.partials.theme-toggle')<form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form></div></header>
         <main class="min-w-0 overflow-x-hidden p-4 md:p-6">@yield('content') @isset($slot){{ $slot }}@endisset</main>
         <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms and Conditions</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy Policy</a></footer>
     </div>

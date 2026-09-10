@@ -16,7 +16,13 @@ class NotificationInbox extends Component
             ->latest()
             ->paginate(15);
 
-        $layout = request()->routeIs('parent.*') ? 'layouts.parent' : 'layouts.finance';
+        $layout = match (true) {
+            request()->routeIs('student.*') => 'layouts.student',
+            request()->routeIs('parent.*') => 'layouts.parent',
+            request()->routeIs('teacher.*') => 'layouts.teacher',
+            request()->routeIs('admin.*') => 'layouts.admin',
+            default => 'layouts.finance',
+        };
 
         return view('livewire.notifications.notification-inbox', compact('notifications'))
             ->layout($layout);

@@ -49,6 +49,8 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('parent.dashboard');
         } elseif ($user->hasRole(['bursar', 'accountant'])) {
             return redirect()->route('finance.dashboard');
+        } elseif ($user->hasRole('learner')) {
+            return redirect()->route('student.dashboard');
         }
 
         // Custom roles created in Role Management must still land in the
