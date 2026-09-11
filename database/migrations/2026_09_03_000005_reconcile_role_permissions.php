@@ -17,13 +17,27 @@ return new class extends Migration {
         // Spatie caches permissions; clear it after creating the full catalog
         // so syncPermissions can resolve every permission on a fresh database.
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        $permissionIds = Permission::query()
+            ->where('guard_name', 'web')
+            ->pluck('id', 'name');
+
         foreach (RolePermissions::byRole() as $roleName => $permissionNames) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            // Older deployments may contain pivots for permissions removed
-            // from the catalog. Spatie resolves those pivots before
-            // syncPermissions(), so clear them before rebuilding the role.
+            // Rebuild pivots directly. On a partially migrated fresh database,
+            // Spatie may try to hydrate an obsolete pivot before syncPermissions
+            // can replace it, causing the whole migration chain to stop.
             DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
-            $role->syncPermissions($permissionNames);
+            $rows = collect($permissionNames)
+                ->map(fn (string $name) => $permissionIds->get($name))
+                ->filter()
+                ->map(fn ($permissionId) => [
+                    'permission_id' => $permissionId,
+                    'role_id' => $role->id,
+                ])
+                ->all();
+            if ($rows) {
+                DB::table('role_has_permissions')->insert($rows);
+            }
         }
 
         // Staff accounts have one operational role. Remove stale elevated roles

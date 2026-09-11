@@ -36,18 +36,6 @@ if [ "${USE_REDIS:-false}" = "true" ]; then
     export SESSION_DRIVER=redis
 fi
 
-# Bind Railway's port immediately so a previous PWA worker can update while
-# database migrations run. Normal Laravel routes remain available after boot.
-export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-1}}"
-php artisan serve --host 0.0.0.0 --port "${PORT:-10000}" &
-SERVER_PID=$!
-trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
-sleep 1
-if ! kill -0 "$SERVER_PID" 2>/dev/null; then
-    echo "The Laravel web server failed to start." >&2
-    exit 1
-fi
-
 MIGRATION_TIMEOUT="${MIGRATION_TIMEOUT:-120}"
 SEED_TIMEOUT="${SEED_TIMEOUT:-600}"
 MIGRATION_DB_URL="${DB_URL:-${DATABASE_URL:-}}"
@@ -81,6 +69,19 @@ fi
 
 php artisan optimize:clear
 php artisan storage:link || true
+
+# Do not expose a half-migrated application. In particular, a new database
+# must have the legal-consent columns before an authenticated user can submit
+# the acceptance form.
+export PHP_CLI_SERVER_WORKERS="${PHP_CLI_SERVER_WORKERS:-${WEB_CONCURRENCY:-1}}"
+php artisan serve --host 0.0.0.0 --port "${PORT:-10000}" &
+SERVER_PID=$!
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
+sleep 1
+if ! kill -0 "$SERVER_PID"; then
+    echo "The Laravel web server failed to start." >&2
+    exit 1
+fi
 
 # Railway runs this web container without a separate scheduler process. Keep
 # Laravel's scheduler alive so daily Drive backups and record snapshots run.
