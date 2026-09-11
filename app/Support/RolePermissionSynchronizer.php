@@ -17,6 +17,10 @@ final class RolePermissionSynchronizer
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        $permissionIds = Permission::query()
+            ->where('guard_name', 'web')
+            ->pluck('id', 'name');
+
         foreach (RolePermissions::byRole() as $roleName => $permissions) {
             $role = Role::where('name', $roleName)
                 ->where('guard_name', 'web')
@@ -26,9 +30,23 @@ final class RolePermissionSynchronizer
                 continue;
             }
 
-            // Remove obsolete pivot ids before Spatie resolves them during sync.
+            // Rebuild the pivots directly. A database created from an older
+            // release can contain a pivot to a removed permission; Spatie
+            // hydrates that stale pivot before syncPermissions() can replace
+            // it and then throws a 500 on protected routes.
             DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
-            $role->syncPermissions($permissions);
+            $rows = collect($permissions)
+                ->map(fn (string $name) => $permissionIds->get($name))
+                ->filter()
+                ->map(fn ($permissionId) => [
+                    'permission_id' => $permissionId,
+                    'role_id' => $role->id,
+                ])
+                ->all();
+
+            if ($rows) {
+                DB::table('role_has_permissions')->insert($rows);
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
