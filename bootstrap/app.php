@@ -28,5 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Railway displays container stderr, while Laravel's default log is
+        // kept inside the ephemeral container. Emit a concise exception
+        // summary so a real production 500 can be diagnosed without exposing
+        // request bodies, cookies, or environment secrets.
+        $exceptions->report(function (\Throwable $exception): void {
+            error_log(sprintf(
+                '[CBE application exception] %s: %s in %s:%d',
+                $exception::class,
+                $exception->getMessage(),
+                $exception->getFile(),
+                $exception->getLine(),
+            ));
+        });
     })->create();
