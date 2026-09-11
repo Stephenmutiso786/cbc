@@ -14,6 +14,25 @@
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white shadow-lg transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center bg-green-900 px-5"><span class="truncate font-bold">{{ config('school.name') }}</span><button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button></div>
+        @php
+            $navigationUser = auth()->user();
+            $maySeeNavigationLink = static function (?string $permission) use ($navigationUser): bool {
+                if ($permission === null) {
+                    return true;
+                }
+                if ($permission === '__super_admin__') {
+                    return $navigationUser?->hasRole('super-admin') ?? false;
+                }
+                try {
+                    return $navigationUser?->can($permission) ?? false;
+                } catch (\Throwable) {
+                    // A stale/missing permission record must never turn the
+                    // entire authenticated portal into a 500 page. Route
+                    // middleware remains the authority for direct access.
+                    return false;
+                }
+            };
+        @endphp
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 text-sm">
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard', null]],
@@ -24,7 +43,7 @@
                 'Operations' => [['admin.inventory.index', 'Inventory', 'view inventory'], ['admin.sms.index', 'SMS Center', 'view notifications'], ['admin.notifications.index', 'Notifications', 'view notifications'], ['admin.reports.index', 'Analytics and Reports', 'view analytics'], ['admin.support.index', 'Support Tickets', 'submit support tickets']],
                 'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.backups.index', 'Backups', 'manage system settings'], ['admin.user-accounts.index', 'User Accounts', 'manage users'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.drive-store.index', 'Google Drive Store', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis'], ['admin.legal-policies.index', 'Legal Policies', 'manage legal policies'], ['admin.diagnostics.index', 'System Diagnostics', 'run diagnostics'], ['admin.system-logs.index', 'System Logs', '__super_admin__'], ['admin.impersonate.index', 'Impersonate User', '__super_admin__'], ['legal.terms', 'Terms and Conditions', null], ['legal.privacy', 'Privacy Policy', null]],
             ] as $section => $links)
-                <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label, $permission])@if($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission)))@php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))<a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>@endif @endforeach</div>
+                <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label, $permission])@if($maySeeNavigationLink($permission))@php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))<a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>@endif @endforeach</div>
             @endforeach
         </nav>
         <div class="border-t border-green-700 px-4 py-3"><p class="truncate text-xs text-green-200">{{ auth()->user()->name }}</p><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="mt-1 text-xs text-green-300 hover:text-white">Sign out</button></form></div>
