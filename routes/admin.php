@@ -33,7 +33,11 @@ use App\Livewire\Admin\BackupCenter;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\UserAccountManager;
 
-Route::get('/dashboard', fn() => view('admin.dashboard'))->middleware('permission:view students')->name('dashboard');
+// The enclosing admin route group already restricts this landing page to
+// leadership roles. Do not make login/consent completion depend on an
+// optional feature permission that may be repaired later in the request
+// lifecycle; individual administrative features stay permission-protected.
+Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 // School administrators can submit and track their own tickets. Only the
 // super-admin receives the management permission and can see every ticket.
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
