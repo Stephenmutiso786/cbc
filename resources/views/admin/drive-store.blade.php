@@ -15,12 +15,36 @@
                     <form method="POST" action="{{ route('admin.drive-store.sync') }}">@csrf<button type="submit" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">Sync class records now</button></form>
                     <a href="{{ route('admin.settings.index') }}" class="rounded-lg border border-green-700 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50">Drive settings</a>
                 @endcan
+                @can('manage curriculum')
+                    <form method="POST" action="{{ route('admin.drive-store.repair-class-subjects') }}">@csrf<button type="submit" class="rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Configure class subjects</button></form>
+                @endcan
             </div>
         </div>
     </div>
 
     @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $errors->first() }}</div>@endif
+
+    @if($snapshotError)<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $snapshotError }}</div>@endif
+    @if($snapshot)
+        @php($learnerTotal = collect($snapshot['classes'])->sum(fn ($class) => count($class['learners'] ?? [])))
+        <section class="rounded-xl border border-blue-200 bg-blue-50 p-6">
+            <h2 class="text-lg font-bold text-blue-950">Ready to import class records</h2>
+            <p class="mt-1 text-sm text-blue-900">Snapshot created {{ $snapshot['generated_at'] ?? 'at an unknown time' }}: {{ count($snapshot['classes']) }} class(es), {{ $learnerTotal }} learner record(s).</p>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($snapshot['classes'] as $class)
+                    <div class="rounded-lg bg-white px-3 py-2 text-sm text-gray-700"><strong>{{ $class['grade_level'] }} — {{ $class['name'] }}</strong><br>{{ count($class['learners'] ?? []) }} learner(s)</div>
+                @endforeach
+            </div>
+            @can('create students')
+                <form method="POST" action="{{ route('admin.drive-store.import-records') }}" class="mt-5" onsubmit="return confirm('Import these learner records? Existing admission numbers will be skipped and no learner will be duplicated.')">
+                    @csrf
+                    <input type="hidden" name="file_id" value="{{ request('snapshot') }}">
+                    <button type="submit" class="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800">Import these records into the system</button>
+                </form>
+            @endcan
+        </section>
+    @endif
 
     @if($error)
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $error }}</div>
@@ -40,7 +64,12 @@
                                 <td class="px-6 py-4 text-gray-500">{{ $file['mime_type'] }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ number_format($file['size'] / 1024, 1) }} KB</td>
                                 <td class="px-6 py-4 text-gray-500">{{ $file['modified_at'] ?: $file['created_at'] }}</td>
-                                <td class="px-6 py-4 text-right"><a href="{{ $file['url'] }}" target="_blank" rel="noopener" class="font-medium text-green-700 hover:text-green-900">Open in Drive</a></td>
+                                <td class="px-6 py-4 text-right whitespace-nowrap">
+                                    @if(str_starts_with($file['name'], 'school-records-'))
+                                        <a href="{{ route('admin.drive-store.index', ['snapshot' => $file['id']]) }}" class="mr-3 font-medium text-blue-700 hover:text-blue-900">Preview / import</a>
+                                    @endif
+                                    <a href="{{ $file['url'] }}" target="_blank" rel="noopener" class="font-medium text-green-700 hover:text-green-900">Open in Drive</a>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
