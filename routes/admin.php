@@ -78,6 +78,8 @@ Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student']
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
 Route::get('/drive-store', [DriveStoreController::class, 'index'])->middleware('permission:view report cards')->name('drive-store.index');
 Route::post('/drive-store/sync', [DriveStoreController::class, 'syncRecords'])->middleware('permission:manage system settings')->name('drive-store.sync');
+Route::post('/drive-store/import-records', [DriveStoreController::class, 'importRecords'])->middleware('permission:create students')->name('drive-store.import-records');
+Route::post('/drive-store/repair-class-subjects', [DriveStoreController::class, 'repairClassSubjects'])->middleware('permission:manage curriculum')->name('drive-store.repair-class-subjects');
 Route::get('/settings', fn() => view('admin.settings.index'))->middleware('permission:manage system settings')->name('settings.index');
 Route::get('/report-forms', ReportCardTemplates::class)->middleware('permission:view report cards')->name('report-forms.index');
 Route::get('/grades', GradeManager::class)->middleware('permission:manage curriculum')->name('grades.index');
