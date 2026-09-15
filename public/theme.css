@@ -11,6 +11,7 @@ html.theme-dark input::placeholder, html.theme-dark textarea::placeholder { colo
 html.theme-dark table thead, html.theme-dark .bg-gray-50 { background-color: #1e293b !important; }
 html.theme-dark .shadow-sm, html.theme-dark .shadow-xl, html.theme-dark .shadow-2xl { box-shadow: 0 12px 35px rgb(0 0 0 / 35%) !important; }
 html.theme-dark #cookie-consent { background: #111827 !important; border-color: #334155 !important; }
-.theme-toggle { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #cbd5e1; border-radius: .6rem; padding: .45rem .7rem; font-size: .8rem; color: #334155; background: transparent; }
+.theme-toggle { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #cbd5e1; border-radius: .6rem; padding: .45rem .7rem; font-size: .8rem; color: #334155; background: transparent; cursor: pointer; }
+.theme-toggle-icon { display: inline-grid; width: 1.1rem; place-items: center; font-size: 1rem; line-height: 1; }
 .theme-toggle:hover { background: rgb(22 101 52 / 8%); }
 html.theme-dark .theme-toggle { color: #e2e8f0; border-color: #475569; }
