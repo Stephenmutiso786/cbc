@@ -4,6 +4,7 @@ public/build/
 .env
 storage/logs/
 storage/app/public/
+storage/app/backups/
 storage/framework/sessions/
 storage/framework/views/
 storage/framework/cache/
