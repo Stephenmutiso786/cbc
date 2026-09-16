@@ -138,6 +138,14 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 class="font-semibold text-gray-800 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-2 gap-3">
+            @if(auth()->user()->hasRole('super-admin'))
+            <a href="{{ route('admin.schools.index') }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors text-center">
+                <div class="w-9 h-9 rounded-lg bg-indigo-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-indigo-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01"/></svg>
+                </div>
+                <span class="text-xs font-medium text-indigo-800">Manage Schools</span>
+            </a>
+            @endif
             <a href="{{ route('admin.students.index', ['create' => 1]) }}" class="flex flex-col items-center gap-2 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors text-center">
                 <div class="w-9 h-9 rounded-lg bg-green-200 flex items-center justify-center">
                     <svg class="w-5 h-5 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
