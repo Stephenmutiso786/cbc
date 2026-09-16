@@ -6,6 +6,8 @@ use App\Models\Guardian;
 use App\Models\NotificationLog;
 use App\Models\SchoolNotification;
 use App\Services\OlympusSmsService;
+use App\Support\SchoolSettingsLoader;
+use App\Support\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,7 +30,9 @@ class SendSmsJob implements ShouldQueue
 
     public function handle(OlympusSmsService $sms): void
     {
-        $notification = SchoolNotification::findOrFail($this->notificationId);
+        $notification = SchoolNotification::withoutSchoolScope()->findOrFail($this->notificationId);
+        Tenant::run($notification->school_id, function () use ($notification, $sms): void {
+        SchoolSettingsLoader::for($notification->school_id);
         $notification->update(['status' => 'queued', 'sent_at' => now()]);
 
         // Build recipients query
@@ -61,6 +65,7 @@ class SendSmsJob implements ShouldQueue
 
                 foreach ($batch as $guardian) {
                     \DB::table('notification_logs')->insert([
+                        'school_id'         => $notification->school_id,
                         'notification_id'   => $notification->id,
                         'recipient_phone'   => $guardian->phone_number,
                         'channel'           => 'sms',
@@ -82,5 +87,6 @@ class SendSmsJob implements ShouldQueue
             'failed_count'    => $failed,
             'total_recipients'=> $guardians->count(),
         ]);
+        });
     }
 }
