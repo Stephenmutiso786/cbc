@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Models\Learner;
 use App\Services\OlympusSmsService;
 use App\Services\ReportCardService;
+use App\Support\SchoolSettingsLoader;
+use App\Support\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,6 +29,9 @@ class GenerateReportCardJob implements ShouldQueue
 
     public function handle(ReportCardService $service, OlympusSmsService $sms): void
     {
+        $schoolId = Learner::withoutSchoolScope()->whereKey($this->learnerId)->value('school_id');
+        Tenant::run($schoolId, function () use ($service, $sms, $schoolId): void {
+        if ($schoolId !== null) SchoolSettingsLoader::for($schoolId);
         try {
             $fileName = $service->generate($this->learnerId, $this->term, $this->academicYear);
             Log::info("Report card generated: {$fileName}");
@@ -50,5 +55,6 @@ class GenerateReportCardJob implements ShouldQueue
             ]);
             throw $e;
         }
+        });
     }
 }
