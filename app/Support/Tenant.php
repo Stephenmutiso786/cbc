@@ -13,7 +13,18 @@ class Tenant
     public static function id(): ?int
     {
         if (static::$overrideActive) return static::$overrideId;
-        return Auth::check() ? Auth::user()->school_id : null;
+
+        // Never call Auth::check()/Auth::user() here. This method runs from
+        // Eloquent's global scope, including while Laravel is loading the
+        // User model during login. Asking the guard to resolve a user at that
+        // point starts another User query and recurses until PHP runs out of
+        // memory. `hasUser()` only reads the guard's already-loaded user.
+        $guard = Auth::guard();
+        if (method_exists($guard, 'hasUser') && $guard->hasUser()) {
+            return $guard->user()?->school_id;
+        }
+
+        return null;
     }
 
     public static function run(?int $schoolId, Closure $callback): mixed
