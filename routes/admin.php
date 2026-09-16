@@ -25,6 +25,7 @@ use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\MarksImportTemplateController;
 use App\Http\Controllers\DriveStoreController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ImpersonationController;
 use App\Livewire\Support\SupportTicketCenter;
 use App\Livewire\Support\DiagnosticCenter;
@@ -38,7 +39,7 @@ use App\Livewire\SuperAdmin\SchoolManager;
 // leadership roles. Do not make login/consent completion depend on an
 // optional feature permission that may be repaired later in the request
 // lifecycle; individual administrative features stay permission-protected.
-Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 // School administrators can submit and track their own tickets. Only the
 // super-admin receives the management permission and can see every ticket.
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
