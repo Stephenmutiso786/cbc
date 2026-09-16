@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class Guardian extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToSchool;
 
     protected $fillable = [
         'first_name','last_name','phone_number','email','national_id',

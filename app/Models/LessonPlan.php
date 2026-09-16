@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class LessonPlan extends Model
 {
+    use BelongsToSchool;
     protected $fillable = [
         'teacher_id', 'learning_area_id', 'strand_id', 'sub_strand_id', 'grade_level',
         'academic_year', 'term', 'week_number', 'lesson_number', 'topic', 'objectives',

@@ -2,8 +2,9 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 class SchoolClass extends Model {
-    use HasFactory;
+    use HasFactory, BelongsToSchool;
     protected $fillable = ['name','grade_level','stream','academic_year','class_teacher_id','capacity','is_active'];
     protected $casts = ['is_active' => 'boolean'];
     public function classTeacher() { return $this->belongsTo(StaffMember::class, 'class_teacher_id'); }

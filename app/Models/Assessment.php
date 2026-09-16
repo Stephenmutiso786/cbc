@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Enums\RubricLevel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class Assessment extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToSchool;
 
     protected $fillable = [
         'learner_id','learning_area_id','strand_id','sub_strand_id','teacher_id',

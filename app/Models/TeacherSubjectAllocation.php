@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class TeacherSubjectAllocation extends Model
 {
+    use BelongsToSchool;
     protected $fillable = ['teacher_id', 'class_id', 'learning_area_id', 'term', 'academic_year', 'is_active', 'created_by'];
 
     protected $casts = ['is_active' => 'boolean'];

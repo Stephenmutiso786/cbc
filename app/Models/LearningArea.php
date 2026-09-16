@@ -2,8 +2,9 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 class LearningArea extends Model {
-    use HasFactory;
+    use HasFactory, BelongsToSchool;
     protected $fillable = ['name','code','grade_level','color','weekly_lessons','is_active'];
     protected $casts = ['is_active' => 'boolean'];
     public function strands()      { return $this->hasMany(Strand::class); }

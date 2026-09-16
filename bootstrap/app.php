@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\ForceHttps::class,
         ]);
         $middleware->web(append: [
+            \App\Http\Middleware\LoadSchoolSettings::class,
             \App\Http\Middleware\MaintenanceMode::class,
             \App\Http\Middleware\RequireLegalAcceptance::class,
             \App\Http\Middleware\TrackSystemActivity::class,

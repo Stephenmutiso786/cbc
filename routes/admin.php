@@ -32,6 +32,7 @@ use App\Livewire\Admin\LegalPolicyManager;
 use App\Livewire\Admin\BackupCenter;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\UserAccountManager;
+use App\Livewire\SuperAdmin\SchoolManager;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -43,6 +44,7 @@ Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
 Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
+Route::get('/schools', SchoolManager::class)->middleware('role:super-admin')->name('schools.index');
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/user-accounts', UserAccountManager::class)->middleware('permission:manage users')->name('user-accounts.index');
 Route::get('/system-logs', SystemLogViewer::class)->middleware('role:super-admin')->name('system-logs.index');

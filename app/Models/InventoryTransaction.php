@@ -1,7 +1,9 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 class InventoryTransaction extends Model {
+    use BelongsToSchool;
     protected $fillable = ['item_id','type','quantity','balance_after','reference_number','learner_id','staff_id','processed_by','academic_year','remarks','transaction_date'];
     protected $casts = ['transaction_date' => 'date'];
     public function item()        { return $this->belongsTo(InventoryItem::class); }
