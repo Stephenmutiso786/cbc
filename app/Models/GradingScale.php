@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class GradingScale extends Model
 {
+    use BelongsToSchool;
     protected $fillable = ['name', 'description', 'type', 'bands', 'is_active'];
     protected $casts = ['bands' => 'array', 'is_active' => 'boolean'];
 

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class LearnerPromotion extends Model
 {
+    use BelongsToSchool;
     protected $fillable = [
         'learner_id', 'from_class_id', 'to_class_id', 'from_academic_year',
         'to_academic_year', 'promotion_rule_id', 'status', 'requested_by',

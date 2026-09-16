@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class ExamReportExport extends Model
 {
+    use BelongsToSchool;
     protected $fillable = ['exam_id', 'requested_by', 'status', 'path', 'error', 'finished_at'];
 
     protected $casts = ['finished_at' => 'datetime'];

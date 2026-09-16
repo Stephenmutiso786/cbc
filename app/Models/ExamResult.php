@@ -2,7 +2,9 @@
 namespace App\Models;
 use App\Casts\RubricLevelCast;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 class ExamResult extends Model {
+    use BelongsToSchool;
     protected $fillable = ['exam_id','learner_id','marks_obtained','total_marks','grade','rubric_level','remarks','marked_by'];
     protected $casts = ['rubric_level' => RubricLevelCast::class, 'marks_obtained' => 'decimal:2', 'total_marks' => 'decimal:2'];
     public function exam()     { return $this->belongsTo(Exam::class); }

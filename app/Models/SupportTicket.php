@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToSchool;
 
 class SupportTicket extends Model
 {
+    use BelongsToSchool;
     protected $fillable = [
         'ticket_number', 'created_by', 'assigned_to', 'subject', 'description',
         'priority', 'status', 'diagnostic_notes', 'resolution', 'closed_at',

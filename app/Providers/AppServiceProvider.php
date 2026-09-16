@@ -3,9 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Crypt;
 use App\Models\Exam;
 use App\Policies\ExamPolicy;
 use Illuminate\Support\ServiceProvider;
@@ -24,48 +22,7 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole('super-admin') ? true : null;
         });
 
-        if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
-            try {
-                $environmentBackedSecrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
-                foreach (DB::table('school_settings')->pluck('value', 'key') as $key => $value) {
-                try {
-                $value = is_string($value) && str_starts_with($value, 'enc:')
-                    ? Crypt::decryptString(substr($value, 4))
-                    : $value;
-                // Keep Railway environment credentials when an old/empty database row exists.
-                if (in_array($key, $environmentBackedSecrets, true) && ($value === null || $value === '')) {
-                    continue;
-                }
-                $configKey = match (true) {
-                    str_starts_with($key, 'mpesa_') => 'services.mpesa.' . substr($key, 6),
-                    str_starts_with($key, 'at_') => 'services.africastalking.' . substr($key, 3),
-                    str_starts_with($key, 'olympus_sms_') => 'services.olympus_sms.' . substr($key, 12),
-                    str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
-                    str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
-                    str_starts_with($key, 'google_drive_') => 'services.google_drive.' . substr($key, 13),
-                    in_array($key, ['official_signature_data', 'official_stamp_data'], true) => 'school.' . $key,
-                    default => 'school.' . $key,
-                };
-                config()->set($configKey, $value);
-                } catch (\Throwable $exception) {
-                    // A corrupt secret must not prevent unrelated settings loading.
-                    report($exception);
-                }
-                }
-            } catch (\Throwable) {
-                // The table is unavailable during a first install or migration.
-            }
-        }
-
-        if (! env('SKIP_DB_SETTINGS_BOOT', false) && ! (app()->bound('request') && request()->is('up'))) {
-            try {
-                foreach (DB::table('school_setting_assets')->pluck('data', 'key') as $key => $value) {
-                    config()->set('school.' . $key, $value);
-                }
-            } catch (\Throwable) {
-                // Assets are unavailable during a first install or migration.
-            }
-        }
+        // Per-school settings load after authentication via LoadSchoolSettings.
 
         if (app()->environment('production')) {
             URL::forceScheme('https');
