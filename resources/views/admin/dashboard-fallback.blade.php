@@ -1,16 +1,19 @@
-@extends('layouts.app')
-
-@section('header', 'Admin Dashboard')
-
-@section('content')
-<div class="mx-auto max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm">
-    <h2 class="text-xl font-bold">Dashboard is recovering</h2>
-    <p class="mt-2 text-sm">Your account and school data are available. An optional dashboard widget did not load, so the system kept this safe dashboard open instead of showing a 500 error.</p>
-    <p class="mt-2 text-xs text-amber-800">Reference: {{ $exceptionId }}</p>
-    <div class="mt-5 flex flex-wrap gap-3">
-        <a href="{{ route('admin.students.index') }}" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white">Learners</a>
-        <a href="{{ route('admin.classes.index') }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-green-800 ring-1 ring-green-300">Classes</a>
-        <a href="{{ route('admin.settings.index') }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-green-800 ring-1 ring-green-300">School settings</a>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard recovery</title>
+    <style>
+        body{margin:0;background:#f8fafc;color:#172033;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:720px;margin:9vh auto;padding:24px}.card{border:1px solid #f0c36b;border-radius:14px;background:#fffbeb;padding:28px;box-shadow:0 10px 28px #17203315}h1{margin:0;font-size:1.5rem}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}a{border-radius:8px;background:#166534;color:white;padding:10px 14px;text-decoration:none;font-weight:600;font-size:.9rem}.secondary{background:white;color:#166534;border:1px solid #86efac}.ref{color:#92400e;font-size:.75rem}
+    </style>
+</head>
+<body><main class="wrap"><section class="card">
+    <h1>Dashboard is recovering</h1>
+    <p>Your signed-in account is active. A dashboard widget could not load, so this independent recovery page was used instead of a server error.</p>
+    <p class="ref">Reference: {{ $exceptionId }}</p>
+    <div class="actions">
+        <a href="/admin/students">Learners</a><a class="secondary" href="/admin/classes">Classes</a><a class="secondary" href="/admin/settings">School settings</a>
     </div>
-</div>
-@endsection
+</section></main></body>
+</html>
