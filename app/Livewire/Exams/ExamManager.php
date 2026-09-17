@@ -70,6 +70,12 @@ class ExamManager extends Component
         $this->examTerm = (string) config('school.current_term');
         $this->termFilter = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
+        // Recover an incomplete school onboarding once, only when that
+        // school has no classes at all. This makes the exam selector usable
+        // without creating duplicate classes or overwriting existing work.
+        if (auth()->user()?->school_id && ! SchoolClass::where('is_active', true)->exists()) {
+            app(SchoolAcademicSetupService::class)->initializeCurrentSchool();
+        }
         if (request()->query('tab') === 'marks') {
             $exam = Exam::query()->where('academic_year', (string) config('school.academic_year'))
                 ->where('term', (string) config('school.current_term'))
