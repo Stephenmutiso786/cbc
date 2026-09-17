@@ -7,6 +7,7 @@ use App\Models\School;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Services\OlympusSmsService;
+use App\Services\SchoolAcademicSetupService;
 use App\Support\Tenant;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -119,6 +120,7 @@ class SchoolManager extends Component
         // so it shows the right name/details from day one.
         $admin = Tenant::run($school->id, function () use ($password, $school) {
             $this->syncSchoolSettings($this->form);
+            app(SchoolAcademicSetupService::class)->initializeCurrentSchool();
 
             $user = User::create([
                 'name' => $this->adminName,
@@ -133,7 +135,7 @@ class SchoolManager extends Component
 
         $this->generatedPassword = $password;
         $this->smsStatus = $this->sendCredentialsSms($school, $password);
-        session()->flash('success', "School \"{$school->name}\" created. Share the admin login below with them once — it will not be shown again.");
+        session()->flash('success', "School \"{$school->name}\" created with Grade 1–9 classes, subjects and grading scales. Share the admin login below with them once — it will not be shown again.");
     }
 
     /** Keeps the school's own Settings page in step with what's entered here. */
