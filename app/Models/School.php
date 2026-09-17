@@ -121,8 +121,9 @@ class School extends Model
     }
 
     /**
-     * Assign (or change) this school's package, logging the change and
-     * crediting the new package's included SMS units.
+     * Assign (or change) this school's package and log the change. SMS units
+     * are intentionally never invented by a subscription plan: they are
+     * allocated only after a separately confirmed, auditable SMS payment.
      */
     public function assignPackage(Package $package, ?string $expiresAt, ?int $changedBy, ?string $note = null): void
     {
@@ -138,9 +139,6 @@ class School extends Model
                 'note'           => $note,
             ]);
 
-            if ($package->sms_credits_granted > 0) {
-                $this->addSmsCredits($package->sms_credits_granted, 'package_grant', $changedBy, "Included with \"{$package->name}\" package");
-            }
         });
     }
 

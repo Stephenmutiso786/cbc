@@ -156,9 +156,11 @@
                     </label>
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount paid (KSh)</span>
                         <input wire:model="smsAmountPaid" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
+                        @error('smsAmountPaid') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                     </label>
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Payment reference</span>
                         <input wire:model="smsPaymentReference" placeholder="e.g. M-Pesa code or bank reference" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
+                        @error('smsPaymentReference') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                     </label>
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Note</span>
                         <input wire:model="smsNote" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">

@@ -26,7 +26,7 @@
                     @endif
                 </div>
                 <p class="mt-2 text-sm text-gray-600">{{ $package->description }}</p>
-                <p class="mt-2 text-xs text-gray-500">{{ $package->schools_count }} school(s) on this plan · {{ $package->sms_credits_granted }} SMS credits per renewal</p>
+                <p class="mt-2 text-xs text-gray-500">{{ $package->schools_count }} school(s) on this plan · SMS units are paid and allocated separately after payment confirmation.</p>
                 <div class="mt-3 flex flex-wrap gap-1.5">
                     @foreach ($package->features ?? [] as $feature)
                         <span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{{ \App\Livewire\SuperAdmin\PackageManager::AVAILABLE_FEATURES[$feature] ?? $feature }}</span>
@@ -80,10 +80,6 @@
                         </label>
                     </div>
 
-                    <label class="block max-w-xs"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">SMS credits granted per renewal</span>
-                        <input wire:model="form.sms_credits_granted" type="number" min="0" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
-                    </label>
-
                     <div>
                         <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Modules included in this plan</span>
                         <div class="mt-2 grid grid-cols-2 gap-2">
@@ -104,4 +100,3 @@
         </div>
     @endif
 </div>
-

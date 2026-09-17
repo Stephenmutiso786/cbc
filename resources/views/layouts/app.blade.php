@@ -38,7 +38,7 @@
                 @foreach([
                     'Platform overview' => [['admin.platform-dashboard.index', 'Command Centre'], ['admin.schools.index', 'Registered Schools'], ['admin.platform-analytics.index', 'Platform Analytics'], ['admin.platform-finance.index', 'Platform Finance']],
                     'Commercial' => [['admin.plans.index', 'Plans & Feature Access'], ['admin.schools.index', 'SMS Credit Allocation'], ['admin.broadcasts.index', 'Broadcast Centre']],
-                    'Security & Support' => [['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.legal-policies.index', 'Legal Policies']],
+                    'Security & Support' => [['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.platform-maintenance.index', 'Maintenance Mode'], ['admin.legal-policies.index', 'Legal Policies']],
                 ] as $section => $links)
                     <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label])<a href="{{ route($route) }}" class="flex items-center rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>@endforeach</div>
                 @endforeach
