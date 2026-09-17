@@ -139,6 +139,10 @@ class SchoolManager extends Component
                 'name' => $this->adminName,
                 'email' => $this->adminEmail,
                 'password' => Hash::make($password),
+                // Set this explicitly instead of relying solely on the
+                // tenant model event. It is the security boundary that keeps
+                // the new admin, its name/branding and its classes together.
+                'school_id' => $school->id,
                 'email_verified_at' => now(),
             ]);
             $user->assignRole('school-admin');

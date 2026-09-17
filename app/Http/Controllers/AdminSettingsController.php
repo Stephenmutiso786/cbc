@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SchoolSetting;
 use App\Models\SchoolSettingAsset;
 use App\Models\SystemSetting;
+use App\Models\School;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -226,6 +227,21 @@ class AdminSettingsController extends Controller
             foreach ($assetData as $key => $value) {
                 SchoolSettingAsset::updateOrCreate(['key' => $key], ['data' => $value]);
                 config()->set('school.' . $key, $value);
+            }
+
+            // Keep Manage Schools, billing, platform reports and this
+            // school's Settings page on the same identity. Previously a
+            // school-admin could change Settings while the central schools
+            // record still displayed the old/default name.
+            if (($schoolId = auth()->user()?->school_id) !== null) {
+                School::whereKey($schoolId)->update([
+                    'name' => $data['name'],
+                    'type' => $data['type'],
+                    'motto' => $data['motto'],
+                    'address' => $data['address'],
+                    'phone' => $data['phone'],
+                    'email' => $data['email'],
+                ]);
             }
         });
 

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\School;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +25,19 @@ class SchoolSettingsLoader
     {
         try {
             self::resetTenantConfig();
+            // The school record is the durable source for the identity entered
+            // during onboarding. Settings then override it only where the
+            // school has deliberately saved a different value. This prevents
+            // a newly created school from ever falling back to the generic
+            // application name while its settings rows are being created.
+            $school = School::find($schoolId);
+            if ($school) {
+                foreach (['name', 'type', 'motto', 'address', 'phone', 'email'] as $key) {
+                    if ($school->{$key} !== null && $school->{$key} !== '') {
+                        config()->set('school.' . $key, $school->{$key});
+                    }
+                }
+            }
             $secrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
             foreach (DB::table('school_settings')->where('school_id', $schoolId)->pluck('value', 'key') as $key => $value) {
                 try {
