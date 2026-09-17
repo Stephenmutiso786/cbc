@@ -15,6 +15,39 @@ use Database\Seeders\DefaultGradingScalesSeeder;
  */
 class SchoolAcademicSetupService
 {
+    /**
+     * Gives a newly provisioned school a usable CBE academic structure.
+     *
+     * A class is identified by its grade and academic year rather than its
+     * display name. That means an imported stream such as "Grade 4 East"
+     * counts as the school's Grade 4 and will not be duplicated by this
+     * initializer. Subjects and the active grading scale are then completed
+     * for every configured class in the school.
+     */
+    public function initializeCurrentSchool(): int
+    {
+        $academicYear = (string) config('school.academic_year');
+
+        // The subject catalogue currently covers the CBE Grade 1–9 bands.
+        // Do not create PP1/PP2 placeholders with no available subjects.
+        foreach (array_merge(
+            config('school.grade_levels.lower_primary', []),
+            config('school.grade_levels.upper_primary', []),
+            config('school.grade_levels.junior_secondary', []),
+        ) as $grade) {
+            SchoolClass::firstOrCreate(
+                ['grade_level' => $grade, 'academic_year' => $academicYear],
+                [
+                    'name' => $grade,
+                    'capacity' => 45,
+                    'is_active' => true,
+                ],
+            );
+        }
+
+        return $this->repairCurrentSchool();
+    }
+
     public function repairClass(SchoolClass $class): SchoolClass
     {
         app(DefaultClassSubjectsSeeder::class)->seedForClass($class);
