@@ -29,6 +29,9 @@ class LegalConsentController extends Controller
 
     private function portalFor($user): string
     {
+        if ($user->hasRole('super-admin')) {
+            return route('admin.platform-dashboard.index');
+        }
         if ($user->hasRole('parent')) {
             return route('parent.dashboard');
         }

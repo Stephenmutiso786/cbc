@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class School extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'type', 'motto', 'address', 'phone', 'email',
+        'name', 'slug', 'school_code', 'type', 'motto', 'address', 'phone', 'email',
         'logo_data', 'is_active', 'trial_ends_at', 'package_id', 'package_expires_at', 'sms_credits',
     ];
 

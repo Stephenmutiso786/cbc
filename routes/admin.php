@@ -38,6 +38,7 @@ use App\Livewire\SuperAdmin\PackageManager;
 use App\Livewire\SuperAdmin\PlatformFinance;
 use App\Livewire\SuperAdmin\PlatformAnalytics;
 use App\Livewire\SuperAdmin\BroadcastCenter;
+use App\Livewire\SuperAdmin\SuperAdminDashboard;
 use App\Livewire\Admin\IdCardGenerator;
 
 // The enclosing admin route group already restricts this landing page to
@@ -45,6 +46,7 @@ use App\Livewire\Admin\IdCardGenerator;
 // optional feature permission that may be repaired later in the request
 // lifecycle; individual administrative features stay permission-protected.
 Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
+Route::get('/platform-dashboard', SuperAdminDashboard::class)->middleware('role:super-admin')->name('platform-dashboard.index');
 // School administrators can submit and track their own tickets. Only the
 // super-admin receives the management permission and can see every ticket.
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');

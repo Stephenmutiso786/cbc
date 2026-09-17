@@ -41,7 +41,9 @@ class AuthenticatedSessionController extends Controller
         // Redirect based on role
         $user = Auth::user();
 
-        if ($user->hasRole(['school-admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy'])) {
+        if ($user->hasRole('super-admin')) {
+            return redirect()->route('admin.platform-dashboard.index');
+        } elseif ($user->hasRole(['school-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy'])) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->hasRole(['hod', 'teacher', 'class-teacher', 'pre-primary-teacher', 'lower-primary-teacher', 'upper-primary-teacher', 'junior-secondary-teacher'])) {
             return redirect()->route('teacher.dashboard');

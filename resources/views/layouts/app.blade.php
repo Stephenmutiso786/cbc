@@ -13,7 +13,7 @@
 <div class="min-h-screen">
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white shadow-lg transition-transform duration-300 md:translate-x-0">
-        <div class="flex h-16 items-center bg-green-900 px-5"><span class="truncate font-bold">{{ config('school.name') }}</span><button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button></div>
+        <div class="flex h-16 items-center bg-green-900 px-5"><span class="truncate font-bold">{{ auth()->user()?->hasRole('super-admin') ? 'ElimuHub Platform' : config('school.name') }}</span><button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button></div>
         @php
             $navigationUser = auth()->user();
             $maySeeNavigationLink = static function (?string $permission) use ($navigationUser): bool {
@@ -34,6 +34,15 @@
             };
         @endphp
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 text-sm">
+            @if($navigationUser?->hasRole('super-admin'))
+                @foreach([
+                    'Platform overview' => [['admin.platform-dashboard.index', 'Command Centre'], ['admin.schools.index', 'Registered Schools'], ['admin.platform-analytics.index', 'Platform Analytics'], ['admin.platform-finance.index', 'Platform Finance']],
+                    'Commercial' => [['admin.plans.index', 'Plans & Feature Access'], ['admin.schools.index', 'SMS Credit Allocation'], ['admin.broadcasts.index', 'Broadcast Centre']],
+                    'Security & Support' => [['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.legal-policies.index', 'Legal Policies']],
+                ] as $section => $links)
+                    <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label])<a href="{{ route($route) }}" class="flex items-center rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>@endforeach</div>
+                @endforeach
+            @else
             @php($featureMap = [
                 'finance.payments.index' => 'fees', 'finance.invoices.index' => 'fees', 'finance.reports.index' => 'fees',
                 'admin.inventory.index' => 'inventory', 'admin.sms.index' => 'notifications', 'admin.notifications.index' => 'notifications',
@@ -51,6 +60,7 @@
             ] as $section => $links)
                 <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label, $permission])@if($maySeeNavigationLink($permission) && (!isset($featureMap[$route]) || ($navigationUser?->school?->hasFeature($featureMap[$route]) ?? true)))@php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))<a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')@php($badgeCount = app(\App\Services\ModuleNotificationService::class)->count($badgeModule, $navigationUser?->id, $navigationUser?->hasRole('super-admin')))<span class="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white" @if($badgeCount < 1) hidden @endif>{{ $badgeCount > 99 ? '99+' : $badgeCount }}</span>@endif</a>@endif @endforeach</div>
             @endforeach
+            @endif
         </nav>
         <div class="border-t border-green-700 px-4 py-3"><p class="truncate text-xs text-green-200">{{ auth()->user()->name }}</p><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="mt-1 text-xs text-green-300 hover:text-white">Sign out</button></form></div>
     </aside>
