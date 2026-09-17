@@ -49,6 +49,7 @@
             <form method="POST" action="{{ route('logout') }}" class="ml-auto">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form>
         </header>
         <main class="min-w-0 overflow-x-hidden p-4 md:p-6">
+            @include('layouts.partials.platform-broadcast')
             @yield('content')
             @isset($slot)
                 {{ $slot }}

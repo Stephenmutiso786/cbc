@@ -20,19 +20,27 @@
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
         </div>
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 pb-28 text-sm">
+            @php($featureMap = [
+                'finance.payments.index' => 'fees', 'finance.invoices.index' => 'fees', 'finance.reports.index' => 'fees',
+                'admin.inventory.index' => 'inventory',
+                'admin.sms.index' => 'notifications', 'admin.notifications.index' => 'notifications',
+                'admin.kemis.index' => 'kemis',
+                'admin.notes.index' => 'lesson_plans',
+                'admin.timetable.index' => 'timetable', 'admin.exam-timetable.index' => 'timetable',
+            ])
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard', null]],
                 'Learning' => [['learning.miyagi', 'Miyagi AI Learning', null]],
                 'People' => [['admin.students.index', 'Learners', 'view students'], ['admin.students.import', 'Import Learners', 'create students'], ['admin.staff.index', 'Staff', 'view staff'], ['admin.staff.import', 'Import Staff', 'manage staff'], ['admin.parents.index', 'Parent Management', 'view students']],
                 'Academics' => [['admin.classes.index', 'Classes', 'manage curriculum'], ['admin.subjects.index', 'Subjects', 'manage curriculum'], ['admin.grades.index', 'Grade Management', 'manage curriculum'], ['admin.promotions.index', 'Promotions', 'manage promotions'], ['admin.assessment.index', 'Assessments', 'view assessments'], ['admin.exams.index', 'Exams', 'view exams'], ['admin.notes.index', 'Learning Notes', 'view notes'], ['admin.timetable.index', 'Timetable', 'view timetable'], ['admin.exam-timetable.index', 'Exam Timetable', 'view timetable']],
-                'Finance' => [['finance.payments.index', 'Fees and Payments', 'view fees'], ['finance.invoices.index', 'Invoices', 'view fees'], ['finance.reports.index', 'Finance Reports', 'view finance reports']],
+                'Finance' => [['finance.payments.index', 'Fees and Payments', 'view fees'], ['finance.invoices.index', 'Invoices', 'view fees'], ['finance.reports.index', 'Finance Reports', 'view finance reports'], ['billing.index', 'Subscription & Billing', null]],
                 'Operations' => [['admin.inventory.index', 'Inventory', 'view inventory'], ['admin.sms.index', 'SMS Center', 'view notifications'], ['admin.notifications.index', 'Notifications', 'view notifications'], ['admin.reports.index', 'Analytics and Reports', 'view analytics'], ['admin.support.index', 'Support Tickets', 'submit support tickets']],
-                'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.backups.index', 'Backups', 'manage system settings'], ['admin.user-accounts.index', 'User Accounts', 'manage users'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.drive-store.index', 'Google Drive Store', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis'], ['admin.schools.index', 'School Management', '__super_admin__'], ['admin.legal-policies.index', 'Legal Policies', 'manage legal policies'], ['admin.diagnostics.index', 'System Diagnostics', 'run diagnostics'], ['admin.system-logs.index', 'System Logs', '__super_admin__'], ['admin.impersonate.index', 'Impersonate User', '__super_admin__'], ['legal.terms', 'Terms and Conditions', null], ['legal.privacy', 'Privacy Policy', null]],
+                'Configuration' => [['admin.settings.index', 'School Settings', 'manage system settings'], ['admin.backups.index', 'Backups', 'manage system settings'], ['admin.user-accounts.index', 'User Accounts', 'manage users'], ['admin.academic-periods.index', 'Years and Terms', 'manage curriculum'], ['admin.roles.index', 'Roles and Permissions', 'manage roles'], ['admin.report-forms.index', 'Report Forms', 'view report cards'], ['admin.drive-store.index', 'Google Drive Store', 'view report cards'], ['admin.kemis.index', 'KEMIS Integration', 'sync kemis'], ['admin.legal-policies.index', 'Legal Policies', '__super_admin__'], ['admin.schools.index', 'Manage Schools', '__super_admin__'], ['admin.plans.index', 'Manage Plans', '__super_admin__'], ['admin.platform-analytics.index', 'Platform Analytics', '__super_admin__'], ['admin.platform-finance.index', 'Platform Finance', '__super_admin__'], ['admin.broadcasts.index', 'Broadcast Center', '__super_admin__'], ['admin.id-cards.index', 'ID Cards & Certificates', 'view students'], ['admin.diagnostics.index', 'System Diagnostics', 'run diagnostics'], ['admin.system-logs.index', 'System Logs', '__super_admin__'], ['admin.impersonate.index', 'Impersonate User', '__super_admin__'], ['legal.terms', 'Terms and Conditions', null], ['legal.privacy', 'Privacy Policy', null]],
             ] as $section => $links)
                 <div>
                     <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
                     @foreach($links as [$route, $label, $permission])
-                        @if($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission)))
+                        @if(($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission))) && (!isset($featureMap[$route]) || (auth()->user()->school?->hasFeature($featureMap[$route]) ?? true)))
                             @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
                             <a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
                         @endif
@@ -55,6 +63,19 @@
             <div class="flex items-center gap-2 sm:gap-4"><span class="hidden text-sm text-gray-500 sm:inline">{{ config('school.academic_year') }}</span>@include('layouts.partials.online-users')@include('layouts.partials.theme-toggle')<form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Log out</button></form></div>
         </header>
         <main class="min-w-0 overflow-x-hidden p-4 md:p-6">
+            @php($latestBroadcast = \App\Models\PlatformBroadcast::where('status', 'sent')->where('sent_at', '>=', now()->subDays(7))->latest('sent_at')->first())
+            @if ($latestBroadcast && ! in_array($latestBroadcast->id, session('dismissed_broadcasts', [])))
+                <div class="mb-4 flex items-start justify-between rounded-lg border border-yellow-300 bg-yellow-50 p-4">
+                    <div>
+                        <p class="font-semibold text-yellow-900">📢 {{ $latestBroadcast->title }}</p>
+                        <p class="mt-1 text-sm text-yellow-800">{{ $latestBroadcast->message }}</p>
+                    </div>
+                    <form method="POST" action="{{ route('broadcasts.dismiss', $latestBroadcast) }}">
+                        @csrf
+                        <button type="submit" class="ml-4 text-yellow-700 hover:text-yellow-900" aria-label="Dismiss">&times;</button>
+                    </form>
+                </div>
+            @endif
             @yield('content')
             @isset($slot){{ $slot }}@endisset
         </main>

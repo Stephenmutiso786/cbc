@@ -13,7 +13,7 @@ class SchoolNotification extends Model
     protected $table = 'school_notifications';
 
     protected $fillable = [
-        'sender_id','title','message','type','channel','target_recipients',
+        'sender_id','broadcast_id','title','message','type','channel','target_recipients',
         'target_grade','target_group','target_class_id','total_recipients','sent_count','failed_count',
         'status','scheduled_at','sent_at',
     ];

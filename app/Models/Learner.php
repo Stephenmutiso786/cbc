@@ -17,7 +17,7 @@ class Learner extends Model
         'date_of_birth', 'gender', 'grade_level', 'class_id', 'stream',
         'admission_date', 'boarding_status', 'special_needs', 'special_needs_details',
         'previous_school', 'birth_certificate_number', 'nhif_number',
-        'academic_year', 'is_active',
+        'academic_year', 'is_active', 'photo_path',
     ];
 
     protected $casts = [
