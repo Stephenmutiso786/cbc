@@ -18,6 +18,13 @@
             clearTimeout(timer);
             loader?.classList.add('is-visible');
         };
+        const showAfterBriefDelay = () => {
+            clearTimeout(timer);
+            // A full-screen overlay for a fast request is distracting,
+            // especially while a user is typing into a Livewire form. Only
+            // show it when a deliberate action actually takes noticeable time.
+            timer = window.setTimeout(() => loader?.classList.add('is-visible'), 300);
+        };
         const hide = () => {
             clearTimeout(timer);
             loader?.classList.remove('is-visible');
@@ -27,6 +34,13 @@
             const binding = active?.getAttribute('wire:model') || active?.getAttribute('wire:model.live') || '';
             return active?.matches('input[type="number"]') && binding.startsWith('marks.');
         };
+        const isBackgroundInputUpdate = () => {
+            const active = document.activeElement;
+            if (!active || !active.matches('input, select, textarea')) return false;
+            return Boolean(active.getAttribute('wire:model') || active.getAttribute('wire:model.live') || active.getAttribute('wire:model.blur'));
+        };
+        const isLivewireForm = (form) => Array.from(form?.attributes || [])
+            .some((attribute) => attribute.name.startsWith('wire:submit'));
         const refreshRubrics = (input) => {
             const bandsElement = document.getElementById('marks-grading-bands');
             if (!bandsElement) return;
@@ -66,7 +80,9 @@
             if (Number.isFinite(value) && value < 0) input.value = '0';
         }, true);
         document.addEventListener('submit', (event) => {
-            if (!event.target.hasAttribute('data-no-loading')) show();
+            if (!event.target.hasAttribute('data-no-loading')) {
+                isLivewireForm(event.target) ? showAfterBriefDelay() : show();
+            }
         });
         document.addEventListener('click', (event) => {
             const link = event.target.closest('a');
@@ -92,12 +108,12 @@
             }, true);
 
             Livewire.hook('commit', ({ succeed, fail }) => {
-                if (marksPreviewUpdate()) {
+                if (marksPreviewUpdate() || isBackgroundInputUpdate()) {
                     succeed(() => hide());
                     fail(() => hide());
                     return;
                 }
-                show();
+                showAfterBriefDelay();
                 succeed(() => { hide(); refreshRubrics(); });
                 fail(() => hide());
             });
