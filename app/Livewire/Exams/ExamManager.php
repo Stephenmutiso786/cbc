@@ -851,10 +851,19 @@ class ExamManager extends Component
                 ->latest('marks_submitted_at')->latest('id')->get()
             : collect();
 
+        $classes = SchoolClass::query()
+            ->where('is_active', true)
+            ->when(! $allExamScope, fn ($query) => $query->whereIn('id', (clone $allocation)->pluck('class_id')))
+            ->with('learningAreas')
+            ->orderBy('grade_level')->orderBy('name')->get();
+
         return view('livewire.exams.exam-manager', [
             'exams'         => $exams,
             'learningAreas' => $this->availableLearningAreas($allExamScope, $allocation),
-            'classes' => $allExamScope ? SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->get() : SchoolClass::forConfiguredGrades()->whereIn('id', (clone $allocation)->pluck('class_id'))->with('learningAreas')->orderBy('grade_level')->get(),
+            // Do not filter this selector through the fixed CBC Grade 1-9
+            // list. Imported streams and valid school-specific classes must
+            // remain visible and selectable for exams.
+            'classes' => $classes,
             'gradeLevels'   => config('school.grade_levels'),
             'marks'         => $this->marks,
             'examScaleName' => $this->examScaleName,
