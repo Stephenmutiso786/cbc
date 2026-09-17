@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use App\Jobs\SendExamResultsSmsJob;
 use App\Http\Controllers\ExamReportsController;
 use App\Models\SchoolNotification;
+use App\Services\SchoolAcademicSetupService;
 use Throwable;
 
 class ExamManager extends Component
@@ -92,6 +93,13 @@ class ExamManager extends Component
 
         try {
             $class = SchoolClass::with('learningAreas')->findOrFail((int) $classId);
+            // Imported classes and older schools may predate class-subject
+            // and class-scale assignments. Repair missing standard setup
+            // here, non-destructively, so the selected class can immediately
+            // show the subjects and grading system needed to create an exam.
+            if ($class->learningAreas->isEmpty() || ! $class->gradingScales()->wherePivot('academic_year', (string) config('school.academic_year'))->exists()) {
+                $class = app(SchoolAcademicSetupService::class)->repairClass($class);
+            }
             $this->examGrade = (string) $class->grade_level;
             $scale = $class->gradingScales()
                 ->wherePivot('academic_year', (string) config('school.academic_year'))
