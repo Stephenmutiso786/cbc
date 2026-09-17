@@ -104,6 +104,21 @@
 
 </div>
 
+{{-- School performance pulse: quick, actionable analytics for administrators. --}}
+@if(isset($intelligence))
+<section class="mb-6 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-white p-5 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-lg font-bold text-gray-900">School Performance Pulse</h2><p class="text-sm text-gray-600">Today’s attendance and the latest term assessment for this school only.</p></div>
+        <a href="{{ route('admin.reports.index') }}" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Open analytics</a>
+    </div>
+    <div class="mt-4 grid gap-4 md:grid-cols-3">
+        <div class="rounded-lg bg-white p-4"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Today’s attendance</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ $intelligence['attendance_rate'] === null ? '—' : $intelligence['attendance_rate'].'%' }}</p><p class="text-xs text-gray-500">{{ number_format($intelligence['attendance_total']) }} record(s) submitted today</p></div>
+        <div class="rounded-lg bg-white p-4"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Latest assessment mean</p><p class="mt-1 text-2xl font-bold text-green-700">{{ $intelligence['exam_mean'] === null ? '—' : $intelligence['exam_mean'].'%' }}</p><p class="truncate text-xs text-gray-500">{{ $intelligence['latest_exam']?->name ?? 'No assessment entered this term' }}</p></div>
+        <div class="rounded-lg bg-white p-4"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Marks captured</p><p class="mt-1 text-2xl font-bold text-blue-700">{{ number_format($intelligence['marks_entered']) }}</p><p class="text-xs text-gray-500">For the latest assessment group</p></div>
+    </div>
+</section>
+@endif
+
 {{-- Second Row --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
 

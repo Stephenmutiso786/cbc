@@ -6,6 +6,7 @@ use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Services\GoogleDriveStorage;
 use App\Services\SchoolAcademicSetupService;
+use App\Services\SchoolAdmissionNumberService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -90,9 +91,16 @@ class DriveStoreController extends Controller
                         $admission = trim((string) ($learner['admission_number'] ?? ''));
                         $first = trim((string) ($learner['first_name'] ?? ''));
                         $last = trim((string) ($learner['last_name'] ?? ''));
-                        if ($admission === '' || $first === '' || $last === '') {
+                        if ($first === '' || $last === '') {
                             $skipped++;
                             continue;
+                        }
+                        $admissionNumbers = app(SchoolAdmissionNumberService::class);
+                        // Imported legacy numbers are retained only when they
+                        // already identify this school. Otherwise a new,
+                        // school-owned number is assigned safely.
+                        if ($admission === '' || ! $admissionNumbers->belongsToCurrentSchool($admission)) {
+                            $admission = $admissionNumbers->next();
                         }
                         if (Learner::withTrashed()->where('admission_number', $admission)->exists()) {
                             $skipped++;
