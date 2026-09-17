@@ -54,7 +54,9 @@
                         </td>
                         <td class="px-4 py-3 font-semibold text-gray-700">{{ number_format($school->sms_credits) }}</td>
                         <td class="px-4 py-3">
-                            @if ($school->is_active)
+                            @if ($school->is_locked)
+                                <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Locked</span>
+                            @elseif ($school->is_active)
                                 <span class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Active</span>
                             @else
                                 <span class="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">Inactive</span>
@@ -64,6 +66,7 @@
                             <button wire:click="edit({{ $school->id }})" class="text-sm font-semibold text-green-700 hover:underline">Edit</button>
                             <button wire:click="openPlanForm({{ $school->id }})" class="ml-3 text-sm font-semibold text-blue-700 hover:underline">Plan</button>
                             <button wire:click="openSmsForm({{ $school->id }})" class="ml-3 text-sm font-semibold text-amber-700 hover:underline">SMS credit</button>
+                            <button wire:click="toggleLock({{ $school->id }})" wire:confirm="{{ $school->is_locked ? 'Unlock this school?' : 'Lock this school? Its school users will be unable to access the platform.' }}" class="ml-3 text-sm font-semibold {{ $school->is_locked ? 'text-green-700' : 'text-red-700' }} hover:underline">{{ $school->is_locked ? 'Unlock' : 'Lock' }}</button>
                             <button wire:click="toggleActive({{ $school->id }})" wire:confirm="Are you sure?" class="ml-3 text-sm font-semibold text-gray-500 hover:underline">
                                 {{ $school->is_active ? 'Deactivate' : 'Activate' }}
                             </button>

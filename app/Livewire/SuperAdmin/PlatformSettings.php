@@ -5,10 +5,13 @@ namespace App\Livewire\SuperAdmin;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Crypt;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /** Super-admin-only settings for the shared ElimuHub platform. */
 class PlatformSettings extends Component
 {
+    use WithFileUploads;
+
     public string $platformName = '';
     public string $platformTagline = '';
     public string $platformFooter = '';
@@ -23,6 +26,7 @@ class PlatformSettings extends Component
     public string $mpesaShortcode = '';
     public string $mpesaPasskey = '';
     public string $mpesaCallbackUrl = '';
+    public $loginLogo;
 
     public function mount(): void
     {
@@ -58,6 +62,7 @@ class PlatformSettings extends Component
             'mpesaShortcode' => ['nullable', 'string', 'max:50'],
             'mpesaPasskey' => ['nullable', 'string', 'max:500'],
             'mpesaCallbackUrl' => ['nullable', 'url', 'max:500'],
+            'loginLogo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         foreach ([
@@ -75,6 +80,10 @@ class PlatformSettings extends Component
             SystemSetting::put($key, $value);
         }
 
+        if ($this->loginLogo) {
+            SystemSetting::put('platform_logo_data', 'data:' . $this->loginLogo->getMimeType() . ';base64,' . base64_encode(file_get_contents($this->loginLogo->getRealPath())));
+        }
+
         foreach ([
             'olympus_sms_api_token' => $this->smsApiToken,
             'platform_mpesa_consumer_key' => $this->mpesaConsumerKey,
@@ -87,6 +96,7 @@ class PlatformSettings extends Component
         }
 
         $this->smsApiToken = $this->mpesaConsumerKey = $this->mpesaConsumerSecret = $this->mpesaPasskey = '';
+        $this->loginLogo = null;
         session()->flash('success', 'Global platform settings saved. Secret fields remain hidden after saving.');
     }
 

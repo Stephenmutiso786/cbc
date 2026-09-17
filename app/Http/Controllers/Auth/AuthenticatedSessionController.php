@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Learner;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -26,13 +27,23 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
+            'login'    => ['required', 'string'],
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        $email = $credentials['login'];
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $learners = Learner::withoutSchoolScope()->where('admission_number', trim($credentials['login']))->whereNotNull('user_id')->with('user')->limit(2)->get();
+            if ($learners->count() === 1 && $learners->first()->user) {
+                $email = $learners->first()->user->email;
+            } else {
+                throw ValidationException::withMessages(['login' => 'Use the learner admission number or your account email address.']);
+            }
+        }
+
+        if (!Auth::attempt(['email' => $email, 'password' => $credentials['password']], $request->boolean('remember'))) {
             throw ValidationException::withMessages([
-                'email' => 'The provided credentials do not match our records.',
+                'login' => 'The provided credentials do not match our records.',
             ]);
         }
 

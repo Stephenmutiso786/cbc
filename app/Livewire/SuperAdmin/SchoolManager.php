@@ -204,6 +204,13 @@ class SchoolManager extends Component
         $school->update(['is_active' => ! $school->is_active]);
     }
 
+    public function toggleLock(int $id): void
+    {
+        $school = School::findOrFail($id);
+        $school->update(['is_locked' => ! $school->is_locked]);
+        session()->flash('success', $school->is_locked ? "{$school->name} is now locked." : "{$school->name} is unlocked and may access the platform.");
+    }
+
     public function openPlanForm(int $schoolId): void
     {
         $school = School::findOrFail($schoolId);

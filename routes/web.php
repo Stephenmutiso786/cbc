@@ -7,6 +7,7 @@ use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\SchoolAssetController;
 use App\Http\Controllers\LegalConsentController;
 use App\Http\Controllers\CookieConsentController;
+use App\Http\Controllers\AccountPasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +21,7 @@ Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school
 Route::view('/verify', 'verify')->name('verify');
 Route::view('/terms', 'legal.terms')->name('legal.terms');
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/school-locked', 'school-locked')->middleware('auth')->name('school.locked');
 Route::view('/legal/acceptance', 'legal.acceptance')->middleware('auth')->name('legal.acceptance');
 Route::post('/legal/acceptance', [LegalConsentController::class, 'accept'])->middleware('auth')->name('legal.accept');
 Route::post('/cookie-consent', [CookieConsentController::class, 'store'])->name('cookie-consent.store');
@@ -34,6 +36,8 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+Route::get('/account/change-password', [AccountPasswordController::class, 'edit'])->middleware('auth')->name('account.password.edit');
+Route::put('/account/change-password', [AccountPasswordController::class, 'update'])->middleware('auth')->name('account.password.update');
 
 Route::post('/impersonate-stop', [\App\Http\Controllers\ImpersonationController::class, 'stop'])
     ->middleware('auth')->name('impersonate.stop.global');

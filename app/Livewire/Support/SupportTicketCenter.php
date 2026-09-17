@@ -70,13 +70,22 @@ class SupportTicketCenter extends Component
     public function render()
     {
         $isSuperAdmin = auth()->user()->hasRole('super-admin');
-        $tickets = SupportTicket::with(['creator', 'assignee'])
+        $tickets = SupportTicket::with(['creator', 'assignee', 'school'])
             ->when(! $isSuperAdmin, fn ($query) => $query->where('created_by', auth()->id()))
             ->latest()->paginate(15);
 
-        $layout = $isSuperAdmin || request()->routeIs('admin.*')
-            ? 'layouts.admin'
-            : (request()->routeIs('student.*') ? 'layouts.student' : (request()->routeIs('parent.*') ? 'layouts.parent' : (request()->routeIs('finance.*') ? 'layouts.finance' : 'layouts.teacher')));
+        $layout = 'layouts.teacher';
+        if ($isSuperAdmin) {
+            $layout = 'layouts.app';
+        } elseif (request()->routeIs('admin.*')) {
+            $layout = 'layouts.admin';
+        } elseif (request()->routeIs('student.*')) {
+            $layout = 'layouts.student';
+        } elseif (request()->routeIs('parent.*')) {
+            $layout = 'layouts.parent';
+        } elseif (request()->routeIs('finance.*')) {
+            $layout = 'layouts.finance';
+        }
 
         return view('livewire.support.ticket-center', compact('tickets', 'isSuperAdmin'))->layout($layout);
     }

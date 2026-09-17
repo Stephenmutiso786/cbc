@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 class EnsureSchoolSubscriptionActive
 {
     private const ALLOWED_ROUTE_NAMES = [
-        'billing.index', 'logout', 'legal.acceptance', 'legal.accept', 'legal.terms', 'legal.privacy',
+        'billing.index', 'school.locked', 'logout', 'legal.acceptance', 'legal.accept', 'legal.terms', 'legal.privacy',
     ];
 
     public function handle(Request $request, Closure $next)
@@ -30,6 +30,10 @@ class EnsureSchoolSubscriptionActive
 
         $school = $user->school;
 
+        if ($school?->is_locked) {
+            return redirect()->route('school.locked');
+        }
+
         if ($school && ! $school->isOnActiveSubscription()) {
             return redirect()->route('billing.index');
         }
@@ -37,4 +41,3 @@ class EnsureSchoolSubscriptionActive
         return $next($request);
     }
 }
-

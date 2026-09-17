@@ -6,4 +6,5 @@ return [
     'footer' => '@STETECH LIMITED',
     'support_email' => '',
     'support_phone' => '',
+    'logo_data' => null,
 ];
