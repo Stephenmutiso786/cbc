@@ -2,11 +2,11 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-800">SMS Center</h2>
-            <p class="text-sm text-gray-500">Live balance and account management for Olympus SMS.</p>
+            <p class="text-sm text-gray-500">{{ $isSuperAdmin ? 'Platform SMS account balance and delivery history.' : 'Your school\'s allocated SMS credits and delivery history.' }}</p>
         </div>
         <button wire:click="refresh" wire:loading.attr="disabled"
                 class="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-60">
-            <span wire:loading.remove wire:target="refresh">Refresh balance</span>
+            <span wire:loading.remove wire:target="refresh">{{ $isSuperAdmin ? 'Refresh balance' : 'Refresh credits' }}</span>
             <span wire:loading wire:target="refresh">Checking...</span>
         </button>
     </div>
@@ -17,11 +17,13 @@
         </div>
     @endif
 
-    <div class="grid gap-6 md:grid-cols-2">
+    <div class="grid gap-6 {{ $isSuperAdmin ? 'md:grid-cols-2' : '' }}">
         <section class="rounded-xl bg-white p-6 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Remaining SMS units</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ $isSuperAdmin ? 'Platform provider units' : 'Allocated school SMS credits' }}</p>
             <p class="mt-3 text-4xl font-bold text-green-700">
-                @if($loading)
+                @if(! $isSuperAdmin)
+                    {{ number_format($allocatedCredits ?? 0) }}
+                @elseif($loading)
                     <span class="text-2xl text-gray-400">Loading...</span>
                 @elseif($units !== null)
                     {{ number_format((float) $units, 0) }}
@@ -34,6 +36,7 @@
             @endif
         </section>
 
+        @if($isSuperAdmin)
         <section class="rounded-xl border border-amber-200 bg-amber-50 p-6">
             <h3 class="font-semibold text-gray-800">Recharge SMS</h3>
             <p class="mt-2 text-sm leading-6 text-gray-700">
@@ -46,7 +49,12 @@
             </a>
             <p class="mt-3 text-xs text-gray-600">Olympus has not published a recharge/top-up API in the supplied documentation, so the system does not simulate or collect payments.</p>
         </section>
+        @endif
     </div>
+
+    @if(! $isSuperAdmin)
+        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">Your credits are allocated after your school pays and the platform administrator confirms the payment. Contact the platform administrator to top up.</div>
+    @endif
 
     @if(auth()->user()->can('send notifications'))
         <section class="rounded-xl bg-white p-6 shadow-sm">
@@ -55,11 +63,11 @@
         </section>
     @endif
 
-    <div class="rounded-xl bg-white p-6 text-sm text-gray-600 shadow-sm">
+    @if($isSuperAdmin)<div class="rounded-xl bg-white p-6 text-sm text-gray-600 shadow-sm">
         SMS balance, sending, delivery history, and recharge access are managed from this SMS Center. The balance shown above is fetched live from Olympus and is not stored as a fake local credit balance.
-    </div>
+    </div>@endif
 
-    <section class="rounded-xl bg-white p-6 shadow-sm">
+    @if($isSuperAdmin)<section class="rounded-xl bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h3 class="text-lg font-semibold text-gray-800">Sent messages</h3>
@@ -101,5 +109,5 @@
                 </div>
             @endif
         @endif
-    </section>
+    </section>@endif
 </div>
