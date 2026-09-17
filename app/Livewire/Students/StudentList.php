@@ -5,6 +5,8 @@ namespace App\Livewire\Students;
 use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Jobs\GenerateReportCardJob;
+use App\Services\SchoolAdmissionNumberService;
+use App\Support\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -167,7 +169,12 @@ class StudentList extends Component
             $row['date_of_birth'] = $row['date_of_birth'] ?: null;
             $row['academic_year'] = $row['academic_year'] ?: (string) config('school.academic_year');
             $row['boarding_status'] = strtolower($row['boarding_status'] ?: 'day');
-            $row['admission_number'] = $row['admission_number'] ?: $this->newAdmissionNumber((int) $row['class_id']);
+            $admissions = app(SchoolAdmissionNumberService::class);
+            $row['admission_number'] = $row['admission_number'] ?: $admissions->next();
+            if (! $admissions->belongsToCurrentSchool($row['admission_number'])) {
+                $this->importErrors[] = 'Row ' . $line . ': admission number must start with ' . $admissions->prefix() . '-, or leave it blank for automatic numbering.';
+                continue;
+            }
 
             $nameKey = $this->nameKey($row['first_name'], $row['middle_name'], $row['last_name'])
                 . '|' . (int) $row['class_id'] . '|' . $row['academic_year'];
@@ -183,7 +190,7 @@ class StudentList extends Component
             }
 
             $validator = Validator::make($row, [
-                'admission_number' => ['required', 'string', 'max:255', 'unique:learners,admission_number'],
+                'admission_number' => ['required', 'string', 'max:255', Rule::unique('learners', 'admission_number')->where('school_id', Tenant::id())],
                 'first_name' => ['required', 'string', 'max:255'],
                 'middle_name' => ['nullable', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
@@ -273,15 +280,7 @@ class StudentList extends Component
 
     private function newAdmissionNumber(int $classId): string
     {
-        $class = SchoolClass::findOrFail($classId);
-        $prefix = strtoupper(preg_replace('/[^A-Z0-9]+/i', '-', $class->name));
-        $prefix = trim($prefix, '-') ?: 'CLASS';
-        $next = Learner::withTrashed()->where('class_id', $classId)->count() + 1;
-        do {
-            $number = $prefix . '-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Learner::withTrashed()->where('admission_number', $number)->exists());
-        return $number;
+        return app(SchoolAdmissionNumberService::class)->next();
     }
 
     public function edit(int $id): void
@@ -305,7 +304,7 @@ class StudentList extends Component
     {
         abort_unless(auth()->user()->can($this->editingId ? 'edit students' : 'create students'), 403);
         $data = $this->validate([
-            'form.admission_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('learners', 'admission_number')->ignore($this->editingId)],
+            'form.admission_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('learners', 'admission_number')->where('school_id', Tenant::id())->ignore($this->editingId)],
             'form.first_name' => 'required|string|max:255', 'form.middle_name' => 'nullable|string|max:255',
             'form.last_name' => 'required|string|max:255', 'form.date_of_birth' => 'nullable|date',
             'form.grade_level' => 'required|string',

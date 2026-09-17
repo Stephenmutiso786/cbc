@@ -124,7 +124,7 @@
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         <div class="mb-5 flex items-center justify-between"><h3 class="text-lg font-bold text-gray-900">Bulk import learners</h3><button type="button" wire:click="closeImport" class="text-gray-400 hover:text-gray-700" aria-label="Close">&times;</button></div>
-        <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
+        <p class="mb-4 text-sm text-gray-600">Paste one learner name per line, or upload a CSV. For names only, select the grade and class below. Admission numbers are generated as this school's initials + year + sequence. A CSV number must use the same school prefix, or leave it blank. CSV headers supported: <code>admission_number,first_name,middle_name,last_name,date_of_birth,grade_level,class_id,admission_date,boarding_status,academic_year</code>.</p>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label class="block text-sm text-gray-700">Default grade
                 <select wire:model="importGrade" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="">Select grade</option>@foreach(config('school.grade_levels') as $grades) @foreach($grades as $grade)<option value="{{ $grade }}">{{ $grade }}</option>@endforeach @endforeach</select>
