@@ -44,7 +44,12 @@ class TimetableManager extends Component
             throw ValidationException::withMessages(['academicYear' => 'No active classes with assigned subjects are available to schedule.']);
         }
         DB::transaction(function () use ($slots): void {
-            TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)->delete();
+            // Regenerating a single class must not erase every other class's
+            // published/draft timetable for the same term.
+            TimetableSlot::where('academic_year', $this->academicYear)
+                ->where('term', (string) $this->term)
+                ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
+                ->delete();
             TimetableSlot::insert($slots);
         });
         $this->notice = count($slots) . ' lessons generated as a draft. Review conflicts, then publish.';
@@ -70,23 +75,42 @@ class TimetableManager extends Component
 
     public function render()
     {
+        $slots = TimetableSlot::with(['schoolClass', 'learningArea', 'teacher'])
+            ->where('academic_year', $this->academicYear)->where('term', (string) $this->term)
+            ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
+            ->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")
+            ->orderBy('start_time')->get();
+
         return view('livewire.admin.timetable-manager', [
-            'slots' => TimetableSlot::with(['schoolClass', 'learningArea', 'teacher'])
-                ->where('academic_year', $this->academicYear)->where('term', (string) $this->term)
-                ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
-                ->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")
-                ->orderBy('start_time')->get(),
-            'classes' => SchoolClass::forConfiguredGrades()->where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
+            'slots' => $slots,
+            'gridSlots' => $this->classId ? $slots->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)) : collect(),
+            'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
         ])->layout('layouts.admin');
     }
 
     private function buildSchedule(): array
     {
-        $classes = SchoolClass::forConfiguredGrades()->where('is_active', true)
+        $classes = SchoolClass::where('is_active', true)
             ->when($this->classId, fn ($query) => $query->whereKey((int) $this->classId))
             ->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get();
         $allocations = TeacherSubjectAllocation::where('academic_year', $this->academicYear)->where('term', $this->term)->where('is_active', true)->get()->groupBy(fn ($allocation) => $allocation->class_id . ':' . $allocation->learning_area_id);
         $occupied = ['class' => [], 'teacher' => [], 'venue' => []];
+        // When generating one class, preserve all other classes' slots as
+        // occupied. That makes teacher and specialist-room conflict checks
+        // real instead of accidentally scheduling over them.
+        if ($this->classId) {
+            TimetableSlot::where('academic_year', $this->academicYear)
+                ->where('term', (string) $this->term)
+                ->where('class_id', '!=', (int) $this->classId)
+                ->get()
+                ->each(function (TimetableSlot $slot) use (&$occupied): void {
+                    $period = $this->periodIndexFor($slot->start_time);
+                    if ($period === null) return;
+                    $occupied['class'][$slot->class_id . ':' . $slot->day_of_week . ':' . $period] = true;
+                    $occupied['teacher'][$slot->teacher_id . ':' . $slot->day_of_week . ':' . $period] = true;
+                    if ($slot->venue) $occupied['venue'][$slot->venue . ':' . $slot->day_of_week . ':' . $period] = true;
+                });
+        }
         $rows = [];
 
         foreach ($classes as $class) {
@@ -97,7 +121,8 @@ class TimetableManager extends Component
                 if (! $allocation) {
                     throw ValidationException::withMessages(['academicYear' => "{$class->name} has no teacher allocated for {$area->name} in Term {$this->term}."]);
                 }
-                foreach (array_fill(0, $this->weeklyQuota($class->grade_level, $area->name), 1) as $_) {
+                $weeklyLessons = (int) ($area->pivot?->lessons_per_week ?: $this->weeklyQuota($class->grade_level, $area->name));
+                foreach (array_fill(0, max(1, $weeklyLessons), 1) as $_) {
                     $tasks[] = ['area' => $area, 'teacher' => $allocation->teacher_id, 'length' => 1];
                 }
             }
@@ -188,6 +213,15 @@ class TimetableManager extends Component
             if ($venue && isset($occupied['venue'][$venue . ':' . $day . ':' . $period])) return true;
         }
         return false;
+    }
+
+    private function periodIndexFor(string $startTime): ?int
+    {
+        $startTime = substr($startTime, 0, 5);
+        foreach (self::TIMES as $index => [$start]) {
+            if ($start === $startTime) return $index;
+        }
+        return null;
     }
 
     private function periodsFor(SchoolClass $class): array { return array_slice(self::TIMES, 0, $this->isJss($class->grade_level) ? 8 : 7); }

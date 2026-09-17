@@ -154,7 +154,7 @@ class ExamTimetableManager extends Component
             ->orderBy('date')->orderBy('start_time')->get();
         return view('livewire.admin.exam-timetable-manager', [
             'groups' => $groups,
-            'classes' => \App\Models\SchoolClass::forConfiguredGrades()->where('is_active', true)
+            'classes' => \App\Models\SchoolClass::where('is_active', true)
                 ->where('academic_year', $this->academicYear)->orderBy('grade_level')->orderBy('name')->get(),
             'slots' => $slots,
         ])->layout('layouts.admin');
