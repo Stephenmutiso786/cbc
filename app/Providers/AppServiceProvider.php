@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         // it's genuinely global and safe to load here on every boot.
         $this->loadPlatformSmsSettings();
         $this->loadPlatformMpesaSettings();
+        $this->loadPlatformBranding();
 
         if (app()->environment('production')) {
             URL::forceScheme('https');
@@ -74,6 +75,22 @@ class AppServiceProvider extends ServiceProvider
             }
         } catch (\Throwable) {
             // Table unavailable during a first install or migration.
+        }
+    }
+
+    private function loadPlatformBranding(): void
+    {
+        try {
+            if (! \Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
+                return;
+            }
+            foreach (['name', 'tagline', 'footer', 'support_email', 'support_phone'] as $field) {
+                if (($value = SystemSetting::get('platform_' . $field)) !== null && $value !== '') {
+                    config()->set('platform.' . $field, $value);
+                }
+            }
+        } catch (\Throwable) {
+            // Table unavailable during initial installation.
         }
     }
 }

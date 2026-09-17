@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — ElimuHub</title>
+    <title>Login — {{ config('platform.name') }}</title>
     @include('layouts.partials.pwa')
     @include('layouts.partials.theme')
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -19,8 +19,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
                 </svg>
             </div>
-            <h1 class="text-white text-2xl font-bold">ElimuHub</h1>
-            <p class="text-green-200 text-sm mt-1">One account, your school's dashboard</p>
+            <h1 class="text-white text-2xl font-bold">{{ config('platform.name') }}</h1>
+            <p class="text-green-200 text-sm mt-1">{{ config('platform.tagline') }}</p>
         </div>
 
         {{-- Card --}}
@@ -77,7 +77,7 @@
         </a>
 
         <p class="text-center text-green-300 text-xs mt-6">
-            ElimuHub &copy; {{ date('Y') }} · @STETECH LIMITED · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
+            {{ config('platform.name') }} &copy; {{ date('Y') }} · {{ config('platform.footer') }} · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
         </p>
     </div>
     <script>
