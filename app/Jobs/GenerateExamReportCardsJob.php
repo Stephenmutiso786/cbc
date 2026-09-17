@@ -6,6 +6,8 @@ use App\Http\Controllers\ExamReportsController;
 use App\Models\Exam;
 use App\Models\ExamReportExport;
 use App\Services\GoogleDriveStorage;
+use App\Support\SchoolSettingsLoader;
+use App\Support\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,30 +27,43 @@ class GenerateExamReportCardsJob implements ShouldQueue
 
     public function handle(ExamReportsController $reports, GoogleDriveStorage $storage): void
     {
-        $export = ExamReportExport::findOrFail($this->exportId);
-        $export->update(['status' => 'processing', 'error' => null]);
+        // Queue workers have no authenticated request, therefore no tenant
+        // context. Resolve it explicitly before reading the export or creating
+        // a document so that the school's name, logo and other branding are
+        // never replaced with another school's/default configuration.
+        $export = ExamReportExport::withoutSchoolScope()->findOrFail($this->exportId);
+        $schoolId = $export->school_id;
 
-        try {
-            $exam = Exam::findOrFail($export->exam_id);
-            $pdf = $reports->buildResultCardsPdf($exam);
-            $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
-            $filename = 'exam-' . $exam->id . '-report-cards.pdf';
-            $path = $storage->enabled()
-                ? $storage->storeOrReplace($pdf, $folder, $filename, 'application/pdf')
-                : $storage->storeLocal($pdf, $folder, $filename, 'application/pdf');
-            $exam->update(['report_cards_path' => $path]);
+        Tenant::run($schoolId, function () use ($reports, $storage, $schoolId): void {
+            if ($schoolId !== null) {
+                SchoolSettingsLoader::for($schoolId);
+            }
 
-            $export->update(['status' => 'complete', 'path' => $path, 'finished_at' => now()]);
-        } catch (Throwable $exception) {
-            $export->update(['status' => 'failed', 'error' => $exception->getMessage(), 'finished_at' => now()]);
-            report($exception);
-            throw $exception;
-        }
+            $export = ExamReportExport::findOrFail($this->exportId);
+            $export->update(['status' => 'processing', 'error' => null]);
+
+            try {
+                $exam = Exam::findOrFail($export->exam_id);
+                $pdf = $reports->buildResultCardsPdf($exam);
+                $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
+                $filename = 'exam-' . $exam->id . '-report-cards.pdf';
+                $path = $storage->enabled()
+                    ? $storage->storeOrReplace($pdf, $folder, $filename, 'application/pdf')
+                    : $storage->storeLocal($pdf, $folder, $filename, 'application/pdf');
+                $exam->update(['report_cards_path' => $path]);
+
+                $export->update(['status' => 'complete', 'path' => $path, 'finished_at' => now()]);
+            } catch (Throwable $exception) {
+                $export->update(['status' => 'failed', 'error' => $exception->getMessage(), 'finished_at' => now()]);
+                report($exception);
+                throw $exception;
+            }
+        });
     }
 
     public function failed(Throwable $exception): void
     {
-        ExamReportExport::whereKey($this->exportId)->update([
+        ExamReportExport::withoutSchoolScope()->whereKey($this->exportId)->update([
             'status' => 'failed',
             'error' => $exception->getMessage(),
             'finished_at' => now(),
