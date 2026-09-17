@@ -30,6 +30,7 @@
             <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <tr>
                     <th class="px-4 py-3">Name</th>
+                    <th class="px-4 py-3">School code</th>
                     <th class="px-4 py-3">Type</th>
                     <th class="px-4 py-3">Users</th>
                     <th class="px-4 py-3">Learners</th>
@@ -43,6 +44,7 @@
                 @forelse ($schools as $school)
                     <tr>
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $school->name }}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-gray-600">{{ $school->school_code ?: 'Pending setup' }}</td>
                         <td class="px-4 py-3 capitalize">{{ $school->type }}</td>
                         <td class="px-4 py-3">{{ $school->users_count }}</td>
                         <td class="px-4 py-3">{{ $school->learners_count }}</td>
@@ -68,7 +70,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No schools yet.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-6 text-center text-gray-500">No schools yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

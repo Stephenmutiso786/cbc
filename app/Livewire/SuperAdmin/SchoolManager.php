@@ -119,7 +119,11 @@ class SchoolManager extends Component
             $slug .= '-' . Str::random(4);
         }
 
-        $school = School::create([...$this->form, 'slug' => $slug]);
+        $school = School::create([
+            ...$this->form,
+            'slug' => $slug,
+            'school_code' => $this->nextSchoolCode($this->form['name']),
+        ]);
 
         $password = Str::password(12);
 
@@ -155,6 +159,21 @@ class SchoolManager extends Component
                 SchoolSetting::updateOrCreate(['key' => $key], ['value' => $form[$key]]);
             }
         }
+    }
+
+    /** A stable, human-readable school identifier for tenant onboarding. */
+    private function nextSchoolCode(string $name): string
+    {
+        $words = preg_split('/[^[:alnum:]]+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $base = Str::upper(collect($words)->map(fn (string $word) => Str::substr($word, 0, 1))->implode(''));
+        $base = Str::limit($base ?: 'SCHOOL', 10, '');
+        $candidate = $base;
+
+        while (School::where('school_code', $candidate)->exists()) {
+            $candidate = $base . '-' . Str::upper(Str::random(4));
+        }
+
+        return $candidate;
     }
 
     /**
