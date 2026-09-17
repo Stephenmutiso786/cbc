@@ -3,6 +3,7 @@
 namespace App\Livewire\Notifications;
 
 use App\Services\OlympusSmsService;
+use App\Models\School;
 use Livewire\Component;
 use Throwable;
 
@@ -18,17 +19,29 @@ class SmsBalance extends Component
     public int $messagesTotal = 0;
     public bool $messagesLoading = false;
     public bool $loading = false;
+    public bool $isSuperAdmin = false;
+    public ?int $allocatedCredits = null;
 
     public function mount(OlympusSmsService $sms): void
     {
-        $this->refreshBalance($sms);
-        $this->refreshMessages($sms);
+        $this->isSuperAdmin = auth()->user()?->hasRole('super-admin') ?? false;
+        $this->refreshAllocatedCredits();
+
+        // The provider account is owned by the platform. Only a
+        // super-admin may see or refresh the platform-wide provider balance.
+        if ($this->isSuperAdmin) {
+            $this->refreshBalance($sms);
+            $this->refreshMessages($sms);
+        }
     }
 
     public function refresh(OlympusSmsService $sms): void
     {
-        $this->refreshBalance($sms);
-        $this->refreshMessages($sms);
+        $this->refreshAllocatedCredits();
+        if ($this->isSuperAdmin) {
+            $this->refreshBalance($sms);
+            $this->refreshMessages($sms);
+        }
     }
 
     public function refreshMessagesNow(OlympusSmsService $sms): void
@@ -58,6 +71,14 @@ class SmsBalance extends Component
     {
         return view('livewire.notifications.sms-balance')
             ->layout('layouts.admin');
+    }
+
+    private function refreshAllocatedCredits(): void
+    {
+        $schoolId = auth()->user()?->school_id;
+        $this->allocatedCredits = $schoolId
+            ? (int) School::withoutGlobalScopes()->whereKey($schoolId)->value('sms_credits')
+            : null;
     }
 
     private function refreshBalance(OlympusSmsService $sms): void

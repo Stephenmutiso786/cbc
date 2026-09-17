@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class SmsCreditTransaction extends Model
 {
-    protected $fillable = ['school_id', 'amount', 'type', 'note', 'created_by'];
+    protected $fillable = ['school_id', 'amount', 'type', 'amount_paid', 'payment_reference', 'note', 'created_by'];
+
+    protected $casts = ['amount_paid' => 'decimal:2'];
 
     public function school()
     {
@@ -18,4 +20,3 @@ class SmsCreditTransaction extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 }
-

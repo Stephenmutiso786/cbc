@@ -163,6 +163,36 @@ class School extends Model
     }
 
     /**
+     * Credit a school's SMS wallet after the platform has confirmed its
+     * payment. The payment trail is deliberately kept with the allocation so
+     * a school cannot be credited without a super-admin audit record.
+     */
+    public function allocateSmsCredits(
+        int $units,
+        ?float $amountPaid,
+        ?string $paymentReference,
+        ?int $createdBy,
+        ?string $note = null,
+    ): void {
+        if ($units <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($units, $amountPaid, $paymentReference, $createdBy, $note): void {
+            $this->increment('sms_credits', $units);
+            SmsCreditTransaction::create([
+                'school_id' => $this->id,
+                'amount' => $units,
+                'type' => 'topup',
+                'amount_paid' => $amountPaid,
+                'payment_reference' => $paymentReference,
+                'note' => $note,
+                'created_by' => $createdBy,
+            ]);
+        });
+    }
+
+    /**
      * Deduct SMS credits for actual usage. Returns false (deducting nothing)
      * if the school doesn't have enough — callers must not send the message
      * in that case.
