@@ -16,7 +16,7 @@
     <div data-sidebar-overlay class="fixed inset-0 z-30 hidden bg-black/50 md:hidden"></div>
     <aside data-sidebar class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-green-800 text-white transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center bg-green-900 px-5">
-            <span class="truncate font-bold">{{ auth()->user()?->hasRole('super-admin') ? 'ElimuHub Platform' : config('school.name') }}</span>
+            <span class="truncate font-bold">{{ auth()->user()?->hasRole('super-admin') ? config('platform.name').' Platform' : config('school.name') }}</span>
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-green-100 hover:bg-green-700 md:hidden" aria-label="Close menu">&times;</button>
         </div>
         <nav class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 pb-28 text-sm">
@@ -24,7 +24,7 @@
                 @foreach([
                     'Platform overview' => [['admin.platform-dashboard.index', 'Command Centre'], ['admin.schools.index', 'Registered Schools'], ['admin.platform-analytics.index', 'Platform Analytics'], ['admin.platform-finance.index', 'Platform Finance']],
                     'Commercial' => [['admin.plans.index', 'Plans & Feature Access'], ['admin.schools.index', 'SMS Credit Allocation'], ['admin.broadcasts.index', 'Broadcast Centre']],
-                    'Security & Support' => [['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.platform-maintenance.index', 'Maintenance Mode'], ['admin.legal-policies.index', 'Legal Policies']],
+                    'Security & Support' => [['admin.platform-settings.index', 'Global Settings & APIs'], ['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.platform-maintenance.index', 'Maintenance Mode'], ['admin.legal-policies.index', 'Legal Policies']],
                 ] as $section => $links)
                     <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label])<a href="{{ route($route) }}" class="flex items-center rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>@endforeach</div>
                 @endforeach
