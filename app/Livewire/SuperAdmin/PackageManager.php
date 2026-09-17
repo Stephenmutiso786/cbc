@@ -12,7 +12,7 @@ class PackageManager extends Component
 
     public array $form = [
         'name' => '', 'description' => '', 'price' => '', 'billing_cycle' => 'termly',
-        'max_students' => '', 'max_staff' => '', 'sms_credits_granted' => 0, 'is_active' => true,
+        'max_students' => '', 'max_staff' => '', 'is_active' => true,
     ];
 
     /** @var array<string,bool> */
@@ -38,7 +38,7 @@ class PackageManager extends Component
     {
         $this->resetValidation();
         $this->editingId = null;
-        $this->form = ['name' => '', 'description' => '', 'price' => '', 'billing_cycle' => 'termly', 'max_students' => '', 'max_staff' => '', 'sms_credits_granted' => 0, 'is_active' => true];
+        $this->form = ['name' => '', 'description' => '', 'price' => '', 'billing_cycle' => 'termly', 'max_students' => '', 'max_staff' => '', 'is_active' => true];
         $this->features = array_fill_keys(array_keys(self::AVAILABLE_FEATURES), false);
         $this->showForm = true;
     }
@@ -52,7 +52,7 @@ class PackageManager extends Component
             'name' => $package->name, 'description' => (string) $package->description,
             'price' => (string) $package->price, 'billing_cycle' => $package->billing_cycle,
             'max_students' => (string) $package->max_students, 'max_staff' => (string) $package->max_staff,
-            'sms_credits_granted' => $package->sms_credits_granted, 'is_active' => (bool) $package->is_active,
+            'is_active' => (bool) $package->is_active,
         ];
         $this->features = array_fill_keys(array_keys(self::AVAILABLE_FEATURES), false);
         foreach ($package->features ?? [] as $key) {
@@ -70,11 +70,11 @@ class PackageManager extends Component
             'form.billing_cycle' => ['required', 'in:monthly,termly,yearly'],
             'form.max_students' => ['nullable', 'integer', 'min:1'],
             'form.max_staff' => ['nullable', 'integer', 'min:1'],
-            'form.sms_credits_granted' => ['required', 'integer', 'min:0'],
         ]);
 
         $payload = [
             ...$this->form,
+            'sms_credits_granted' => 0,
             'max_students' => $this->form['max_students'] !== '' ? (int) $this->form['max_students'] : null,
             'max_staff' => $this->form['max_staff'] !== '' ? (int) $this->form['max_staff'] : null,
             'features' => array_keys(array_filter($this->features)),
@@ -103,4 +103,3 @@ class PackageManager extends Component
         ])->layout('layouts.admin');
     }
 }
-

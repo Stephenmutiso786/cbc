@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\SystemSetting;
 
 class MaintenanceMode
 {
@@ -15,14 +15,14 @@ class MaintenanceMode
         }
 
         return response()->view('maintenance', [
-            'message' => (string) config('school.maintenance_message', 'We are carrying out scheduled maintenance. Please check back shortly.'),
+            'message' => (string) SystemSetting::get('maintenance_message', config('school.maintenance_message', 'We are carrying out scheduled maintenance. Please check back shortly.')),
         ], 503)->header('Retry-After', '3600');
     }
 
     private function enabled(): bool
     {
         try {
-            return (bool) ((int) DB::table('school_settings')->where('key', 'maintenance_mode')->value('value'));
+            return (bool) ((int) SystemSetting::get('maintenance_mode', 0));
         } catch (\Throwable) {
             return false;
         }
@@ -36,8 +36,8 @@ class MaintenanceMode
         }
 
         $user = $request->user();
-        return $user?->hasAnyRole([
-            'school-admin', 'super-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy', 'hod',
-        ]) || $user?->can('manage system settings') ?? false;
+        // A platform outage must not give a school-level account a backdoor
+        // into the system. Only the platform super-admin may bypass it.
+        return $user?->hasRole('super-admin') ?? false;
     }
 }

@@ -246,8 +246,8 @@ class SchoolManager extends Component
         $this->validate([
             'smsSchoolId' => ['required', 'exists:schools,id'],
             'smsUnits' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'smsAmountPaid' => ['nullable', 'numeric', 'min:0'],
-            'smsPaymentReference' => ['nullable', 'string', 'max:100'],
+            'smsAmountPaid' => ['required', 'numeric', 'gt:0'],
+            'smsPaymentReference' => ['required', 'string', 'max:100'],
             'smsNote' => ['nullable', 'string', 'max:255'],
         ]);
 

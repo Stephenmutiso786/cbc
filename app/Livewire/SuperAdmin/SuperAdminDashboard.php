@@ -39,11 +39,11 @@ class SuperAdminDashboard extends Component
             'expiredSubscriptions' => $schools->filter(fn (School $school) => $school->package_id && $school->packageExpired())->count(),
             'subscriptionRevenue' => (float) SubscriptionPayment::where('status', 'confirmed')->where('created_at', '>=', now()->subDays(30))->sum('amount'),
             'pendingPayments' => SubscriptionPayment::whereIn('status', ['pending', 'initiated'])->count(),
-            'platformSmsCreditsAllocated' => (int) School::sum('sms_credits'),
+            'verifiedSmsAllocations' => SmsCreditTransaction::where('type', 'topup')->whereNotNull('amount_paid')->whereNotNull('payment_reference')->count(),
             'smsUsedLast30Days' => $smsUsedLast30Days,
             'onlineSchools' => $schools->filter(fn (School $school) => $school->active_users_count > 0)->count(),
             'ingestedToday' => $ingestedToday,
             'auditLogs' => $auditLogs,
-        ])->layout('layouts.admin', ['title' => 'ElimuHub Command Centre']);
+        ])->layout('layouts.app', ['title' => 'ElimuHub Command Centre']);
     }
 }
