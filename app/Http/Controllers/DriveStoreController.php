@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Learner;
 use App\Models\SchoolClass;
 use App\Services\GoogleDriveStorage;
-use Database\Seeders\DefaultClassSubjectsSeeder;
+use App\Services\SchoolAcademicSetupService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,7 +84,7 @@ class DriveStoreController extends Controller
                         ['stream' => $record['stream'] ?? null, 'capacity' => 45, 'is_active' => true],
                     );
                     if ($class->wasRecentlyCreated) $classesCreated++;
-                    app(DefaultClassSubjectsSeeder::class)->seedForClass($class);
+                    app(SchoolAcademicSetupService::class)->repairClass($class);
 
                     foreach (($record['learners'] ?? []) as $learner) {
                         $admission = trim((string) ($learner['admission_number'] ?? ''));
@@ -127,11 +127,11 @@ class DriveStoreController extends Controller
     public function repairClassSubjects(): RedirectResponse
     {
         abort_unless(auth()->user()->can('manage curriculum'), 403);
-        app(DefaultClassSubjectsSeeder::class)->run();
+        $repaired = app(SchoolAcademicSetupService::class)->repairCurrentSchool();
         $unconfigured = SchoolClass::forConfiguredGrades()->whereDoesntHave('learningAreas')->count();
 
         return redirect()->route('admin.drive-store.index')->with('success', $unconfigured === 0
-            ? 'Subjects are now configured for every class.'
+            ? "Subjects and active grading scales are now configured for {$repaired} class(es)."
             : "Subject repair completed, but {$unconfigured} class(es) still need review.");
     }
 
