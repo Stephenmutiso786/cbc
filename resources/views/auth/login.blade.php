@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — {{ config('school.name') }}</title>
+    <title>Login — ElimuHub</title>
     @include('layouts.partials.pwa')
     @include('layouts.partials.theme')
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -14,17 +14,13 @@
         {{-- Logo / School Name --}}
         <div class="text-center mb-8">
             <div class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-lg mb-4">
-                @if(config('school.logo_data'))
-                    <img src="{{ config('school.logo_data') }}" alt="{{ config('school.name') }} logo" class="h-full w-full object-contain">
-                @else
-                    <svg class="h-9 w-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
-                    </svg>
-                @endif
+                <svg class="h-9 w-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
+                </svg>
             </div>
-            <h1 class="text-white text-2xl font-bold">{{ config('school.name') }}</h1>
-            <p class="text-green-200 text-sm mt-1">{{ config('school.motto') }}</p>
+            <h1 class="text-white text-2xl font-bold">ElimuHub</h1>
+            <p class="text-green-200 text-sm mt-1">One account, your school's dashboard</p>
         </div>
 
         {{-- Card --}}
@@ -81,7 +77,7 @@
         </a>
 
         <p class="text-center text-green-300 text-xs mt-6">
-            CBE School Management System &copy; {{ date('Y') }} · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
+            ElimuHub &copy; {{ date('Y') }} · @STETECH LIMITED · <a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a>
         </p>
     </div>
     <script>

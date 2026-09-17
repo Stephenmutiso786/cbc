@@ -7,6 +7,8 @@ use App\Models\NotificationLog;
 use App\Models\SchoolNotification;
 use App\Models\ExamResult;
 use App\Services\OlympusSmsService;
+use App\Support\SchoolSettingsLoader;
+use App\Support\Tenant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,51 +27,73 @@ class SendExamResultsSmsJob implements ShouldQueue
 
     public function handle(OlympusSmsService $sms): void
     {
-        $exam = Exam::with('schoolClass')->findOrFail($this->examId);
-        $scale = $exam->schoolClass?->gradingScale()->first();
-        $resultsByLearner = ExamResult::with(['learner.guardians', 'exam.learningArea'])
-            ->whereIn('exam_id', $exam->groupExamIds())
-            ->whereHas('learner')
-            ->get()
-            ->groupBy('learner_id');
-        $notification = SchoolNotification::findOrFail($this->notificationId);
-        $sent = 0;
-        $failed = 0;
+        // A queue worker has no authenticated user — resolve the exam's own
+        // school first (unscoped lookup), then run everything else, including
+        // loading that school's SMS credentials/branding, inside its context.
+        $exam = Exam::withoutSchoolScope()->with('schoolClass')->findOrFail($this->examId);
 
-        foreach ($resultsByLearner as $learnerResults) {
-            $learner = $learnerResults->first()->learner;
-            if (! $learner) continue;
+        Tenant::run($exam->school_id, function () use ($exam, $sms) {
+            SchoolSettingsLoader::for($exam->school_id);
+            $school = \App\Models\School::findOrFail($exam->school_id);
 
-            foreach ($learner->guardians->filter(fn ($guardian) => trim((string) $guardian->phone_number) !== '')->unique('id') as $guardian) {
-                $message = $this->messageFor($exam, $learnerResults, $scale);
-                try {
-                    $providerResult = $sms->sendSms($guardian->phone_number, $message);
-                    $sent++;
-                    NotificationLog::create([
-                        'notification_id' => $notification->id,
-                        'recipient_phone' => $guardian->phone_number,
-                        'channel' => 'sms',
-                        'status' => 'sent',
-                        'provider_message_id' => data_get($providerResult, 'data.uid') ?? data_get($providerResult, 'data.id'),
-                        'sent_at' => now(),
-                    ]);
-                } catch (Throwable $exception) {
-                    $failed++;
-                    NotificationLog::create([
-                        'notification_id' => $notification->id,
-                        'recipient_phone' => $guardian->phone_number,
-                        'channel' => 'sms',
-                        'status' => 'failed',
-                        'error_message' => $exception->getMessage(),
-                    ]);
-                    report($exception);
+            $scale = $exam->schoolClass?->gradingScale()->first();
+            $resultsByLearner = ExamResult::with(['learner.guardians', 'exam.learningArea'])
+                ->whereIn('exam_id', $exam->groupExamIds())
+                ->whereHas('learner')
+                ->get()
+                ->groupBy('learner_id');
+            $notification = SchoolNotification::findOrFail($this->notificationId);
+            $sent = 0;
+            $failed = 0;
+
+            foreach ($resultsByLearner as $learnerResults) {
+                $learner = $learnerResults->first()->learner;
+                if (! $learner) continue;
+
+                foreach ($learner->guardians->filter(fn ($guardian) => trim((string) $guardian->phone_number) !== '')->unique('id') as $guardian) {
+                    if (! $school->deductSmsCredits(1, "Exam results for {$learner->full_name}")) {
+                        $failed++;
+                        NotificationLog::create([
+                            'notification_id' => $notification->id,
+                            'recipient_phone' => $guardian->phone_number,
+                            'channel' => 'sms',
+                            'status' => 'failed',
+                            'error_message' => 'Insufficient SMS credits. Contact your platform administrator to top up.',
+                        ]);
+                        continue;
+                    }
+
+                    $message = $this->messageFor($exam, $learnerResults, $scale);
+                    try {
+                        $providerResult = $sms->sendSms($guardian->phone_number, $message);
+                        $sent++;
+                        NotificationLog::create([
+                            'notification_id' => $notification->id,
+                            'recipient_phone' => $guardian->phone_number,
+                            'channel' => 'sms',
+                            'status' => 'sent',
+                            'provider_message_id' => data_get($providerResult, 'data.uid') ?? data_get($providerResult, 'data.id'),
+                            'sent_at' => now(),
+                        ]);
+                    } catch (Throwable $exception) {
+                        $school->addSmsCredits(1, 'adjustment', null, 'Refund: provider failed to deliver to ' . $guardian->phone_number);
+                        $failed++;
+                        NotificationLog::create([
+                            'notification_id' => $notification->id,
+                            'recipient_phone' => $guardian->phone_number,
+                            'channel' => 'sms',
+                            'status' => 'failed',
+                            'error_message' => $exception->getMessage(),
+                        ]);
+                        report($exception);
+                    }
                 }
             }
-        }
 
-        $status = $failed > 0 && $sent === 0 ? 'failed' : ($failed > 0 ? 'partial' : 'sent');
-        $notification->update(['status' => $status, 'sent_count' => $sent, 'failed_count' => $failed, 'sent_at' => now()]);
-        $exam->update(['results_sms_status' => $status, 'results_sms_sent_at' => now()]);
+            $status = $failed > 0 && $sent === 0 ? 'failed' : ($failed > 0 ? 'partial' : 'sent');
+            $notification->update(['status' => $status, 'sent_count' => $sent, 'failed_count' => $failed, 'sent_at' => now()]);
+            $exam->update(['results_sms_status' => $status, 'results_sms_sent_at' => now()]);
+        });
     }
 
     public function failed(Throwable $exception): void
@@ -104,7 +128,7 @@ class SendExamResultsSmsJob implements ShouldQueue
             . "Subjects: {$subjects}\n"
             . "Total Points: {$totalPoints}\n"
             . "Remarks: {$remark}\n"
-            . "Regards, {$schoolName}. @KYANDULU SCHOOL";
+            . "Regards, {$schoolName}.";
 
         if (strlen($message) <= 320) {
             return $message;
@@ -113,7 +137,7 @@ class SendExamResultsSmsJob implements ShouldQueue
         // Preserve every subject and the footer if unusually long names exceed two SMS segments.
         $compact = "Dear Parent/Guardian, {$term} {$examName}: {$learnerName}, Adm {$admission}. "
             . "Mean Grade: {$meanGrade}. Subjects: {$subjects}. Total Points: {$totalPoints}. "
-            . "Remarks: {$remark}. Regards, {$schoolName}. @KYANDULU SCHOOL";
+            . "Remarks: {$remark}. Regards, {$schoolName}.";
 
         return $compact;
     }

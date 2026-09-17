@@ -50,6 +50,14 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
 
     Route::get('/presence/ping', fn () => response()->noContent())->name('presence.ping');
 
+    Route::get('/billing', \App\Livewire\Billing\SubscriptionStatus::class)->name('billing.index');
+    Route::post('/broadcasts/{broadcast}/dismiss', function (\App\Models\PlatformBroadcast $broadcast) {
+        $dismissed = session('dismissed_broadcasts', []);
+        $dismissed[] = $broadcast->id;
+        session(['dismissed_broadcasts' => array_slice(array_unique($dismissed), -20)]);
+        return back();
+    })->name('broadcasts.dismiss');
+
     // Administration / school leadership. HODs use the HOD teaching portal,
     // and must not inherit the institution-wide administration portal.
     Route::middleware(['role:school-admin|super-admin|headteacher|principal|deputy-headteacher|deputy'])

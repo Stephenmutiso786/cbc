@@ -16,6 +16,17 @@ return [
         'validation_url'  => env('MPESA_VALIDATION_URL'),
     ],
 
+    // Platform subscription billing. These credentials belong to ElimuHub,
+    // not to an individual school’s parent-fee collection account.
+    'platform_mpesa' => [
+        'env'             => env('PLATFORM_MPESA_ENV', 'sandbox'),
+        'consumer_key'    => env('PLATFORM_MPESA_CONSUMER_KEY'),
+        'consumer_secret' => env('PLATFORM_MPESA_CONSUMER_SECRET'),
+        'shortcode'       => env('PLATFORM_MPESA_SHORTCODE'),
+        'passkey'         => env('PLATFORM_MPESA_PASSKEY'),
+        'callback_url'    => env('PLATFORM_MPESA_CALLBACK_URL'),
+    ],
+
     'olympus_sms' => [
         'api_url' => env('OLYMPUS_SMS_API_URL', 'https://sms.ots.co.ke'),
         'portal_url' => env('OLYMPUS_SMS_PORTAL_URL', 'https://sms.ots.co.ke/login'),

@@ -34,6 +34,11 @@ use App\Livewire\Admin\BackupCenter;
 use App\Livewire\Admin\SystemLogViewer;
 use App\Livewire\Admin\UserAccountManager;
 use App\Livewire\SuperAdmin\SchoolManager;
+use App\Livewire\SuperAdmin\PackageManager;
+use App\Livewire\SuperAdmin\PlatformFinance;
+use App\Livewire\SuperAdmin\PlatformAnalytics;
+use App\Livewire\SuperAdmin\BroadcastCenter;
+use App\Livewire\Admin\IdCardGenerator;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -46,6 +51,10 @@ Route::get('/support', SupportTicketCenter::class)->middleware('permission:submi
 Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
 Route::get('/schools', SchoolManager::class)->middleware('role:super-admin')->name('schools.index');
+Route::get('/plans', PackageManager::class)->middleware('role:super-admin')->name('plans.index');
+Route::get('/platform-finance', PlatformFinance::class)->middleware('role:super-admin')->name('platform-finance.index');
+Route::get('/platform-analytics', PlatformAnalytics::class)->middleware('role:super-admin')->name('platform-analytics.index');
+Route::get('/broadcasts', BroadcastCenter::class)->middleware('role:super-admin')->name('broadcasts.index');
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/user-accounts', UserAccountManager::class)->middleware('permission:manage users')->name('user-accounts.index');
 Route::get('/system-logs', SystemLogViewer::class)->middleware('role:super-admin')->name('system-logs.index');
@@ -55,15 +64,16 @@ Route::get('/students', StudentList::class)->middleware('permission:view student
 Route::get('/students/import', StudentList::class)->middleware('permission:create students')->name('students.import');
 Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->middleware('permission:view report cards')->name('students.report-card');
 Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:view assessments')->name('assessment.index');
-Route::get('/notifications', SendNotification::class)->middleware('permission:view notifications')->name('notifications.index');
-Route::get('/sms', SmsBalance::class)->middleware('permission:view notifications')->name('sms.index');
+Route::get('/notifications', SendNotification::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('notifications.index');
+Route::get('/sms', SmsBalance::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('sms.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams')->name('exams.index');
 Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->middleware('permission:enter marks')->name('exams.marks-template');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->middleware('permission:view report cards')->name('exams.report-cards');
 Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->middleware('permission:view report cards')->name('exams.report-cards.export');
 Route::get('/exams/{exam}/merit-list', [ExamReportsController::class, 'meritList'])->middleware('permission:view report cards')->name('exams.merit-list');
-Route::get('/inventory', InventoryList::class)->middleware('permission:view inventory')->name('inventory.index');
-Route::get('/notes', LearningNotesList::class)->middleware('permission:view notes')->name('notes.index');
+Route::get('/inventory', InventoryList::class)->middleware(['permission:view inventory', 'feature:inventory'])->name('inventory.index');
+Route::get('/id-cards', IdCardGenerator::class)->middleware(['permission:view students', 'feature:id_cards'])->name('id-cards.index');
+Route::get('/notes', LearningNotesList::class)->middleware(['permission:view notes', 'feature:lesson_plans'])->name('notes.index');
 Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
     $payment = $invoice->payments()->latest('paid_at')->first();
 
@@ -74,8 +84,8 @@ Route::get('/fees/receipt/{invoice}', function (FeeInvoice $invoice) {
 Route::get('/staff', StaffManager::class)->middleware('permission:view staff')->name('staff.index');
 Route::get('/staff/import', StaffManager::class)->middleware('permission:manage staff')->name('staff.import');
 Route::get('/parents', ParentManager::class)->middleware('permission:view students')->name('parents.index');
-Route::get('/timetable', TimetableManager::class)->middleware('permission:view timetable')->name('timetable.index');
-Route::get('/exam-timetable', ExamTimetableManager::class)->middleware('permission:view timetable')->name('exam-timetable.index');
+Route::get('/timetable', TimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('timetable.index');
+Route::get('/exam-timetable', ExamTimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('exam-timetable.index');
 Route::get('/reports', [AnalyticsController::class, 'index'])->middleware('permission:view analytics')->name('reports.index');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->middleware('permission:view analytics')->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
@@ -97,4 +107,4 @@ Route::post('/settings/drive-test', [AdminSettingsController::class, 'testDrive'
 Route::get('/settings/google-drive/connect', [AdminSettingsController::class, 'connectDrive'])->middleware('permission:manage system settings')->name('settings.google-drive.connect');
 Route::get('/settings/google-drive/callback', [AdminSettingsController::class, 'googleDriveCallback'])->middleware('permission:manage system settings')->name('settings.google-drive.callback');
 Route::post('/settings/google-drive/disconnect', [AdminSettingsController::class, 'disconnectDrive'])->middleware('permission:manage system settings')->name('settings.google-drive.disconnect');
-Route::get('/kemis', fn() => view('admin.kemis.index'))->middleware('permission:sync kemis')->name('kemis.index');
+Route::get('/kemis', fn() => view('admin.kemis.index'))->middleware(['permission:sync kemis', 'feature:kemis'])->name('kemis.index');

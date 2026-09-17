@@ -20,12 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\LoadSchoolSettings::class,
             \App\Http\Middleware\MaintenanceMode::class,
             \App\Http\Middleware\RequireLegalAcceptance::class,
+            \App\Http\Middleware\EnsureSchoolSubscriptionActive::class,
             \App\Http\Middleware\TrackSystemActivity::class,
         ]);
         $middleware->alias([
             'role'       => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'feature'    => \App\Http\Middleware\EnsureFeatureEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -12,18 +12,51 @@ class MpesaService
     private string $consumerSecret;
     private string $shortcode;
     private string $passkey;
+    private string $callbackUrl;
     private string $baseUrl;
 
-    public function __construct()
+    public function __construct(?array $credentials = null)
     {
-        $this->env            = config('services.mpesa.env', 'sandbox');
-        $this->consumerKey    = config('services.mpesa.consumer_key', '');
-        $this->consumerSecret = config('services.mpesa.consumer_secret', '');
-        $this->shortcode      = config('services.mpesa.shortcode', '');
-        $this->passkey        = config('services.mpesa.passkey', '');
+        $credentials ??= [
+            'env'             => config('services.mpesa.env', 'sandbox'),
+            'consumer_key'    => config('services.mpesa.consumer_key', ''),
+            'consumer_secret' => config('services.mpesa.consumer_secret', ''),
+            'shortcode'       => config('services.mpesa.shortcode', ''),
+            'passkey'         => config('services.mpesa.passkey', ''),
+            'callback_url'    => config('services.mpesa.callback_url'),
+        ];
+
+        $this->env            = $credentials['env'] ?? 'sandbox';
+        $this->consumerKey    = $credentials['consumer_key'] ?? '';
+        $this->consumerSecret = $credentials['consumer_secret'] ?? '';
+        $this->shortcode      = $credentials['shortcode'] ?? '';
+        $this->passkey        = $credentials['passkey'] ?? '';
+        $this->callbackUrl    = $credentials['callback_url'] ?? '';
         $this->baseUrl        = $this->env === 'production'
             ? 'https://api.safaricom.co.ke'
             : 'https://sandbox.safaricom.co.ke';
+    }
+
+    /**
+     * The platform's own M-Pesa till/paybill — used for school subscription
+     * billing, deliberately separate from each school's own configured
+     * credentials (which are for collecting fees from parents).
+     */
+    public static function platform(): self
+    {
+        return new self([
+            'env'             => config('services.platform_mpesa.env', 'sandbox'),
+            'consumer_key'    => config('services.platform_mpesa.consumer_key', ''),
+            'consumer_secret' => config('services.platform_mpesa.consumer_secret', ''),
+            'shortcode'       => config('services.platform_mpesa.shortcode', ''),
+            'passkey'         => config('services.platform_mpesa.passkey', ''),
+            'callback_url'    => config('services.platform_mpesa.callback_url'),
+        ]);
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->consumerKey !== '' && $this->consumerSecret !== '' && $this->shortcode !== '' && $this->passkey !== '';
     }
 
     /** Get OAuth access token */
@@ -56,7 +89,7 @@ class MpesaService
                 'PartyA'            => $this->formatPhone($phone),
                 'PartyB'            => $this->shortcode,
                 'PhoneNumber'       => $this->formatPhone($phone),
-                'CallBackURL'       => config('services.mpesa.callback_url'),
+                'CallBackURL'       => $this->callbackUrl,
                 'AccountReference'  => $accountRef,
                 'TransactionDesc'   => $description,
             ]);

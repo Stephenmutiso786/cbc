@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolSetting;
 use App\Models\SchoolSettingAsset;
+use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -112,7 +113,7 @@ class AdminSettingsController extends Controller
             'at_env' => ['nullable', 'in:sandbox,production'],
             'olympus_sms_api_url' => ['nullable', 'url', 'max:500'],
             'olympus_sms_api_token' => ['nullable', 'string', 'max:500'],
-            'olympus_sms_sender_id' => ['required', 'string', 'max:11'],
+            'olympus_sms_sender_id' => ['nullable', 'string', 'max:11'],
             'firebase_server_key' => ['nullable', 'string', 'max:1000'],
             'firebase_project_id' => ['nullable', 'string', 'max:255'],
             'kemis_api_url' => ['nullable', 'url', 'max:500'],
@@ -122,6 +123,12 @@ class AdminSettingsController extends Controller
             'google_drive_folder_id' => ['nullable', 'string', 'max:255'],
             'google_drive_credentials' => ['nullable', 'json', 'max:100000'],
             'google_drive_credentials_file' => ['nullable', 'file', 'mimes:json,txt', 'max:100'],
+            'platform_mpesa_env' => ['nullable', 'in:sandbox,production'],
+            'platform_mpesa_consumer_key' => ['nullable', 'string', 'max:500'],
+            'platform_mpesa_consumer_secret' => ['nullable', 'string', 'max:500'],
+            'platform_mpesa_shortcode' => ['nullable', 'string', 'max:50'],
+            'platform_mpesa_passkey' => ['nullable', 'string', 'max:500'],
+            'platform_mpesa_callback_url' => ['nullable', 'url', 'max:500'],
         ]);
 
         if ($request->hasFile('google_drive_credentials_file')) {
@@ -154,8 +161,45 @@ class AdminSettingsController extends Controller
             }
         }
 
-        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
-        DB::transaction(function () use ($data, $secretKeys, $assetData): void {
+        // maintenance_mode / maintenance_message affect the whole platform
+        // (including the shared, pre-login page), not one school — they're
+        // stored separately and only super-admin may change them. A
+        // school-admin's own submission simply leaves the current value alone.
+        $globalMaintenance = [];
+        foreach (['maintenance_mode', 'maintenance_message'] as $key) {
+            if (array_key_exists($key, $data)) {
+                if (auth()->user()->hasRole('super-admin')) {
+                    $globalMaintenance[$key] = $data[$key];
+                }
+                unset($data[$key]);
+            }
+        }
+
+        // SMS provider credentials are platform-wide now too (see the
+        // centralize_sms_settings migration): the super-admin holds the one
+        // provider account, and schools just draw down a credit balance.
+        // Writing these into a specific school's settings would have no
+        // effect since nothing reads them from there anymore.
+        $globalSmsKeys = ['at_api_key', 'at_username', 'at_sender_id', 'at_env', 'olympus_sms_api_url', 'olympus_sms_api_token', 'olympus_sms_sender_id'];
+        $platformMpesaKeys = ['platform_mpesa_env', 'platform_mpesa_consumer_key', 'platform_mpesa_consumer_secret', 'platform_mpesa_shortcode', 'platform_mpesa_passkey', 'platform_mpesa_callback_url'];
+        foreach ([...$globalSmsKeys, ...$platformMpesaKeys] as $key) {
+            if (array_key_exists($key, $data)) {
+                if (auth()->user()->hasRole('super-admin') && $data[$key] !== '' && $data[$key] !== null) {
+                    $globalMaintenance[$key] = $data[$key];
+                }
+                unset($data[$key]);
+            }
+        }
+
+        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
+        $globalSecretKeys = ['at_api_key', 'olympus_sms_api_token', 'platform_mpesa_consumer_key', 'platform_mpesa_consumer_secret', 'platform_mpesa_passkey'];
+        DB::transaction(function () use ($data, $secretKeys, $globalSecretKeys, $assetData, $globalMaintenance): void {
+            foreach ($globalMaintenance as $key => $value) {
+                if (in_array($key, $globalSecretKeys, true) && is_string($value) && $value !== '') {
+                    $value = 'enc:' . Crypt::encryptString($value);
+                }
+                SystemSetting::put($key, $value);
+            }
             foreach ($data as $key => $value) {
                 $setting = SchoolSetting::firstOrNew(['key' => $key]);
                 if (in_array($key, $secretKeys, true) && ($value === '' || $value === null)) {
