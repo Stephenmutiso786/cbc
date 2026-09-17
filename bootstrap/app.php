@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\MaintenanceMode::class,
             \App\Http\Middleware\RequireLegalAcceptance::class,
             \App\Http\Middleware\EnsureSchoolSubscriptionActive::class,
+            \App\Http\Middleware\ForcePasswordChange::class,
             \App\Http\Middleware\TrackSystemActivity::class,
         ]);
         $middleware->alias([

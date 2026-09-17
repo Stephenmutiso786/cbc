@@ -9,11 +9,12 @@ class School extends Model
 {
     protected $fillable = [
         'name', 'slug', 'school_code', 'type', 'motto', 'address', 'phone', 'email',
-        'logo_data', 'is_active', 'trial_ends_at', 'package_id', 'package_expires_at', 'sms_credits',
+        'logo_data', 'is_active', 'is_locked', 'trial_ends_at', 'package_id', 'package_expires_at', 'sms_credits',
     ];
 
     protected $casts = [
         'is_active'          => 'boolean',
+        'is_locked'          => 'boolean',
         'trial_ends_at'      => 'datetime',
         'package_expires_at' => 'date',
     ];

@@ -28,6 +28,13 @@ class Learner extends Model
         'grade_level'     => GradeLevel::class,
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (Learner $learner): void {
+            app(\App\Services\StudentAccountProvisioner::class)->provision($learner);
+        });
+    }
+
     // ── Relationships ────────────────────────────────────────────
     public function schoolClass()   { return $this->belongsTo(SchoolClass::class, 'class_id'); }
     public function user()          { return $this->belongsTo(User::class); }

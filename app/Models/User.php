@@ -12,13 +12,14 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles, BelongsToSchool;
 
-    protected $fillable = ['name', 'email', 'password', 'school_id'];
+    protected $fillable = ['name', 'email', 'password', 'school_id', 'must_change_password'];
     protected $hidden   = ['password', 'remember_token'];
     protected $casts    = [
         'email_verified_at' => 'datetime',
         'legal_terms_accepted_at' => 'datetime',
         'legal_privacy_accepted_at' => 'datetime',
         'password' => 'hashed',
+        'must_change_password' => 'boolean',
     ];
 
     public function staffMember() { return $this->hasOne(StaffMember::class); }

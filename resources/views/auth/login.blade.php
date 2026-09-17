@@ -14,10 +14,10 @@
         {{-- Logo / School Name --}}
         <div class="text-center mb-8">
             <div class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-lg mb-4">
-                <svg class="h-9 w-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                @if(config('platform.logo_data'))<img src="{{ config('platform.logo_data') }}" alt="{{ config('platform.name') }}" class="h-full w-full object-contain">@else<svg class="h-9 w-9 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 2.386-.37 4.687-1.058 6.85A12.006 12.006 0 0112 21a12.006 12.006 0 01-7.942-1.15A12.083 12.083 0 013 13c0-.836.068-1.655.2-2.455L12 14z"/>
-                </svg>
+                </svg>@endif
             </div>
             <h1 class="text-white text-2xl font-bold">{{ config('platform.name') }}</h1>
             <p class="text-green-200 text-sm mt-1">{{ config('platform.tagline') }}</p>
@@ -43,8 +43,8 @@
             <form method="POST" action="{{ route('login') }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label for="email" class="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
+                    <label for="login" class="block text-xs font-semibold text-gray-600 mb-1">Email address or learner admission number</label>
+                    <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus
                            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition">
                 </div>
                 <div>

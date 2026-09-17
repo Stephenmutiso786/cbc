@@ -84,7 +84,7 @@ class AppServiceProvider extends ServiceProvider
             if (! \Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
                 return;
             }
-            foreach (['name', 'tagline', 'footer', 'support_email', 'support_phone'] as $field) {
+            foreach (['name', 'tagline', 'footer', 'support_email', 'support_phone', 'logo_data'] as $field) {
                 if (($value = SystemSetting::get('platform_' . $field)) !== null && $value !== '') {
                     config()->set('platform.' . $field, $value);
                 }
