@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TimetableSlot;
+use App\Services\TimetableTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,11 +13,6 @@ use Illuminate\View\View;
 class TimetableController extends Controller
 {
     private const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-
-    private const TIMES = [
-        ['08:00', '08:40'], ['08:40', '09:20'], ['09:20', '10:00'], ['10:20', '11:00'],
-        ['11:00', '11:40'], ['12:20', '13:00'], ['13:00', '13:40'], ['13:40', '14:20'],
-    ];
 
     public function publish(Request $request): RedirectResponse
     {
@@ -85,17 +81,18 @@ class TimetableController extends Controller
             ? $classes->where('id', (int) $classId)->values()
             : $classes;
 
-        $slotMaps = $printClasses->mapWithKeys(fn (SchoolClass $schoolClass) => [
-            $schoolClass->id => $slots->where('class_id', $schoolClass->id)->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)),
+        $templateService = app(TimetableTemplateService::class);
+        $classTimetables = $printClasses->map(fn (SchoolClass $schoolClass) => [
+            'class' => $schoolClass,
+            'template' => $templateService->templateForClass($schoolClass),
+            'slots' => $slots->where('class_id', $schoolClass->id)->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)),
         ]);
 
         return view('admin.timetable.print', [
             'academicYear' => $academicYear,
             'term' => $term,
-            'classes' => $printClasses,
-            'slotMaps' => $slotMaps,
+            'classTimetables' => $classTimetables,
             'days' => self::DAYS,
-            'times' => self::TIMES,
         ]);
     }
 
@@ -116,11 +113,15 @@ class TimetableController extends Controller
             ->orderBy('start_time')
             ->get();
 
+        $times = $slots->mapWithKeys(fn (TimetableSlot $slot) => [substr($slot->start_time, 0, 5) => substr($slot->end_time, 0, 5)])->sortKeys();
+        $slotMap = $slots->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5));
+
         return view('teacher.timetable.print', [
             'staff' => $staff,
             'slots' => $slots,
+            'slotMap' => $slotMap,
             'days' => self::DAYS,
-            'times' => self::TIMES,
+            'times' => $times,
         ]);
     }
 }

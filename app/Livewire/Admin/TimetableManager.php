@@ -6,6 +6,7 @@ use App\Models\LearningArea;
 use App\Models\SchoolClass;
 use App\Models\TeacherSubjectAllocation;
 use App\Models\TimetableSlot;
+use App\Services\TimetableTemplateService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,11 +22,6 @@ class TimetableManager extends Component
     public array $readiness = [];
 
     private const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-    private const TIMES = [
-        ['08:00', '08:40'], ['08:40', '09:20'], ['09:20', '10:00'], ['10:20', '11:00'],
-        ['11:00', '11:40'], ['12:20', '13:00'], ['13:00', '13:40'], ['13:40', '14:20'],
-    ];
-
     public function mount(): void
     {
         $this->academicYear = (string) config('school.academic_year');
@@ -142,6 +138,7 @@ class TimetableManager extends Component
             'missing' => count($missing),
             'class_teachers_missing' => $classes->filter(fn (SchoolClass $class) => ! $class->class_teacher_id)->count(),
         ];
+        $selectedClass = $this->classId ? SchoolClass::find((int) $this->classId) : null;
         $slots = TimetableSlot::with(['schoolClass', 'learningArea', 'teacher'])
             ->where('academic_year', $this->academicYear)->where('term', (string) $this->term)
             ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
@@ -151,6 +148,7 @@ class TimetableManager extends Component
         return view('livewire.admin.timetable-manager', [
             'slots' => $slots,
             'gridSlots' => $this->classId ? $slots->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)) : collect(),
+            'gridPeriods' => $selectedClass ? $this->periodsFor($selectedClass) : [],
             'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
             'readiness' => $this->readiness,
         ])->layout('layouts.admin');
@@ -197,17 +195,17 @@ class TimetableManager extends Component
                 ->where('class_id', '!=', (int) $this->classId)
                 ->get()
                 ->each(function (TimetableSlot $slot) use (&$occupied): void {
-                    $period = $this->periodIndexFor($slot->start_time);
-                    if ($period === null) return;
-                    $occupied['class'][$slot->class_id . ':' . $slot->day_of_week . ':' . $period] = true;
-                    $occupied['teacher'][$slot->teacher_id . ':' . $slot->day_of_week . ':' . $period] = true;
-                    if ($slot->venue) $occupied['venue'][$slot->venue . ':' . $slot->day_of_week . ':' . $period] = true;
+                    $this->occupyRange($occupied, 'class', (int) $slot->class_id, $slot->day_of_week, $slot->start_time, $slot->end_time);
+                    $this->occupyRange($occupied, 'teacher', (int) $slot->teacher_id, $slot->day_of_week, $slot->start_time, $slot->end_time);
+                    if ($slot->venue) {
+                        $this->occupyRange($occupied, 'venue', $slot->venue, $slot->day_of_week, $slot->start_time, $slot->end_time);
+                    }
                 });
         }
         $rows = [];
 
         foreach ($classes as $class) {
-            $periods = count($this->periodsFor($class));
+            $periods = $this->periodsFor($class);
             $tasks = [];
             foreach ($class->learningAreas as $area) {
                 $allocation = $allocations->get($class->id . ':' . $area->id)?->first();
@@ -227,17 +225,16 @@ class TimetableManager extends Component
                 $candidates = $this->candidateStarts($task['area']->name, $task['length'], $periods);
                 foreach ($candidates as [$dayIndex, $startPeriod]) {
                     $day = self::DAYS[$dayIndex];
-                    $key = $class->id . ':' . $day . ':' . $startPeriod;
                     if (in_array($dayIndex, $subjectDays[$task['area']->id] ?? [], true) && $this->isCore($task['area']->name)) {
                         continue;
                     }
                     $venue = $this->venueFor($task['area']->name);
-                    if ($this->conflicts($class->id, $task['teacher'], $venue, $day, $startPeriod, $task['length'], $occupied, $periods)) {
+                    [$startTime, $endTime] = $this->slotRange($periods, $startPeriod, $task['length']);
+                    if ($this->conflicts($class->id, $task['teacher'], $venue, $day, $startTime, $endTime, $occupied)) {
                         continue;
                     }
                     for ($offset = 0; $offset < $task['length']; $offset++) {
-                        $period = $startPeriod + $offset;
-                        $time = $this->periodsFor($class)[$period];
+                        $time = $periods[$startPeriod + $offset];
                         $rows[] = [
                             // insert() bypasses the BelongsToSchool model
                             // event, so the tenant key must be explicit.
@@ -247,9 +244,11 @@ class TimetableManager extends Component
                             'venue' => $venue, 'academic_year' => $this->academicYear, 'term' => (string) $this->term,
                             'is_active' => false, 'created_at' => now(), 'updated_at' => now(),
                         ];
-                        $occupied['class'][$class->id . ':' . $day . ':' . $period] = true;
-                        $occupied['teacher'][$task['teacher'] . ':' . $day . ':' . $period] = true;
-                        if ($venue) $occupied['venue'][$venue . ':' . $day . ':' . $period] = true;
+                        $this->occupyRange($occupied, 'class', (int) $class->id, $day, $time[0] . ':00', $time[1] . ':00');
+                        $this->occupyRange($occupied, 'teacher', (int) $task['teacher'], $day, $time[0] . ':00', $time[1] . ':00');
+                        if ($venue) {
+                            $this->occupyRange($occupied, 'venue', $venue, $day, $time[0] . ':00', $time[1] . ':00');
+                        }
                     }
                     $subjectDays[$task['area']->id][] = $dayIndex;
                     $placed = true;
@@ -291,36 +290,74 @@ class TimetableManager extends Component
         return array_values(array_filter($result, fn ($task) => ($task['length'] ?? 1) > 0));
     }
 
-    private function candidateStarts(string $name, int $length, int $periods): array
+    /**
+     * @param array<int, array{0:string,1:string}> $periods
+     * @return array<int, array{0:int,1:int}>
+     */
+    private function candidateStarts(string $name, int $length, array $periods): array
     {
         $starts = [];
+        $periodCount = count($periods);
         foreach (self::DAYS as $dayIndex => $_day) {
-            $periodRange = $this->isPractical($name) ? range(0, max(0, min(3, $periods - $length))) : range(0, max(0, $periods - $length));
-            foreach ($periodRange as $period) $starts[] = [$dayIndex, $period];
+            $periodRange = $this->isPractical($name) ? range(0, max(0, min(3, $periodCount - $length))) : range(0, max(0, $periodCount - $length));
+            foreach ($periodRange as $period) {
+                if ($this->isContiguousRange($periods, $period, $length)) {
+                    $starts[] = [$dayIndex, $period];
+                }
+            }
         }
         return $starts;
     }
 
-    private function conflicts(int $classId, int $teacherId, ?string $venue, string $day, int $start, int $length, array $occupied, int $periods): bool
+    /**
+     * @param array<int, array{0:string,1:string}> $periods
+     */
+    private function isContiguousRange(array $periods, int $startPeriod, int $length): bool
     {
-        for ($offset = 0; $offset < $length; $offset++) {
-            $period = $start + $offset;
-            if (isset($occupied['class'][$classId . ':' . $day . ':' . $period]) || isset($occupied['teacher'][$teacherId . ':' . $day . ':' . $period])) return true;
-            if ($venue && isset($occupied['venue'][$venue . ':' . $day . ':' . $period])) return true;
+        for ($offset = 0; $offset < $length - 1; $offset++) {
+            if (! isset($periods[$startPeriod + $offset + 1])) {
+                return false;
+            }
+
+            if ($periods[$startPeriod + $offset][1] !== $periods[$startPeriod + $offset + 1][0]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function conflicts(int $classId, int $teacherId, ?string $venue, string $day, string $startTime, string $endTime, array $occupied): bool
+    {
+        if ($this->hasRangeConflict($occupied, 'class', (string) $classId, $day, $startTime, $endTime)) {
+            return true;
+        }
+        if ($this->hasRangeConflict($occupied, 'teacher', (string) $teacherId, $day, $startTime, $endTime)) {
+            return true;
+        }
+        if ($venue && $this->hasRangeConflict($occupied, 'venue', $venue, $day, $startTime, $endTime)) {
+            return true;
         }
         return false;
     }
 
-    private function periodIndexFor(string $startTime): ?int
+    /**
+     * @param array<int, array{0:string,1:string}> $periods
+     * @return array{0:string,1:string}
+     */
+    private function slotRange(array $periods, int $startPeriod, int $length): array
     {
-        $startTime = substr($startTime, 0, 5);
-        foreach (self::TIMES as $index => [$start]) {
-            if ($start === $startTime) return $index;
-        }
-        return null;
+        return [$periods[$startPeriod][0], $periods[$startPeriod + $length - 1][1]];
     }
 
-    private function periodsFor(SchoolClass $class): array { return array_slice(self::TIMES, 0, $this->isJss($class->grade_level) ? 8 : 7); }
+    /**
+     * @return array<int, array{0:string,1:string}>
+     */
+    private function periodsFor(SchoolClass $class): array
+    {
+        return app(TimetableTemplateService::class)->periodsForClass($class);
+    }
+
     private function isJss(string $grade): bool { return in_array($grade, ['Grade 7', 'Grade 8', 'Grade 9'], true); }
     private function isCore(string $name): bool { return in_array(strtolower($name), ['english', 'kiswahili', 'mathematics'], true); }
     private function isPractical(string $name): bool { return str_contains(strtolower($name), 'science') || str_contains(strtolower($name), 'agriculture') || str_contains(strtolower($name), 'creative') || str_contains(strtolower($name), 'technical'); }
@@ -332,5 +369,35 @@ class TimetableManager extends Component
         if (in_array($grade, ['Grade 4', 'Grade 5', 'Grade 6'], true)) return in_array($name, ['english', 'kiswahili', 'mathematics'], true) ? 5 : 4;
         return 5;
     }
+
+    private function occupyRange(array &$occupied, string $bucket, int|string $resourceId, string $day, string $startTime, string $endTime): void
+    {
+        $occupied[$bucket][(string) $resourceId][$day][] = [
+            'start' => $this->timeToMinutes(substr($startTime, 0, 5)),
+            'end' => $this->timeToMinutes(substr($endTime, 0, 5)),
+        ];
+    }
+
+    private function hasRangeConflict(array $occupied, string $bucket, string $resourceId, string $day, string $startTime, string $endTime): bool
+    {
+        $start = $this->timeToMinutes(substr($startTime, 0, 5));
+        $end = $this->timeToMinutes(substr($endTime, 0, 5));
+
+        foreach ($occupied[$bucket][$resourceId][$day] ?? [] as $range) {
+            if ($start < $range['end'] && $end > $range['start']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function timeToMinutes(string $time): int
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time, 2) + [0, 0]);
+
+        return $hour * 60 + $minute;
+    }
+
     private function canManage(): bool { return auth()->user()->can('manage timetable'); }
 }

@@ -37,11 +37,11 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($times as [$start, $end])
+                @foreach($times as $start => $end)
                     <tr>
                         <th class="time">{{ $start }} - {{ $end }}</th>
                         @foreach($days as $day)
-                            @php($slot = $slots->filter(fn ($item) => $item->day_of_week === $day && substr($item->start_time, 0, 5) === $start)->first())
+                            @php($slot = $slotMap->get($day . '|' . $start))
                             <td class="slot">
                                 @if($slot)
                                     <div class="subject">{{ $slot->learningArea?->name }}</div>
