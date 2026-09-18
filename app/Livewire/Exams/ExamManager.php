@@ -27,6 +27,14 @@ class ExamManager extends Component
     public string $tab          = 'exams'; // exams | marks | results
     public ?int   $selectedExam = null;
 
+    /**
+     * Livewire update requests use the `livewire.update` route rather than
+     * the page route that mounted this component. Keep the original portal
+     * context as component state so opening the exam modal does not suddenly
+     * treat a school administrator as an allocation-scoped teacher.
+     */
+    public bool $isAdminPortal = false;
+
     // Create Exam form
     public bool   $showCreateModal = false;
     public ?int   $editingExamId   = null;
@@ -67,6 +75,7 @@ class ExamManager extends Component
 
     public function mount(): void
     {
+        $this->isAdminPortal = request()->routeIs('admin.*');
         $this->examTerm = (string) config('school.current_term');
         $this->termFilter = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
@@ -798,7 +807,7 @@ class ExamManager extends Component
         // School administrators manage the complete school exam register. A
         // teacher/HOD using the teacher portal remains allocation-scoped.
         return $this->isFullAdmin()
-            || (request()->routeIs('admin.*') && auth()->user()->can('manage exams'));
+            || ($this->isAdminPortal && auth()->user()->can('manage exams'));
     }
 
     public function canReviewMarks(): bool
@@ -809,7 +818,9 @@ class ExamManager extends Component
     public function render()
     {
         $fullAdmin = $this->isFullAdmin();
-        $adminPortal = request()->routeIs('admin.*');
+        // Do not inspect request()->routeIs() here. On every modal/action
+        // update Livewire is on its own endpoint, not /admin/exams.
+        $adminPortal = $this->isAdminPortal;
         $allExamScope = $this->canManageAllExams()
             || ($adminPortal && auth()->user()->can('view exams'));
         $allocation = TeacherSubjectAllocation::where('teacher_id', auth()->user()->staffMember?->id)
