@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\StaffMember;
 use App\Models\User;
+use App\Services\LoginCredentialService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -89,7 +90,7 @@ class StaffManager extends Component
         $this->editingId = $id;
         $this->signatureFile = null;
         $this->form = array_merge($staff->only(['staff_number', 'first_name', 'last_name', 'email', 'phone_number', 'employment_type', 'staff_type', 'designation', 'date_joined']), ['role' => $staff->user?->getRoleNames()->first() ?: 'teacher', 'password' => '']);
-        $this->form['date_joined'] = $staff->date_joined?->format('Y-m-d');
+        $this->form['date_joined'] = $staff->getRawOriginal('date_joined');
         $this->showForm = true;
     }
 
@@ -97,6 +98,7 @@ class StaffManager extends Component
     {
         $staff = $this->editingId ? StaffMember::findOrFail($this->editingId) : null;
         abort_if($staff?->user?->hasRole('super-admin'), 403, 'Super Admin accounts are protected.');
+        $staffNumber = $this->editingId ? null : $this->newStaffNumber();
         $data = $this->validate([
             'form.staff_number' => [$this->editingId ? 'required' : 'nullable', 'string', 'max:255', Rule::unique('staff_members', 'staff_number')->ignore($this->editingId)],
             'form.first_name' => ['required', 'string', 'max:255'], 'form.last_name' => ['required', 'string', 'max:255'],
@@ -108,28 +110,36 @@ class StaffManager extends Component
             'signatureFile' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
         ])['form'];
         if (! $this->editingId) {
-            $data['staff_number'] = $this->newStaffNumber();
+            $data['staff_number'] = $staffNumber;
         }
         if ($this->duplicateNameExists($data['first_name'], $data['last_name'], $this->editingId)) {
             $this->addError('form.first_name', 'A staff member with the same name already exists.');
             return;
         }
         $signatureData = $this->signatureFile ? app(DataTransferPolicy::class)->imageDataUrl($this->signatureFile) : null;
+        $plainPassword = null;
         DB::transaction(function () use ($data, $staff, $signatureData) {
             $user = $staff?->user;
-            if (!$user) $user = User::create(['name' => $data['first_name'] . ' ' . $data['last_name'], 'email' => $data['email'], 'password' => Hash::make($data['password']), 'email_verified_at' => now()]);
+            if (!$user) $user = User::create(['name' => $data['first_name'] . ' ' . $data['last_name'], 'email' => $data['email'], 'password' => Hash::make($data['password'] ?: app(LoginCredentialService::class)->passwordForSerial($this->schoolPrefix(), $data['staff_number'])), 'must_change_password' => true, 'email_verified_at' => now()]);
             else {
                 $user->update(['name' => $data['first_name'] . ' ' . $data['last_name'], 'email' => $data['email']]);
-                if ($data['password']) $user->update(['password' => Hash::make($data['password'])]);
+                if ($data['password']) $user->update(['password' => Hash::make($data['password']), 'must_change_password' => true]);
             }
             $user->syncRoles([$data['role']]);
             $staff = $staff ?: new StaffMember();
             $staff->fill(array_diff_key($data, array_flip(['role', 'password'])))->forceFill(['gender' => $staff->gender ?: 'male', 'user_id' => $user->id, 'is_active' => true])->save();
             if ($signatureData) $staff->update(['signature_data' => $signatureData]);
         });
+        $plainPassword = $this->editingId && trim($data['password']) === '' ? null : ($data['password'] ?: app(LoginCredentialService::class)->passwordForSerial($this->schoolPrefix(), $data['staff_number']));
+        $delivery = null;
+        if ($plainPassword !== null) {
+            $delivery = app(LoginCredentialService::class)->sendLoginDetails($staff?->user?->fresh(['staffMember', 'guardian', 'learner.guardians']) ?? User::where('email', $data['email'])->firstOrFail(), $plainPassword, $data['phone_number'] ?: null);
+        }
         $this->signatureFile = null;
         $this->showForm = false;
-        session()->flash('success', $this->editingId ? 'Staff record updated.' : 'Staff account created.');
+        session()->flash('success', $this->editingId
+            ? $this->buildCredentialFlash('Staff record updated and password refreshed.', $data['email'], $plainPassword, $delivery)
+            : $this->buildCredentialFlash('Staff account created with default login details.', $data['email'], $plainPassword, $delivery));
     }
 
     public function importCsv(): void
@@ -148,8 +158,8 @@ class StaffManager extends Component
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 1;
             $row['role'] = $row['role'] ?: 'teacher';
-            $row['password'] = $row['password'] ?: $this->newTemporaryPassword();
             $row['staff_number'] = $row['staff_number'] ?: $this->newStaffNumber();
+            $row['password'] = $row['password'] ?: $this->newTemporaryPassword($row['staff_number']);
             $row['email'] = $row['email'] ?: $this->newEmail($row['first_name'], $row['last_name']);
             $row['phone_number'] = $row['phone_number'] ?: null;
             $row['employment_type'] = $row['employment_type'] ?: 'permanent';
@@ -163,20 +173,21 @@ class StaffManager extends Component
             if ($validator->fails()) { $this->importErrors[] = 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all()); continue; }
             try {
                 DB::transaction(function () use ($row) {
-                    $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'email_verified_at' => now()]);
+                    $user = User::create(['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => Hash::make($row['password']), 'must_change_password' => true, 'email_verified_at' => now()]);
                     // A staff account has one operational role; replace stale roles from older assignments.
                     $user->syncRoles([$row['role']]);
                     StaffMember::create(array_merge($row, ['gender' => 'male', 'user_id' => $user->id, 'is_active' => true]));
                 });
                 $this->importedCount++;
-                $this->importCredentials[] = ['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => $row['password']];
+                $delivery = app(LoginCredentialService::class)->sendLoginDetails(User::where('email', $row['email'])->firstOrFail(), $row['password'], $row['phone_number'] ?: null);
+                $this->importCredentials[] = ['name' => $row['first_name'] . ' ' . $row['last_name'], 'email' => $row['email'], 'password' => $row['password'], 'sms' => $delivery['status'] ?? 'not_sent'];
             } catch (\Throwable $exception) {
                 $this->importErrors[] = 'Row ' . $rowNumber . ': could not be saved (' . $exception->getMessage() . ').';
             }
         }
         if ($this->importedCount) {
             $credentials = collect($this->importCredentials)
-                ->map(fn ($item) => "{$item['name']}: {$item['email']} / {$item['password']}")
+                ->map(fn ($item) => "{$item['name']}: {$item['email']} / {$item['password']}" . (isset($item['sms']) ? " [SMS: {$item['sms']}]" : ''))
                 ->implode(' | ');
             session()->flash('success', "{$this->importedCount} staff account(s) imported. Login credentials: {$credentials}");
         }
@@ -279,9 +290,9 @@ class StaffManager extends Component
         return $base;
     }
 
-    private function newTemporaryPassword(): string
+    private function newTemporaryPassword(string $staffNumber): string
     {
-        return 'Kyandulu@' . random_int(100000, 999999);
+        return app(LoginCredentialService::class)->passwordForSerial($this->schoolPrefix(), $staffNumber);
     }
 
     private function duplicateNameExists(string $first, string $last, ?int $ignoreId = null): bool
@@ -319,5 +330,29 @@ class StaffManager extends Component
             ->filter(fn (Role $role) => $role->name !== 'super-admin'
                 && $role->permissions->pluck('name')->diff($permissions)->isEmpty())
             ->pluck('name')->values()->all();
+    }
+
+    private function schoolPrefix(): string
+    {
+        return app(LoginCredentialService::class)->schoolPrefixForSchoolId(auth()->user()->school_id);
+    }
+
+    private function buildCredentialFlash(string $lead, string $email, ?string $password, ?array $delivery): string
+    {
+        if ($password === null) {
+            return $lead;
+        }
+
+        $summary = $lead . ' Login: ' . $email . '. Password: ' . $password . '.';
+
+        if (($delivery['status'] ?? null) === 'sent') {
+            $summary .= ' SMS sent to ' . $delivery['recipient'] . '.';
+        } elseif (($delivery['status'] ?? null) === 'failed') {
+            $summary .= ' SMS delivery failed for ' . ($delivery['recipient'] ?? 'the available contact') . '.';
+        } else {
+            $summary .= ' No SMS recipient was available, so share the details securely.';
+        }
+
+        return $summary;
     }
 }

@@ -7,6 +7,7 @@ use App\Models\School;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use App\Services\OlympusSmsService;
+use App\Services\LoginCredentialService;
 use App\Services\SchoolAcademicSetupService;
 use App\Support\Tenant;
 use Illuminate\Support\Facades\Hash;
@@ -125,7 +126,7 @@ class SchoolManager extends Component
             'school_code' => $this->nextSchoolCode($this->form['name']),
         ]);
 
-        $password = Str::password(12);
+        $password = app(LoginCredentialService::class)->defaultPasswordForSchool($school);
 
         // Create the school's first admin *inside* this school's tenant
         // context, so BelongsToSchool stamps school_id correctly — and seed
@@ -191,9 +192,9 @@ class SchoolManager extends Component
             app(OlympusSmsService::class)->sendSms(
                 $this->adminPhone,
                 "Welcome to ElimuHub! Your {$school->name} admin account is ready.\n"
-                . "Email: {$this->adminEmail}\n"
+                . "Login: {$this->adminEmail}\n"
                 . "Password: {$password}\n"
-                . "Login and change your password immediately."
+                . "Use the password once, then change it immediately after first login."
             );
             return 'sent';
         } catch (\Throwable $e) {
