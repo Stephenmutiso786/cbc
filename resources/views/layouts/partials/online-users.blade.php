@@ -1,12 +1,14 @@
 @php
-    try {
-        $onlineUsers = \App\Models\User::query()
-            ->where('last_seen_at', '>=', now()->subMinutes(5))
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'last_seen_at']);
-    } catch (\Throwable) {
-        $onlineUsers = collect();
-    }
+    $onlineUsers = cache()->remember('online-users:' . (auth()->id() ?: 'guest'), now()->addSeconds(20), function () {
+        try {
+            return \App\Models\User::query()
+                ->where('last_seen_at', '>=', now()->subMinutes(5))
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'last_seen_at']);
+        } catch (\Throwable) {
+            return collect();
+        }
+    });
 @endphp
 <details class="relative">
     <summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-green-200 px-3 py-2 text-sm text-gray-700 hover:bg-green-50">

@@ -42,6 +42,7 @@ use App\Livewire\SuperAdmin\SuperAdminDashboard;
 use App\Livewire\SuperAdmin\PlatformMaintenance;
 use App\Livewire\SuperAdmin\PlatformSettings;
 use App\Livewire\Admin\IdCardGenerator;
+use App\Http\Controllers\TimetableController;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -92,6 +93,9 @@ Route::get('/staff/import', StaffManager::class)->middleware('permission:manage 
 Route::get('/parents', ParentManager::class)->middleware('permission:view students')->name('parents.index');
 Route::get('/timetable', TimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('timetable.index');
 Route::get('/exam-timetable', ExamTimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('exam-timetable.index');
+Route::get('/timetable/print', [TimetableController::class, 'printSchool'])->middleware('permission:view timetable')->name('timetable.print');
+Route::post('/timetable/publish', [TimetableController::class, 'publish'])->middleware('permission:manage timetable')->name('timetable.publish');
+Route::post('/timetable/unpublish', [TimetableController::class, 'unpublish'])->middleware('permission:manage timetable')->name('timetable.unpublish');
 Route::get('/reports', [AnalyticsController::class, 'index'])->middleware('permission:view analytics')->name('reports.index');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->middleware('permission:view analytics')->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
