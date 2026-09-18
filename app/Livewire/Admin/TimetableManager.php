@@ -9,6 +9,7 @@ use App\Models\TimetableSlot;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\Tenant;
 use Livewire\Component;
 
 class TimetableManager extends Component
@@ -17,6 +18,7 @@ class TimetableManager extends Component
     public int $term = 1;
     public string $classId = '';
     public string $notice = '';
+    public array $readiness = [];
 
     private const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     private const TIMES = [
@@ -39,7 +41,16 @@ class TimetableManager extends Component
             'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
         ]);
 
-        $slots = $this->buildSchedule();
+        $classes = $this->selectedClasses();
+        $missing = $this->missingAllocations($classes);
+        if ($missing !== []) {
+            $examples = collect($missing)->take(4)->map(fn (array $item) => "{$item['class']} — {$item['subject']}")->join('; ');
+            throw ValidationException::withMessages([
+                'academicYear' => count($missing) . " subject teacher assignment(s) are missing for Term {$this->term}. Add them in Academic Setup, or use ‘Assign class teachers’ where each class already has a real class teacher. Missing: {$examples}" . (count($missing) > 4 ? '…' : ''),
+            ]);
+        }
+
+        $slots = $this->buildSchedule($classes);
         if ($slots === []) {
             throw ValidationException::withMessages(['academicYear' => 'No active classes with assigned subjects are available to schedule.']);
         }
@@ -53,6 +64,54 @@ class TimetableManager extends Component
             TimetableSlot::insert($slots);
         });
         $this->notice = count($slots) . ' lessons generated as a draft. Review conflicts, then publish.';
+    }
+
+    /**
+     * Creates only missing subject allocations for classes that already have
+     * an active, real class teacher. It never replaces a subject teacher the
+     * school has explicitly chosen. This gives small schools a usable
+     * starting timetable while keeping assignments visible and editable.
+     */
+    public function assignClassTeachers(): void
+    {
+        abort_unless($this->canManage(), 403);
+
+        $classes = $this->selectedClasses()->load('classTeacher');
+        if ($classes->isEmpty()) {
+            $this->addError('academicYear', 'Select an active class before assigning class teachers.');
+            return;
+        }
+
+        $unready = $classes->filter(fn (SchoolClass $class) => ! $class->classTeacher || ! $class->classTeacher->is_active || $class->classTeacher->staff_type !== 'teaching');
+        if ($unready->isNotEmpty()) {
+            $this->addError('academicYear', 'Set an active teaching class teacher first for: ' . $unready->pluck('name')->join(', ') . '.');
+            return;
+        }
+
+        $created = 0;
+        DB::transaction(function () use ($classes, &$created): void {
+            foreach ($classes as $class) {
+                foreach ($class->learningAreas as $area) {
+                    $allocation = TeacherSubjectAllocation::firstOrCreate(
+                        [
+                            'teacher_id' => $class->class_teacher_id,
+                            'class_id' => $class->id,
+                            'learning_area_id' => $area->id,
+                            'term' => $this->term,
+                            'academic_year' => $this->academicYear,
+                        ],
+                        ['is_active' => true, 'created_by' => auth()->id()],
+                    );
+                    if ($allocation->wasRecentlyCreated) {
+                        $created++;
+                    }
+                }
+            }
+        });
+
+        $this->notice = $created
+            ? "{$created} missing allocation(s) created from real class-teacher assignments. Review them in Academic Setup, then generate the draft timetable."
+            : 'Every selected class subject already has a teacher allocation for this term.';
     }
 
     public function publish(): void
@@ -75,6 +134,14 @@ class TimetableManager extends Component
 
     public function render()
     {
+        $classes = $this->selectedClasses();
+        $missing = $this->missingAllocations($classes);
+        $this->readiness = [
+            'classes' => $classes->count(),
+            'subjects' => $classes->sum(fn (SchoolClass $class) => $class->learningAreas->count()),
+            'missing' => count($missing),
+            'class_teachers_missing' => $classes->filter(fn (SchoolClass $class) => ! $class->class_teacher_id)->count(),
+        ];
         $slots = TimetableSlot::with(['schoolClass', 'learningArea', 'teacher'])
             ->where('academic_year', $this->academicYear)->where('term', (string) $this->term)
             ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
@@ -85,14 +152,40 @@ class TimetableManager extends Component
             'slots' => $slots,
             'gridSlots' => $this->classId ? $slots->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)) : collect(),
             'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
+            'readiness' => $this->readiness,
         ])->layout('layouts.admin');
     }
 
-    private function buildSchedule(): array
+    private function selectedClasses(): Collection
     {
-        $classes = SchoolClass::where('is_active', true)
+        return SchoolClass::where('is_active', true)
             ->when($this->classId, fn ($query) => $query->whereKey((int) $this->classId))
             ->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get();
+    }
+
+    /** @return array<int, array{class:string,subject:string}> */
+    private function missingAllocations(Collection $classes): array
+    {
+        if ($classes->isEmpty()) {
+            return [];
+        }
+        $assigned = TeacherSubjectAllocation::where('academic_year', $this->academicYear)
+            ->where('term', $this->term)->where('is_active', true)
+            ->whereIn('class_id', $classes->pluck('id'))
+            ->get()->mapWithKeys(fn ($allocation) => [$allocation->class_id . ':' . $allocation->learning_area_id => true]);
+        $missing = [];
+        foreach ($classes as $class) {
+            foreach ($class->learningAreas as $area) {
+                if (! isset($assigned[$class->id . ':' . $area->id])) {
+                    $missing[] = ['class' => $class->name, 'subject' => $area->name];
+                }
+            }
+        }
+        return $missing;
+    }
+
+    private function buildSchedule(Collection $classes): array
+    {
         $allocations = TeacherSubjectAllocation::where('academic_year', $this->academicYear)->where('term', $this->term)->where('is_active', true)->get()->groupBy(fn ($allocation) => $allocation->class_id . ':' . $allocation->learning_area_id);
         $occupied = ['class' => [], 'teacher' => [], 'venue' => []];
         // When generating one class, preserve all other classes' slots as
@@ -146,6 +239,9 @@ class TimetableManager extends Component
                         $period = $startPeriod + $offset;
                         $time = $this->periodsFor($class)[$period];
                         $rows[] = [
+                            // insert() bypasses the BelongsToSchool model
+                            // event, so the tenant key must be explicit.
+                            'school_id' => Tenant::id(),
                             'class_id' => $class->id, 'learning_area_id' => $task['area']->id, 'teacher_id' => $task['teacher'],
                             'day_of_week' => $day, 'start_time' => $time[0] . ':00', 'end_time' => $time[1] . ':00',
                             'venue' => $venue, 'academic_year' => $this->academicYear, 'term' => (string) $this->term,

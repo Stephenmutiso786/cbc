@@ -4,6 +4,7 @@ namespace App\Livewire\SuperAdmin;
 
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Crypt;
+use App\Services\OlympusSmsService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -20,6 +21,7 @@ class PlatformSettings extends Component
     public string $smsApiUrl = '';
     public string $smsSenderId = '';
     public string $smsApiToken = '';
+    public string $smsTestPhone = '';
     public string $mpesaEnvironment = 'sandbox';
     public string $mpesaConsumerKey = '';
     public string $mpesaConsumerSecret = '';
@@ -98,6 +100,35 @@ class PlatformSettings extends Component
         $this->smsApiToken = $this->mpesaConsumerKey = $this->mpesaConsumerSecret = $this->mpesaPasskey = '';
         $this->loginLogo = null;
         session()->flash('success', 'Global platform settings saved. Secret fields remain hidden after saving.');
+    }
+
+    /** Send one real delivery request using saved credentials or the token currently entered above. */
+    public function testSms(OlympusSmsService $sms): void
+    {
+        abort_unless(auth()->user()?->hasRole('super-admin'), 403);
+        $this->validate(['smsTestPhone' => ['required', 'string', 'min:9', 'max:20']]);
+
+        $token = $this->smsApiToken !== ''
+            ? $this->smsApiToken
+            : (string) SystemSetting::get('olympus_sms_api_token', config('services.olympus_sms.api_token'));
+        if ($token === '') {
+            $this->addError('smsTestPhone', 'Enter and save a valid Olympus API token before sending a test SMS.');
+            return;
+        }
+
+        // Let a super-admin test values newly entered on this form without
+        // exposing them or writing them to a school-level setting.
+        config()->set('services.olympus_sms.api_url', $this->smsApiUrl);
+        config()->set('services.olympus_sms.sender_id', $this->smsSenderId);
+        config()->set('services.olympus_sms.api_token', $token);
+
+        try {
+            $sms->sendSms($this->smsTestPhone, 'ElimuHub SMS test: your platform gateway is configured.');
+            session()->flash('success', 'Test SMS was accepted by the provider for delivery. Check the test phone and the provider message report.');
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('smsTestPhone', 'SMS provider rejected the test: ' . $exception->getMessage());
+        }
     }
 
     public function render()

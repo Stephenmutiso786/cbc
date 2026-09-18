@@ -4,6 +4,7 @@ namespace App\Livewire\Notifications;
 
 use App\Jobs\SendSmsJob;
 use App\Models\Guardian;
+use App\Models\School;
 use App\Models\SchoolNotification;
 use App\Models\SchoolClass;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,12 @@ use Livewire\Component;
 
 class SendNotification extends Component
 {
+    /**
+     * Livewire actions are posted to the internal livewire.update endpoint.
+     * Preserve the page context captured on mount so a school administrator
+     * remains an administrator while selecting recipients or sending.
+     */
+    public bool $isAdminPortal = false;
     public string $title        = '';
     public string $message      = '';
     public string $type         = 'general';
@@ -27,7 +34,9 @@ class SendNotification extends Component
     protected $rules = [
         'title'   => 'required|string|max:100',
         'message' => 'required|string|max:480',
-        'channel' => 'required|in:sms,email,push,all',
+        // Email and push delivery are not implemented by this sender. Do
+        // not let the interface claim it sent a channel that it cannot send.
+        'channel' => 'required|in:sms',
         'type'    => 'required|in:general,fees,exam,report_card,attendance,emergency',
     ];
 
@@ -39,6 +48,11 @@ class SendNotification extends Component
     public function updatedTargetGrade(): void  { $this->count = $this->getRecipientsCount(); }
     public function updatedTargetGroup(): void  { $this->count = $this->getRecipientsCount(); }
     public function updatedTargetClassId(): void { $this->count = $this->getRecipientsCount(); }
+
+    public function mount(): void
+    {
+        $this->isAdminPortal = request()->routeIs('admin.*');
+    }
 
     public function send(): void
     {
@@ -53,14 +67,40 @@ class SendNotification extends Component
             return;
         }
 
-        $isAdmin = request()->routeIs('admin.*');
-        if (!$isAdmin && !$this->targetClassId) {
+        if (!$this->isAdminPortal && !$this->targetClassId) {
             $this->addError('targetClassId', 'Select the class whose parents should receive this message.');
             $this->sending = false;
             return;
         }
-        if (!$isAdmin && !\App\Models\TeacherSubjectAllocation::where('teacher_id', $staff->id)->where('class_id', $this->targetClassId)->where('is_active', true)->exists()) {
+        if (!$this->isAdminPortal && !\App\Models\TeacherSubjectAllocation::where('teacher_id', $staff->id)->where('class_id', $this->targetClassId)->where('is_active', true)->exists()) {
             abort(403, 'You are not allocated to this class.');
+        }
+
+        if (! config('services.olympus_sms.api_token')) {
+            $this->addError('message', 'SMS sending is not configured by the platform administrator yet. Ask them to add the provider token in Global Platform Settings and send a test SMS.');
+            $this->sending = false;
+            return;
+        }
+
+        $recipientCount = $this->getRecipientsCount();
+        if ($recipientCount === 0) {
+            $this->addError('targetClassId', 'No guardian phone numbers match this audience. Add guardian phone numbers before sending an SMS.');
+            $this->sending = false;
+            return;
+        }
+
+        $school = School::withoutGlobalScopes()->find(Auth::user()->school_id);
+        if (! $school) {
+            $this->addError('message', 'This account is not linked to a school SMS wallet.');
+            $this->sending = false;
+            return;
+        }
+        $fullMessage = "{$this->title}\n\n{$this->message}\n\nRegards, {$school->name}.";
+        $requiredUnits = $recipientCount * max(1, (int) ceil(mb_strlen($fullMessage) / 153));
+        if ((int) $school->sms_credits < $requiredUnits) {
+            $this->addError('message', "Insufficient SMS credits. This message needs {$requiredUnits} credit(s); this school has {$school->sms_credits}.");
+            $this->sending = false;
+            return;
         }
 
         $notification = SchoolNotification::create([
@@ -72,7 +112,7 @@ class SendNotification extends Component
             'target_grade'      => $this->targetGrade ?: null,
             'target_group'      => $this->targetGroup,
             'target_class_id'   => $this->targetClassId,
-            'total_recipients'  => $this->getRecipientsCount(),
+            'total_recipients'  => $recipientCount,
             'status'            => 'queued',
             'scheduled_at'      => now(),
         ]);
@@ -89,7 +129,7 @@ class SendNotification extends Component
     public function render()
     {
         $this->count = $this->getRecipientsCount();
-        $isAdmin = request()->routeIs('admin.*');
+        $isAdmin = $this->isAdminPortal;
         $classes = SchoolClass::forConfiguredGrades()->where('is_active', true);
         if (!$isAdmin) {
             $classIds = \App\Models\TeacherSubjectAllocation::where('teacher_id', Auth::user()->staffMember?->id)->where('is_active', true)->pluck('class_id');
@@ -104,7 +144,7 @@ class SendNotification extends Component
     private function recipientQuery()
     {
         $query = Guardian::query();
-        $isAdmin = request()->routeIs('admin.*');
+        $isAdmin = $this->isAdminPortal;
         if (!$isAdmin) {
             $classIds = \App\Models\TeacherSubjectAllocation::where('teacher_id', Auth::user()->staffMember?->id)->where('is_active', true)->pluck('class_id');
             $query->whereHas('learners', fn ($q) => $q->whereIn('class_id', $classIds)->where('is_active', true));

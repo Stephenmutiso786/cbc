@@ -34,13 +34,9 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Channel</label>
-                <select wire:model="channel" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="sms">📱 SMS</option>
-                    <option value="email">✉️ Email</option>
-                    <option value="push">🔔 Push Notification</option>
-                    <option value="all">📡 All Channels</option>
-                </select>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Delivery channel</label>
+                <div class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">📱 SMS</div>
+                <p class="mt-1 text-xs text-gray-500">Messages are sent through the school’s allocated SMS credits.</p>
             </div>
         </div>
 
