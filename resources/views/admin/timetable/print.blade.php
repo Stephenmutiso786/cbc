@@ -34,11 +34,13 @@
             <p>Academic year {{ $academicYear }} | Term {{ $term }} | School timetable</p>
         </div>
 
-        @forelse($classes as $schoolClass)
+        @forelse($classTimetables as $entry)
+            @php($schoolClass = $entry['class'])
             <section class="timetable">
                 <h2 class="title">{{ $schoolClass->grade_level }}{{ $schoolClass->name !== $schoolClass->grade_level ? ' - ' . $schoolClass->name : '' }}</h2>
                 <div class="meta">
                     <span>Class teacher: <strong>{{ $schoolClass->classTeacher?->full_name ?? '________________' }}</strong></span>
+                    <span>Template: <strong>{{ $entry['template']['label'] }}</strong></span>
                     <span>Printed: {{ now()->format('d M Y') }}</span>
                 </div>
                 <table>
@@ -51,11 +53,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($times as [$start, $end])
+                        @foreach($entry['template']['periods'] as [$start, $end])
                             <tr>
                                 <th class="time">{{ $start }} - {{ $end }}</th>
                                 @foreach($days as $day)
-                                    @php($slot = $slotMaps[$schoolClass->id]->get($day . '|' . $start))
+                                    @php($slot = $entry['slots']->get($day . '|' . $start))
                                     <td class="slot {{ $slot ? '' : 'empty' }}">
                                         @if($slot)
                                             <div class="subject">{{ $slot->learningArea?->name }}</div>

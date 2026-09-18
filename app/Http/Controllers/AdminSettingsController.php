@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use App\Services\OlympusSmsService;
 use App\Services\DataTransferPolicy;
 use App\Services\GoogleDriveStorage;
+use App\Services\TimetableTemplateService;
 use Illuminate\Support\Facades\DB;
 
 class AdminSettingsController extends Controller
@@ -86,11 +87,16 @@ class AdminSettingsController extends Controller
 
     public function update(Request $request, DataTransferPolicy $transferPolicy): RedirectResponse
     {
+        $templateService = app(TimetableTemplateService::class);
+        $templateKeys = array_keys($templateService->templates());
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'motto' => ['nullable', 'string', 'max:255'],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2200'],
             'current_term' => ['required', 'integer', 'between:1,3'],
+            'timetable_template_lower_primary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'lower-primary'))))],
+            'timetable_template_upper_primary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'upper-primary'))))],
+            'timetable_template_junior_secondary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'junior-secondary'))))],
             'type' => ['required', 'in:primary,secondary,mixed'],
             'address' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:50'],

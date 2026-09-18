@@ -13,6 +13,9 @@ return [
     'academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_academic_year' => (int) env('CURRENT_ACADEMIC_YEAR', now()->year),
     'current_term'  => (int) env('CURRENT_TERM', 1),
+    'timetable_template_lower_primary' => env('SCHOOL_TIMETABLE_TEMPLATE_LOWER_PRIMARY', 'cbc-lower-primary-30'),
+    'timetable_template_upper_primary' => env('SCHOOL_TIMETABLE_TEMPLATE_UPPER_PRIMARY', 'cbc-upper-primary-40'),
+    'timetable_template_junior_secondary' => env('SCHOOL_TIMETABLE_TEMPLATE_JUNIOR_SECONDARY', 'cbc-junior-secondary-40'),
 
     'grade_levels' => [
         'pre_primary'      => ['PP1', 'PP2'],
