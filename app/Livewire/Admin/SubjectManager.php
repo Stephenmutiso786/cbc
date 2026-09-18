@@ -86,7 +86,7 @@ class SubjectManager extends Component
     {
         return view('livewire.admin.subject-manager', [
             'subjects' => LearningArea::orderBy('name')->get(),
-            'classes' => SchoolClass::forConfiguredGrades()->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
+            'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
             'grades' => array_merge(...array_values(config('school.grade_levels'))),
         ])
             ->layout('layouts.admin');
