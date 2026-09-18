@@ -65,13 +65,17 @@ class SendSmsJob implements ShouldQueue
             $failed      = 0;
             $school      = \App\Models\School::find($notification->school_id);
             $message     = "{$notification->title}\n\n{$notification->message}\n\nRegards, " . ($school?->name ?? 'the school') . ".";
+            // Credit usage must match the actual composed message, including
+            // the school signature. Long SMS messages are split by gateways.
+            $unitsPerRecipient = max(1, (int) ceil(mb_strlen($message) / 153));
 
             // Send in batches of 50, drawing down the school's SMS wallet
             // one batch at a time so a mid-run top-up can still be used.
             foreach ($guardians->chunk(50) as $batch) {
                 $phones = $batch->pluck('phone_number')->toArray();
 
-                if (! $school->deductSmsCredits(count($phones), "Notification #{$notification->id}: {$notification->title}")) {
+                $batchUnits = count($phones) * $unitsPerRecipient;
+                if (! $school->deductSmsCredits($batchUnits, "Notification #{$notification->id}: {$notification->title}")) {
                     $failed += count($phones);
                     foreach ($batch as $guardian) {
                         \DB::table('notification_logs')->insert([
@@ -107,7 +111,7 @@ class SendSmsJob implements ShouldQueue
                 } catch (\Throwable $e) {
                     // The provider rejected the batch after credits were
                     // already deducted — refund them.
-                    $school->addSmsCredits(count($phones), 'adjustment', null, 'Refund: provider failed batch for notification #' . $notification->id);
+                    $school->addSmsCredits($batchUnits, 'adjustment', null, 'Refund: provider failed batch for notification #' . $notification->id);
                     $failed += count($phones);
                     Log::error('SMS batch failed', ['error' => $e->getMessage(), 'phones' => $phones]);
                 }

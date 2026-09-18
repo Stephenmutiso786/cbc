@@ -9,6 +9,7 @@ use App\Models\TeacherSubjectAllocation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\Tenant;
 use Livewire\Component;
 
 class ExamTimetableManager extends Component
@@ -97,6 +98,9 @@ class ExamTimetableManager extends Component
                 throw ValidationException::withMessages(['examGroupId' => "A class, invigilator, or venue conflict exists on {$date} at {$time[0]}. Clear the conflicting timetable first."]);
             }
             $rows[] = [
+                // The bulk insert does not run Eloquent's tenant creating
+                // event, therefore stamp the timetable row explicitly.
+                'school_id' => Tenant::id(),
                 'exam_id' => $subject->id, 'class_id' => $master->class_id, 'invigilator_id' => $invigilatorId,
                 'venue' => $venue, 'date' => $date, 'start_time' => $time[0], 'end_time' => $time[1],
                 'is_published' => false, 'created_at' => now(), 'updated_at' => now(),
