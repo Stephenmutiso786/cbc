@@ -102,6 +102,10 @@ class TimetableTemplateService
 
         $selected = (string) config('school.' . $settingKey, '');
 
+        if ($selected === 'custom') {
+            return 'custom';
+        }
+
         return array_key_exists($selected, $this->templates())
             ? $selected
             : $this->defaultTemplateKeyForBand($band);
@@ -144,9 +148,42 @@ class TimetableTemplateService
     public function periodsForBand(string $band): array
     {
         $key = $this->selectedTemplateKeyForBand($band);
+        if ($key === 'custom') {
+            $customKey = 'timetable_template_' . $band . '_custom';
+            $raw = (string) config('school.' . $customKey, '');
+            $parsed = $this->parseCustomPeriods($raw);
+            return $parsed ?: array_values(Arr::get($this->templates()[$this->defaultTemplateKeyForBand($band)], 'periods', []));
+        }
+
         $template = $this->templates()[$key] ?? $this->templates()[$this->defaultTemplateKeyForBand($band)];
 
         return array_values(Arr::get($template, 'periods', []));
+    }
+
+    /**
+     * Parse a comma separated list of start-end times into an array of 2-tuples.
+     * Example input: "08:20-08:50,08:50-09:20"
+     *
+     * @return array<int, array{0:string,1:string}>
+     */
+    private function parseCustomPeriods(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') return [];
+
+        $pairs = array_filter(array_map('trim', explode(',', $raw)));
+        $result = [];
+        foreach ($pairs as $pair) {
+            if (! preg_match('/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/', $pair)) {
+                return [];
+            }
+            [$start, $end] = explode('-', $pair, 2);
+            $start = str_pad($start, 5, '0', STR_PAD_LEFT);
+            $end = str_pad($end, 5, '0', STR_PAD_LEFT);
+            $result[] = [$start, $end];
+        }
+
+        return $result;
     }
 
     public function bandForGradeLevel(string $gradeLevel): string
