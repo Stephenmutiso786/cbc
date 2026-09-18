@@ -16,49 +16,68 @@ use App\Models\SchoolNotification;
 use App\Models\StaffMember;
 use App\Models\SupportTicket;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Carbon;
 
 class ModuleNotificationService
 {
+    /**
+     * Keep repeated badge lookups from re-running the same query chain inside
+     * a single request.
+     *
+     * @var array<string, int>
+     */
+    private array $countCache = [];
+
+    /** @var array<string, mixed> */
+    private array $notificationsCache = [];
+
     public function count(string $module, ?int $userId = null, bool $isSuperAdmin = false): int
     {
-        try {
-            $since = Carbon::now()->subDay();
+        $cacheKey = implode(':', ['module-count', $module, $userId ?? 'guest', $isSuperAdmin ? 'sa' : 'school']);
 
-            return match ($module) {
-                'learners' => Learner::where('created_at', '>=', $since)->count(),
-                'staff' => StaffMember::where('created_at', '>=', $since)->count(),
-                'classes' => SchoolClass::where('created_at', '>=', $since)->count(),
-                'subjects' => LearningArea::where('created_at', '>=', $since)->count(),
-                'assessments' => Assessment::where('created_at', '>=', $since)->count(),
-                'exams' => Exam::where('created_at', '>=', $since)->count(),
-                'notes' => LearningNote::where('created_at', '>=', $since)->count(),
-                'payments' => FeePayment::where('created_at', '>=', $since)->count(),
-                'inventory' => InventoryItem::where('created_at', '>=', $since)->count(),
-                'notifications' => $this->notificationsFor($userId)
-                    ->where('created_at', '>=', $since)
-                    ->count(),
-                'support' => SupportTicket::query()
-                    ->when(! $isSuperAdmin, fn ($query) => $query->where('created_by', $userId))
-                    ->where('status', 'open')
-                    ->count(),
-                'backups' => DatabaseBackup::where('created_at', '>=', $since)
-                    ->where('status', 'failed')
-                    ->count(),
-                'promotions' => LearnerPromotion::where('status', 'pending')->count(),
-                'users' => User::where('created_at', '>=', $since)->count(),
-                default => 0,
-            };
-        } catch (\Throwable) {
-            // A missing table during first deployment must not break navigation.
-            return 0;
-        }
+        return $this->countCache[$cacheKey] ??= Cache::remember($cacheKey, now()->addSeconds(20), function () use ($module, $userId, $isSuperAdmin): int {
+            try {
+                $since = Carbon::now()->subDay();
+
+                return match ($module) {
+                    'learners' => Learner::where('created_at', '>=', $since)->count(),
+                    'staff' => StaffMember::where('created_at', '>=', $since)->count(),
+                    'classes' => SchoolClass::where('created_at', '>=', $since)->count(),
+                    'subjects' => LearningArea::where('created_at', '>=', $since)->count(),
+                    'assessments' => Assessment::where('created_at', '>=', $since)->count(),
+                    'exams' => Exam::where('created_at', '>=', $since)->count(),
+                    'notes' => LearningNote::where('created_at', '>=', $since)->count(),
+                    'payments' => FeePayment::where('created_at', '>=', $since)->count(),
+                    'inventory' => InventoryItem::where('created_at', '>=', $since)->count(),
+                    'notifications' => $this->notificationsFor($userId)
+                        ->where('created_at', '>=', $since)
+                        ->count(),
+                    'support' => SupportTicket::query()
+                        ->when(! $isSuperAdmin, fn ($query) => $query->where('created_by', $userId))
+                        ->where('status', 'open')
+                        ->count(),
+                    'backups' => DatabaseBackup::where('created_at', '>=', $since)
+                        ->where('status', 'failed')
+                        ->count(),
+                    'promotions' => LearnerPromotion::where('status', 'pending')->count(),
+                    'users' => User::where('created_at', '>=', $since)->count(),
+                    default => 0,
+                };
+            } catch (\Throwable) {
+                // A missing table during first deployment must not break navigation.
+                return 0;
+            }
+        });
     }
 
     public function notificationsFor(?int $userId)
     {
-        $query = SchoolNotification::query()->whereIn('status', ['queued', 'sent', 'partial']);
-        $user = $userId ? User::with(['guardian.learners', 'learner.schoolClass'])->find($userId) : null;
+        $cacheKey = 'notification-targets:' . ($userId ?? 'guest');
+
+        return $this->notificationsCache[$cacheKey] ??= Cache::remember($cacheKey, now()->addSeconds(20), function () use ($userId) {
+            $query = SchoolNotification::query()->whereIn('status', ['queued', 'sent', 'partial']);
+            $user = $userId ? User::with(['guardian.learners', 'learner.schoolClass'])->find($userId) : null;
         $guardian = $user?->guardian;
 
         if ($guardian) {
@@ -71,6 +90,7 @@ class ModuleNotificationService
         }
 
         return $this->filterForLearners($query, collect([$learner]));
+        });
     }
 
     private function filterForLearners($query, $learners)

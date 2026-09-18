@@ -26,4 +26,5 @@ Route::get('/notifications', SendNotification::class)->middleware('permission:se
 Route::get('/signature', SignatureSettings::class)->middleware('permission:enter marks')->name('signature.index');
 Route::get('/notes', fn() => view('teacher.notes.index'))->middleware('permission:view notes')->name('notes.index');
 Route::get('/timetable', fn() => view('teacher.timetable.index'))->middleware('permission:view timetable')->name('timetable.index');
+Route::get('/timetable/print', [\App\Http\Controllers\TimetableController::class, 'printTeacher'])->middleware('permission:view timetable')->name('timetable.print');
 Route::get('/attendance', fn() => view('teacher.attendance.index'))->middleware('permission:view attendance|mark attendance')->name('attendance.index');
