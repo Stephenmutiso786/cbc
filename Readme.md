@@ -97,6 +97,8 @@ Production requires a configured database, `APP_KEY`, queue worker, scheduler, s
 
 - Never commit `.env`, API tokens, OAuth refresh tokens, or real passwords.
 - Change all seeded/default credentials before production use.
+- School-admin and super-admin login defaults are generated from initials plus a serial value, shown once, and sent by SMS when a phone number is available.
+- School admins can reset user passwords from User Accounts and impersonate same-school users through the audited Impersonate Users screen.
 - Configure M-Pesa, SMS, Drive, KEMIS, and Firebase in the appropriate platform or school settings, then use the application's test actions before enabling live workflows.
 
 ## License

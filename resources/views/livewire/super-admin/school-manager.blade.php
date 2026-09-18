@@ -15,7 +15,7 @@
         <div class="rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-900">
             <p class="font-semibold">Admin login for the new school (shown once):</p>
             <p class="mt-1">Email: <span class="font-mono">{{ $adminEmail }}</span></p>
-            <p>Temporary password: <span class="font-mono">{{ $generatedPassword }}</span></p>
+            <p>Default password: <span class="font-mono">{{ $generatedPassword }}</span></p>
             @if ($smsStatus === 'sent')
                 <p class="mt-2 text-green-700">✓ These credentials were also sent by SMS to {{ $adminPhone }}.</p>
             @elseif ($smsStatus === 'failed')
@@ -132,7 +132,7 @@
                             <input wire:model="adminPhone" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
                             @error('adminPhone') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                         </label>
-                        <p class="text-xs text-gray-500">A temporary password will be generated, shown once here, and sent to this phone by SMS.</p>
+                        <p class="text-xs text-gray-500">A default password will be generated from the school initials and serial number, shown once here, and sent to this phone by SMS.</p>
                     @else
                         <label class="flex items-center gap-2"><input type="checkbox" wire:model="form.is_active"> <span class="text-sm">Active</span></label>
                     @endif

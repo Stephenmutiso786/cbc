@@ -64,8 +64,8 @@ Route::get('/broadcasts', BroadcastCenter::class)->middleware('role:super-admin'
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/user-accounts', UserAccountManager::class)->middleware('permission:manage users')->name('user-accounts.index');
 Route::get('/system-logs', SystemLogViewer::class)->middleware('role:super-admin')->name('system-logs.index');
-Route::get('/impersonate', [ImpersonationController::class, 'index'])->middleware('role:super-admin')->name('impersonate.index');
-Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->middleware('role:super-admin')->name('impersonate.start');
+Route::get('/impersonate', [ImpersonationController::class, 'index'])->middleware('role:super-admin|school-admin|headteacher|principal|deputy-headteacher|deputy')->name('impersonate.index');
+Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->middleware('role:super-admin|school-admin|headteacher|principal|deputy-headteacher|deputy')->name('impersonate.start');
 Route::get('/students', StudentList::class)->middleware('permission:view students')->name('students.index');
 Route::get('/students/import', StudentList::class)->middleware('permission:create students')->name('students.import');
 Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->middleware('permission:view report cards')->name('students.report-card');
