@@ -89,14 +89,20 @@ class AdminSettingsController extends Controller
     {
         $templateService = app(TimetableTemplateService::class);
         $templateKeys = array_keys($templateService->templates());
+        // allow schools to choose a built-in template or a site-specific "custom" template
+        $allowedCustom = ['custom'];
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'motto' => ['nullable', 'string', 'max:255'],
             'academic_year' => ['required', 'integer', 'min:2000', 'max:2200'],
             'current_term' => ['required', 'integer', 'between:1,3'],
-            'timetable_template_lower_primary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'lower-primary'))))],
-            'timetable_template_upper_primary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'upper-primary'))))],
-            'timetable_template_junior_secondary' => ['required', 'string', 'in:' . implode(',', array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'junior-secondary'))))],
+            'timetable_template_lower_primary' => ['required', 'string', 'in:' . implode(',', array_merge(array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'lower-primary'))), $allowedCustom))],
+            'timetable_template_upper_primary' => ['required', 'string', 'in:' . implode(',', array_merge(array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'upper-primary'))), $allowedCustom))],
+            'timetable_template_junior_secondary' => ['required', 'string', 'in:' . implode(',', array_merge(array_values(array_filter($templateKeys, fn ($key) => str_contains($key, 'junior-secondary'))), $allowedCustom))],
+            // Custom period definitions are comma separated start-end pairs, e.g. "08:20-08:50,08:50-09:20"
+            'timetable_template_lower_primary_custom' => ['nullable', 'string', 'max:1000'],
+            'timetable_template_upper_primary_custom' => ['nullable', 'string', 'max:1000'],
+            'timetable_template_junior_secondary_custom' => ['nullable', 'string', 'max:1000'],
             'type' => ['required', 'in:primary,secondary,mixed'],
             'address' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:50'],
