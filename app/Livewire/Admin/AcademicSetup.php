@@ -6,6 +6,8 @@ use App\Models\LearningArea;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TeacherSubjectAllocation;
+use App\Models\TimetableSlot;
+use App\Models\Exam;
 use App\Models\GradingScale;
 use Database\Seeders\DefaultClassSubjectsSeeder;
 use Illuminate\Validation\Rule;
@@ -115,8 +117,39 @@ class AcademicSetup extends Component
 
     public function removeSubject(int $classId, int $learningAreaId): void
     {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
         SchoolClass::findOrFail($classId)->learningAreas()->detach($learningAreaId);
         $this->notice = 'Subject removed from class.';
+    }
+
+    /**
+     * Remove an unused class permanently; otherwise archive it so historical
+     * learner, exam and timetable records remain intact. In both cases it no
+     * longer appears in active class, subject, exam or timetable selectors.
+     */
+    public function removeClass(int $id): void
+    {
+        abort_unless(auth()->user()->can('manage curriculum'), 403);
+        $class = SchoolClass::findOrFail($id);
+        $hasHistory = $class->learners()->exists()
+            || TeacherSubjectAllocation::where('class_id', $class->id)->exists()
+            || TimetableSlot::where('class_id', $class->id)->exists()
+            || Exam::where('class_id', $class->id)->exists();
+
+        DB::transaction(function () use ($class, $hasHistory): void {
+            if ($hasHistory) {
+                $class->update(['is_active' => false]);
+                TeacherSubjectAllocation::where('class_id', $class->id)->update(['is_active' => false]);
+                return;
+            }
+
+            $class->learningAreas()->detach();
+            $class->delete();
+        });
+
+        $this->notice = $hasHistory
+            ? 'Class removed from active use. Its historical learner and exam records were kept safely.'
+            : 'Unused class deleted successfully.';
     }
 
     public function saveAllocation(): void
@@ -158,7 +191,7 @@ class AcademicSetup extends Component
     public function render()
     {
         return view('livewire.admin.academic-setup', [
-            'classes' => SchoolClass::forConfiguredGrades()->with(['classTeacher', 'learningAreas'])->orderBy('grade_level')->orderBy('name')->get(),
+            'classes' => SchoolClass::with(['classTeacher', 'learningAreas'])->orderByDesc('is_active')->orderBy('grade_level')->orderBy('name')->get(),
             'staff' => StaffMember::active()->orderBy('last_name')->get(),
             'learningAreas' => LearningArea::where('is_active', true)->orderBy('name')->get(),
             'allocationSubjects' => $this->allocationForm['class_id']
