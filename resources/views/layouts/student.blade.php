@@ -15,7 +15,7 @@
     <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-emerald-900 transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center justify-between bg-emerald-950 px-5"><span class="truncate font-bold text-white">Student Portal</span><button type="button" data-sidebar-close class="rounded p-2 text-emerald-100 md:hidden" aria-label="Close menu">&times;</button></div>
         <nav class="flex-1 space-y-1 px-3 py-4">
-            @foreach([['student.dashboard','Dashboard'],['student.results','My Results'],['student.notes','Learning Notes'],['student.notifications','Notifications'],['student.support','Support Tickets']] as [$route,$label])
+            @foreach([['student.dashboard','Dashboard'],['student.results','My Results'],['student.notes','Learning Notes'],['student.timetable','My Timetable'],['student.notifications','Notifications'],['student.support','Support Tickets']] as [$route,$label])
                 <a href="{{ route($route) }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800">{{ $label }}</a>
             @endforeach
             <a href="{{ route('legal.terms') }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800">Terms and Conditions</a>

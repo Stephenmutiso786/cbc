@@ -53,11 +53,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($entry['template']['periods'] as [$start, $end])
+                        @foreach($entry['blocks'] as $block)
+                            @if($block['is_break'])
+                            <tr><th class="time">{{ $block['start'] }} - {{ $block['end'] }}</th><td colspan="5" style="text-align:center;background:#fffbeb;font-weight:700">{{ $block['label'] }}</td></tr>
+                            @else
                             <tr>
-                                <th class="time">{{ $start }} - {{ $end }}</th>
+                                <th class="time">{{ $block['start'] }} - {{ $block['end'] }}</th>
                                 @foreach($days as $day)
-                                    @php($slot = $entry['slots']->get($day . '|' . $start))
+                                    @php($slot = $entry['slots']->get($day . '|' . $block['start']))
                                     <td class="slot {{ $slot ? '' : 'empty' }}">
                                         @if($slot)
                                             <div class="subject">{{ $slot->learningArea?->name }}</div>
@@ -69,6 +72,7 @@
                                     </td>
                                 @endforeach
                             </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>

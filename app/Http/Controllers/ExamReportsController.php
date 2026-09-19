@@ -130,29 +130,42 @@ class ExamReportsController extends Controller
 
     /**
      * Persist the official published documents and keep only their storage
-     * references in PostgreSQL. Drive must be connected before publication.
+     * references in PostgreSQL when Drive is available. Publication must not
+     * depend on an optional external archive: printable reports remain usable
+     * directly from the application without Drive.
      */
     public function storePublishedDocuments(Exam $exam): array
     {
         $this->ensureGroupPublished($exam);
         $drive = app(GoogleDriveStorage::class);
-        abort_unless($drive->enabled(), 422, 'Connect Google Drive before publishing results so the official documents can be stored safely.');
+        if (! $drive->enabled()) {
+            return [];
+        }
 
-        $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
-        $reportPath = $drive->storeOrReplace(
-            $this->buildResultCardsPdf($exam),
-            $folder,
-            'exam-' . $exam->id . '-report-cards.pdf',
-            'application/pdf'
-        );
-        $meritData = $this->buildPrintableMeritList($exam);
-        $meritPath = $drive->storeOrReplace(
-            \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.exam-merit-list-print', $meritData)
-                ->setPaper('a4', 'landscape')->output(),
-            $folder,
-            'exam-' . $exam->id . '-merit-list.pdf',
-            'application/pdf'
-        );
+        try {
+            $folder = 'reports/' . $exam->academic_year . '/term' . $exam->term . '/exams';
+            $reportPath = $drive->storeOrReplace(
+                $this->buildResultCardsPdf($exam),
+                $folder,
+                'exam-' . $exam->id . '-report-cards.pdf',
+                'application/pdf'
+            );
+            $meritData = $this->buildPrintableMeritList($exam);
+            $meritPath = $drive->storeOrReplace(
+                \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.exam-merit-list-print', $meritData)
+                    ->setPaper('a4', 'landscape')->output(),
+                $folder,
+                'exam-' . $exam->id . '-merit-list.pdf',
+                'application/pdf'
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Google Drive archival failed after exam publication; keeping in-app reports available.', [
+                'exam_id' => $exam->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
 
         ExamReportExport::updateOrCreate(
             ['exam_id' => $exam->id],

@@ -662,7 +662,7 @@ class ExamManager extends Component
             return;
         }
         $this->tab = 'exams';
-        session()->flash('success', 'Exam published. Report cards, merit lists, and result SMS are now available.');
+        session()->flash('success', 'Exam published. Report cards, merit lists, and result SMS are now available. Google Drive is optional; connect it later if you want an external archive.');
     }
 
     public function lockResults(): void

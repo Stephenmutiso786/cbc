@@ -148,7 +148,7 @@ class TimetableManager extends Component
         return view('livewire.admin.timetable-manager', [
             'slots' => $slots,
             'gridSlots' => $this->classId ? $slots->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)) : collect(),
-            'gridPeriods' => $selectedClass ? $this->periodsFor($selectedClass) : [],
+            'gridBlocks' => $selectedClass ? app(TimetableTemplateService::class)->blocksForClass($selectedClass) : [],
             'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
             'readiness' => $this->readiness,
         ])->layout('layouts.admin');
