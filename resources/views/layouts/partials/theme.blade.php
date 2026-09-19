@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ asset('theme.css') }}?v=2">
+<link rel="stylesheet" href="{{ asset('theme.css') }}?v=3">
 <script>
     (() => {
         let saved = null;
@@ -7,4 +7,4 @@
         document.documentElement.classList.toggle('theme-dark', dark);
     })();
 </script>
-<script src="{{ asset('theme.js') }}?v=2" defer></script>
+<script src="{{ asset('theme.js') }}?v=3" defer></script>
