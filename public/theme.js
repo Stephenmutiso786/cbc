@@ -21,10 +21,21 @@
         updateButtons();
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-            button.addEventListener('click', toggle);
-        });
-        updateButtons();
+    // Use one delegated handler rather than binding buttons only during
+    // DOMContentLoaded. Livewire can replace header content and installed
+    // PWA pages can be restored from cache after that event has fired.
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-theme-toggle]');
+        if (!button) return;
+
+        event.preventDefault();
+        toggle();
     });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateButtons, { once: true });
+    } else {
+        updateButtons();
+    }
+    window.addEventListener('pageshow', updateButtons);
 })();
