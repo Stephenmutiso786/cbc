@@ -44,7 +44,7 @@
 
     @if ($showForm)
         <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="$set('showForm', false)">
-            <div class="card w-full max-w-lg space-y-4 p-6 max-h-[90vh] overflow-y-auto">
+            <div class="w-full max-w-lg space-y-4 rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                 <h2 class="text-lg font-bold text-gray-800">{{ $editingId ? 'Edit plan' : 'New plan' }}</h2>
 
                 <form wire:submit="save" class="space-y-4">

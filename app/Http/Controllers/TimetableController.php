@@ -85,6 +85,7 @@ class TimetableController extends Controller
         $classTimetables = $printClasses->map(fn (SchoolClass $schoolClass) => [
             'class' => $schoolClass,
             'template' => $templateService->templateForClass($schoolClass),
+            'blocks' => $templateService->blocksForClass($schoolClass),
             'slots' => $slots->where('class_id', $schoolClass->id)->keyBy(fn (TimetableSlot $slot) => $slot->day_of_week . '|' . substr($slot->start_time, 0, 5)),
         ]);
 

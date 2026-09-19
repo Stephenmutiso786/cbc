@@ -29,6 +29,9 @@ class TimetableTemplateService
                     ['11:50', '12:20'],
                 ],
                 'notes' => 'Morning lessons only, with a mid-morning break and pastoral time before dismissal.',
+                'breaks' => [
+                    ['10:20', '10:50', 'Break'],
+                ],
             ],
             'cbc-upper-primary-40' => [
                 'label' => 'CBC Upper Primary block (Grade 4-6, 40 minutes)',
@@ -45,6 +48,10 @@ class TimetableTemplateService
                     ['14:35', '15:15'],
                 ],
                 'notes' => 'Eight 40-minute lessons with tea, lunch, and co-curricular breaks.',
+                'breaks' => [
+                    ['10:20', '10:55', 'Tea break'],
+                    ['12:55', '13:55', 'Lunch break'],
+                ],
             ],
             'cbc-junior-secondary-40' => [
                 'label' => 'CBC Junior School block (Grade 7-9, 40 minutes)',
@@ -61,6 +68,10 @@ class TimetableTemplateService
                     ['14:35', '15:15'],
                 ],
                 'notes' => 'Eight 40-minute lessons with tea, lunch, and co-curricular breaks.',
+                'breaks' => [
+                    ['10:20', '10:55', 'Tea break'],
+                    ['12:55', '13:55', 'Lunch break'],
+                ],
             ],
         ];
     }
@@ -117,6 +128,30 @@ class TimetableTemplateService
     public function periodsForClass(SchoolClass $class): array
     {
         return $this->periodsForBand($this->bandForGradeLevel((string) $class->grade_level));
+    }
+
+    /**
+     * Lesson and non-lesson blocks in chronological order.  Breaks are kept
+     * out of the generator's available periods, but returned here so every
+     * timetable readers can see the school's actual day.
+     *
+     * @return array<int, array{start:string,end:string,label:string,is_break:bool}>
+     */
+    public function blocksForClass(SchoolClass $class): array
+    {
+        $template = $this->templateForClass($class);
+        $templates = $this->templates();
+        $breaks = $template['key'] === 'custom' ? [] : ($templates[$template['key']]['breaks'] ?? []);
+        $blocks = [];
+        foreach ($template['periods'] as [$start, $end]) {
+            $blocks[] = compact('start', 'end') + ['label' => 'Lesson', 'is_break' => false];
+        }
+        foreach ($breaks as [$start, $end, $label]) {
+            $blocks[] = compact('start', 'end', 'label') + ['is_break' => true];
+        }
+        usort($blocks, fn (array $left, array $right) => strcmp($left['start'], $right['start']));
+
+        return $blocks;
     }
 
     public function templateForClass(SchoolClass $class): array
