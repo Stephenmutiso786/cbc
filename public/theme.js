@@ -3,6 +3,7 @@
 
     const updateButtons = () => {
         const dark = root.classList.contains('theme-dark');
+        root.dataset.theme = dark ? 'dark' : 'light';
         document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
             button.setAttribute('aria-pressed', dark ? 'true' : 'false');
             button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
@@ -17,7 +18,11 @@
     const toggle = () => {
         const dark = !root.classList.contains('theme-dark');
         root.classList.toggle('theme-dark', dark);
-        try { localStorage.setItem('cbe-theme', dark ? 'dark' : 'light'); } catch (_) {}
+        const value = dark ? 'dark' : 'light';
+        try { localStorage.setItem('cbe-theme', value); } catch (_) {}
+        // This retains the preference in browsers where localStorage is
+        // blocked (private browsing, strict privacy settings, or webviews).
+        document.cookie = `cbe-theme=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
         updateButtons();
     };
 
@@ -30,7 +35,7 @@
 
         event.preventDefault();
         toggle();
-    });
+    }, true);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', updateButtons, { once: true });
