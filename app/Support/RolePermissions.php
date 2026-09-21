@@ -19,8 +19,10 @@ final class RolePermissions
             // a super-admin create it, and it has no school administration.
             'it-team' => ['manage support tickets', 'submit support tickets', 'run diagnostics'],
             'school-admin' => array_diff($all, $superAdminOnly),
-            'principal' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),
-            'headteacher' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),
+            // School leadership controls every school-level module. Platform
+            // operations remain exclusive to the super-admin.
+            'principal' => array_diff($all, $superAdminOnly),
+            'headteacher' => array_diff($all, $superAdminOnly),
             'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','submit support tickets'],
             'deputy' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','submit support tickets'],
             'hod' => ['view students','view assessments','create assessments','edit assessments','view notes','upload notes','publish notes','manage curriculum','view timetable','view exams','manage exams','enter marks','view results','review marks','view report cards','submit support tickets'],

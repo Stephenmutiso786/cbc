@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\DB;
+use App\Models\RolePermissionOverride;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -34,9 +35,12 @@ final class RolePermissionSynchronizer
             // release can contain a pivot to a removed permission; Spatie
             // hydrates that stale pivot before syncPermissions() can replace
             // it and then throws a 500 on protected routes.
+            $override = RolePermissionOverride::query()->where('role_id', $role->id)->value('permission_ids');
+            $effectivePermissions = is_array($override) ? $override : $permissions;
+
             DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
-            $rows = collect($permissions)
-                ->map(fn (string $name) => $permissionIds->get($name))
+            $rows = collect($effectivePermissions)
+                ->map(fn ($permission) => is_numeric($permission) ? $permissionIds->flip()->get((int) $permission) : $permissionIds->get($permission))
                 ->filter()
                 ->map(fn ($permissionId) => [
                     'permission_id' => $permissionId,
