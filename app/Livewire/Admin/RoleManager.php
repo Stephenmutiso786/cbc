@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use App\Models\RolePermissionOverride;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -42,6 +43,10 @@ class RoleManager extends Component
         }
         $role->update(['name' => strtolower(trim($this->name))]);
         $role->syncPermissions(Permission::whereIn('id', $this->permissionIds)->get());
+        RolePermissionOverride::updateOrCreate(
+            ['role_id' => $role->id],
+            ['permission_ids' => array_map('intval', $this->permissionIds)]
+        );
         $this->editingId = $role->id;
         $this->notice = 'Role permissions saved.';
     }
@@ -52,6 +57,7 @@ class RoleManager extends Component
         $role = Role::findOrFail($id);
         abort_if(in_array($role->name, ['school-admin', 'super-admin', 'headteacher']), 403, 'Core roles are protected.');
         $role->delete();
+        RolePermissionOverride::where('role_id', $id)->delete();
         $this->resetForm();
         $this->notice = 'Role deleted.';
     }

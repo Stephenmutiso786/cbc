@@ -52,8 +52,11 @@ class ImpersonationController extends Controller
         abort_unless($originalId && auth()->id() !== $originalId, 403);
         $auditId = $request->session()->get('impersonation_audit_id');
         if ($auditId) DB::table('impersonation_audits')->whereKey($auditId)->update(['ended_at' => now(), 'updated_at' => now()]);
-        $originalUser = User::find($originalId);
-        Auth::loginUsingId($originalId);
+        // While impersonating a school user, the tenant scope would hide the
+        // original platform account (which intentionally has no school_id).
+        // Load it explicitly without that scope before restoring the session.
+        $originalUser = User::withoutSchoolScope()->findOrFail($originalId);
+        Auth::login($originalUser);
         $request->session()->forget(['impersonator_id', 'impersonation_audit_id']);
         $request->session()->regenerate();
 
