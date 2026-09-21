@@ -183,7 +183,11 @@ class UserAccountManager extends Component
         return view('livewire.admin.user-account-manager', [
             'users' => User::with(['roles', 'learner'])->orderBy('name')->paginate(25),
             'roles' => Role::whereIn('name', $this->assignableRoles())->orderBy('name')->get(),
-            'learners' => Learner::whereNull('user_id')->orWhereKey($this->learnerId)->orderBy('last_name')->orderBy('first_name')->get(),
+            'learners' => Learner::whereNull('user_id')
+                ->when($this->learnerId !== '', fn ($query) => $query->orWhere('id', $this->learnerId))
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get(),
         ])->layout('layouts.admin');
     }
 
