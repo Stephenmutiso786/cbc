@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\StaffMember;
+use App\Models\School;
 use App\Models\User;
+use App\Support\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,18 +20,13 @@ class AdminUserSeeder extends Seeder
         );
         $admin->assignRole('super-admin');
 
-        $this->provisionStaff($admin, 'admin@school.ac.ke', [
-            'user_id'         => $admin->id,
-            'staff_number'    => 'STAFF-001',
-            'first_name'      => 'System',
-            'last_name'       => 'Administrator',
-            'phone_number'    => '+254700000000',
-            'gender'          => 'male',
-            'employment_type' => 'permanent',
-            'staff_type'      => 'non_teaching',
-            'designation'     => 'System Administrator',
-            'date_joined'     => now(),
-        ]);
+        // A platform super-admin belongs to no school. Staff records are
+        // tenant-owned and their school_id is mandatory, so do not create a
+        // fake staff profile for this platform-only account.
+        $school = School::firstOrCreate(
+            ['slug' => 'demo-school'],
+            ['name' => 'Demo School', 'school_code' => 'DEMO-SCHOOL', 'type' => 'primary', 'is_active' => true]
+        );
 
         // Headteacher
         $principal = User::firstOrCreate(
@@ -37,8 +34,9 @@ class AdminUserSeeder extends Seeder
             ['name' => 'School Headteacher', 'password' => Hash::make('Principal@1234'), 'email_verified_at' => now()]
         );
         $principal->syncRoles('headteacher');
+        $principal->update(['school_id' => $school->id]);
 
-        $this->provisionStaff($principal, 'principal@school.ac.ke', [
+        $this->provisionStaff($school->id, $principal, 'principal@school.ac.ke', [
             'user_id'         => $principal->id,
             'staff_number'    => 'STAFF-002',
             'first_name'      => 'Jane',
@@ -57,8 +55,9 @@ class AdminUserSeeder extends Seeder
             ['name' => 'School Bursar', 'password' => Hash::make('Bursar@1234'), 'email_verified_at' => now()]
         );
         $bursar->assignRole('bursar');
+        $bursar->update(['school_id' => $school->id]);
 
-        $this->provisionStaff($bursar, 'bursar@school.ac.ke', [
+        $this->provisionStaff($school->id, $bursar, 'bursar@school.ac.ke', [
             'user_id'         => $bursar->id,
             'staff_number'    => 'STAFF-003',
             'first_name'      => 'Peter',
@@ -82,7 +81,7 @@ class AdminUserSeeder extends Seeder
         );
     }
 
-    private function provisionStaff(User $user, string $email, array $attributes): void
+    private function provisionStaff(int $schoolId, User $user, string $email, array $attributes): void
     {
         // A previous interrupted seed may have left the staff number behind.
         $staff = StaffMember::withTrashed()->where('email', $email)->first()
@@ -93,10 +92,13 @@ class AdminUserSeeder extends Seeder
             $staff->restore();
         }
 
-        $staff->fill(array_merge($attributes, [
-            'email' => $email,
-            'user_id' => $user->id,
-        ]));
-        $staff->save();
+        Tenant::run($schoolId, function () use ($schoolId, $staff, $attributes, $email, $user): void {
+            $staff->forceFill(['school_id' => $schoolId]);
+            $staff->fill(array_merge($attributes, [
+                'email' => $email,
+                'user_id' => $user->id,
+            ]));
+            $staff->save();
+        });
     }
 }
