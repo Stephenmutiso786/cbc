@@ -15,6 +15,9 @@ final class RolePermissions
         $superAdminOnly = ['manage roles', 'run diagnostics', 'manage legal policies', 'manage support tickets'];
         return [
             'super-admin' => $all,
+            // This role is platform-only. The User Accounts screen only lets
+            // a super-admin create it, and it has no school administration.
+            'it-team' => ['manage support tickets', 'submit support tickets', 'run diagnostics'],
             'school-admin' => array_diff($all, $superAdminOnly),
             'principal' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),
             'headteacher' => array_diff($all, array_merge(['manage system settings'], $superAdminOnly)),

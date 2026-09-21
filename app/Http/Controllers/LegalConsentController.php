@@ -32,6 +32,9 @@ class LegalConsentController extends Controller
         if ($user->hasRole('super-admin')) {
             return route('admin.platform-dashboard.index');
         }
+        if ($user->hasRole('it-team')) {
+            return route('it.support.index');
+        }
         if ($user->hasRole('parent')) {
             return route('parent.dashboard');
         }

@@ -14,6 +14,9 @@ return [
     'previous_keys'   => array_filter(explode(',', env('APP_PREVIOUS_KEYS', ''))),
     'maintenance'     => ['driver' => 'file'],
     'providers'       => \Illuminate\Support\ServiceProvider::defaultProviders()->merge([
+        // Explicit registration keeps the application functional when a
+        // deployment has an unreadable/stale package-discovery cache.
+        Livewire\LivewireServiceProvider::class,
         App\Providers\AppServiceProvider::class,
     ])->toArray(),
     'aliases' => \Illuminate\Support\Facades\Facade::defaultAliases()->merge([])->toArray(),

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\OlympusSmsService;
 use App\Services\LoginCredentialService;
 use App\Services\SchoolAcademicSetupService;
+use App\Services\InvoiceService;
 use App\Support\Tenant;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +36,8 @@ class SchoolManager extends Component
     public string $adminPhone = '';
     public ?string $generatedPassword = null;
     public ?string $smsStatus = null;
+    public ?int $initialPackageId = null;
+    public string $estimatedStudents = '1';
 
     // Manual plan grant (e.g. cash/bank payment made outside M-Pesa).
     public bool $showPlanForm = false;
@@ -67,6 +70,8 @@ class SchoolManager extends Component
         $this->adminName = '';
         $this->adminEmail = '';
         $this->adminPhone = '';
+        $this->initialPackageId = Package::where('is_active', true)->orderBy('price')->value('id');
+        $this->estimatedStudents = '1';
         $this->showForm = true;
     }
 
@@ -100,6 +105,8 @@ class SchoolManager extends Component
             $rules['adminName'] = ['required', 'string', 'max:255'];
             $rules['adminEmail'] = ['required', 'email', 'max:255', Rule::unique('users', 'email')];
             $rules['adminPhone'] = ['required', 'string', 'min:9', 'max:15'];
+            $rules['initialPackageId'] = ['required', 'exists:packages,id'];
+            $rules['estimatedStudents'] = ['required', 'integer', 'min:1', 'max:100000'];
         }
 
         $this->validate($rules);
@@ -153,7 +160,12 @@ class SchoolManager extends Component
 
         $this->generatedPassword = $password;
         $this->smsStatus = $this->sendCredentialsSms($school, $password);
-        session()->flash('success', "School \"{$school->name}\" created with Grade 1–9 classes, subjects and grading scales. Share the admin login below with them once — it will not be shown again.");
+        $package = Package::findOrFail($this->initialPackageId);
+        app(InvoiceService::class)->create($school, "{$package->name} subscription — first term", [[
+            'description' => "{$package->name} subscription (KSh " . number_format($package->price, 0) . ' per student)',
+            'quantity' => (int) $this->estimatedStudents, 'unit_price' => (float) $package->price,
+        ]], $package, null, auth()->id(), 'sent', now()->addDays(14)->toDateString(), 'Welcome to ElimuHub. This onboarding invoice is awaiting your review.');
+        session()->flash('success', "School \"{$school->name}\" created and an onboarding invoice was sent to the school. Share the admin login below with them once — it will not be shown again.");
     }
 
     /** Keeps the school's own Settings page in step with what's entered here. */
@@ -238,8 +250,12 @@ class SchoolManager extends Component
         $package = Package::findOrFail($this->grantPackageId);
         $school->assignPackage($package, $this->grantExpiresAt, auth()->id(), $this->grantNote ?: 'Manually granted by super-admin');
 
+        app(InvoiceService::class)->create($school, "{$package->name} subscription — manual payment", [[
+            'description' => "{$package->name} subscription", 'quantity' => max($school->activeStudentCount(), 1), 'unit_price' => (float) $package->price,
+        ]], $package, null, auth()->id(), 'paid', null, $this->grantNote ?: 'Payment recorded manually by super-admin.');
+
         $this->showPlanForm = false;
-        session()->flash('success', "Plan updated for \"{$school->name}\".");
+        session()->flash('success', "Plan updated for \"{$school->name}\" and a paid invoice was recorded.");
     }
 
     public function openSmsForm(int $schoolId): void

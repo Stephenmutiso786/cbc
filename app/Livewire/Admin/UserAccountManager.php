@@ -177,7 +177,7 @@ class UserAccountManager extends Component
     private function assignableRoles(): array
     {
         return Role::where('guard_name', 'web')
-            ->when(! auth()->user()->hasRole('super-admin'), fn ($q) => $q->where('name', '<>', 'super-admin'))
+            ->when(! auth()->user()->hasRole('super-admin'), fn ($q) => $q->whereNotIn('name', ['super-admin', 'it-team']))
             ->pluck('name')
             ->all();
     }

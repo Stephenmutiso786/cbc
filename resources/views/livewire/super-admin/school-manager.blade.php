@@ -132,6 +132,8 @@
                             <input wire:model="adminPhone" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
                             @error('adminPhone') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                         </label>
+                        <div class="grid grid-cols-2 gap-4"><label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Starting plan</span><select wire:model="initialPackageId" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"><option value="">Select plan</option>@foreach($packages as $package)<option value="{{ $package->id }}">{{ $package->name }}</option>@endforeach</select>@error('initialPackageId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label><label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Estimated learners</span><input wire:model="estimatedStudents" type="number" min="1" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">@error('estimatedStudents')<span class="text-xs text-red-600">{{ $message }}</span>@enderror</label></div>
+                        <p class="text-xs text-gray-500">An onboarding invoice for this plan is automatically sent to the school when it is created.</p>
                         <p class="text-xs text-gray-500">A default password will be generated from the school initials and serial number, shown once here, and sent to this phone by SMS.</p>
                     @else
                         <label class="flex items-center gap-2"><input type="checkbox" wire:model="form.is_active"> <span class="text-sm">Active</span></label>

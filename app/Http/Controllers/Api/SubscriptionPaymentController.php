@@ -7,6 +7,7 @@ use App\Models\Package;
 use App\Models\School;
 use App\Models\SubscriptionPayment;
 use App\Services\MpesaService;
+use App\Services\InvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -141,9 +142,14 @@ class SubscriptionPaymentController extends Controller
                 $payment->initiated_by,
                 "Paid via M-Pesa — receipt {$payment->mpesa_receipt_number}"
             );
+
+            // The payment is real only once its receipt invoice exists too.
+            // The unique payment reference prevents duplicate callback invoices.
+            if (! \App\Models\Invoice::withoutSchoolScope()->where('subscription_payment_id', $payment->id)->exists()) {
+                app(InvoiceService::class)->forConfirmedPayment($school, $package, $payment->fresh(), $payment->initiated_by);
+            }
         });
 
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 }
-
