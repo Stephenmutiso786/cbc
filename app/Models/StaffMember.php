@@ -29,6 +29,7 @@ class StaffMember extends Model
     public function classes()      { return $this->hasMany(SchoolClass::class, 'class_teacher_id'); }
     public function assessments()  { return $this->hasMany(Assessment::class, 'teacher_id'); }
     public function timetableSlots(){ return $this->hasMany(TimetableSlot::class, 'teacher_id'); }
+    public function subjectAllocations(){ return $this->hasMany(TeacherSubjectAllocation::class, 'teacher_id'); }
     public function lessonPlans()  { return $this->hasMany(LessonPlan::class, 'teacher_id'); }
 
     public function getFullNameAttribute(): string { return "{$this->first_name} {$this->last_name}"; }
