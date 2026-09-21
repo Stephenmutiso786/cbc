@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
     Route::get('/presence/ping', fn () => response()->noContent())->name('presence.ping');
 
     Route::get('/billing', \App\Livewire\Billing\SubscriptionStatus::class)->name('billing.index');
+    Route::get('/billing/invoices', \App\Livewire\Billing\InvoiceList::class)->name('billing.invoices');
     Route::post('/broadcasts/{broadcast}/dismiss', function (\App\Models\PlatformBroadcast $broadcast) {
         $dismissed = session('dismissed_broadcasts', []);
         $dismissed[] = $broadcast->id;
@@ -91,4 +92,10 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
         ->prefix('student')
         ->name('student.')
         ->group(base_path('routes/student.php'));
+
+    // IT Team accounts are created only by a super-admin. They receive this
+    // narrow platform support workspace instead of a school administration portal.
+    Route::middleware('role:it-team')->prefix('it')->name('it.')->group(function () {
+        Route::get('/support', \App\Livewire\Support\SupportTicketCenter::class)->middleware('permission:manage support tickets')->name('support.index');
+    });
 });

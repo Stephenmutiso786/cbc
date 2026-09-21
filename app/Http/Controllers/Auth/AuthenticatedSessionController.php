@@ -54,6 +54,8 @@ class AuthenticatedSessionController extends Controller
 
         if ($user->hasRole('super-admin')) {
             return redirect()->route('admin.platform-dashboard.index');
+        } elseif ($user->hasRole('it-team')) {
+            return redirect()->route('it.support.index');
         } elseif ($user->hasRole(['school-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy'])) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->hasRole(['hod', 'teacher', 'class-teacher', 'pre-primary-teacher', 'lower-primary-teacher', 'upper-primary-teacher', 'junior-secondary-teacher'])) {

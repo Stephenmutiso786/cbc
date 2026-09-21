@@ -41,6 +41,7 @@ use App\Livewire\SuperAdmin\BroadcastCenter;
 use App\Livewire\SuperAdmin\SuperAdminDashboard;
 use App\Livewire\SuperAdmin\PlatformMaintenance;
 use App\Livewire\SuperAdmin\PlatformSettings;
+use App\Livewire\SuperAdmin\InvoiceManager;
 use App\Livewire\Admin\IdCardGenerator;
 use App\Http\Controllers\TimetableController;
 
@@ -59,6 +60,7 @@ Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admi
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
 Route::get('/schools', SchoolManager::class)->middleware('role:super-admin')->name('schools.index');
 Route::get('/plans', PackageManager::class)->middleware('role:super-admin')->name('plans.index');
+Route::get('/invoices', InvoiceManager::class)->middleware('role:super-admin')->name('invoices.index');
 Route::get('/platform-finance', PlatformFinance::class)->middleware('role:super-admin')->name('platform-finance.index');
 Route::get('/platform-analytics', PlatformAnalytics::class)->middleware('role:super-admin')->name('platform-analytics.index');
 Route::get('/broadcasts', BroadcastCenter::class)->middleware('role:super-admin')->name('broadcasts.index');
