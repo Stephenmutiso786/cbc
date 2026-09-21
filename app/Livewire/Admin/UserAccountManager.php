@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Learner;
 use App\Models\User;
+use App\Models\SystemLog;
 use App\Services\LoginCredentialService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +25,9 @@ class UserAccountManager extends Component
     public string $role = 'teacher';
     public string $notice = '';
     public string $learnerId = '';
+    public ?int $resettingPasswordFor = null;
+    public string $newPassword = '';
+    public string $newPasswordConfirmation = '';
 
     public function mount(): void
     {
@@ -134,22 +138,44 @@ class UserAccountManager extends Component
         $this->showForm = false;
     }
 
-    public function resetPassword(int $id): void
+    public function openPasswordReset(int $id): void
     {
         abort_unless(auth()->user()->can('manage users'), 403);
 
-        $user = User::with(['learner.guardians', 'staffMember', 'guardian', 'roles'])->findOrFail($id);
+        $user = User::with('roles')->findOrFail($id);
+        $this->guardTarget($user);
+        $this->resetValidation();
+        $this->resettingPasswordFor = $user->id;
+        $this->newPassword = '';
+        $this->newPasswordConfirmation = '';
+    }
+
+    public function setPassword(): void
+    {
+        abort_unless(auth()->user()->can('manage users'), 403);
+
+        $data = $this->validate([
+            'resettingPasswordFor' => ['required', 'integer'],
+            'newPassword' => ['required', 'string', 'min:8', 'same:newPasswordConfirmation'],
+            'newPasswordConfirmation' => ['required', 'string'],
+        ]);
+
+        $user = User::with('roles')->findOrFail($data['resettingPasswordFor']);
         $this->guardTarget($user);
 
-        $plainPassword = app(LoginCredentialService::class)->defaultPasswordForUser($user);
         $user->forceFill([
-            'password' => Hash::make($plainPassword),
+            'password' => Hash::make($data['newPassword']),
             'must_change_password' => true,
         ])->save();
 
-        $delivery = app(LoginCredentialService::class)->sendLoginDetails($user, $plainPassword);
-        $this->password = '';
-        $this->notice = $this->formatCredentialNotice($user, $plainPassword, $delivery, 'Password reset successfully.');
+        SystemLog::create([
+            'user_id' => auth()->id(), 'method' => 'PASSWORD_RESET', 'path' => 'admin/user-accounts/' . $user->id,
+            'status' => 200, 'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
+            'context' => ['target_user_id' => $user->id, 'target_email' => $user->email],
+        ]);
+
+        $this->reset(['resettingPasswordFor', 'newPassword', 'newPasswordConfirmation']);
+        $this->notice = "Password reset for {$user->name}. They must create a personal password at their next sign-in.";
     }
 
     public function render()

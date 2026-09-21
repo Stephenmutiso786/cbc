@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\PortalRedirector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,10 @@ class ImpersonationController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->intended('/');
+        // Do not reuse an intended URL from the administrator's session: it
+        // may be the protected impersonation route or the guest login page,
+        // both of which create a redirect loop for the target account.
+        return redirect()->to(PortalRedirector::destinationFor($user));
     }
 
     public function stop(Request $request)
@@ -51,7 +55,7 @@ class ImpersonationController extends Controller
         $originalId = $request->session()->get('impersonator_id');
         abort_unless($originalId && auth()->id() !== $originalId, 403);
         $auditId = $request->session()->get('impersonation_audit_id');
-        if ($auditId) DB::table('impersonation_audits')->whereKey($auditId)->update(['ended_at' => now(), 'updated_at' => now()]);
+        if ($auditId) DB::table('impersonation_audits')->where('id', $auditId)->update(['ended_at' => now(), 'updated_at' => now()]);
         // While impersonating a school user, the tenant scope would hide the
         // original platform account (which intentionally has no school_id).
         // Load it explicitly without that scope before restoring the session.
@@ -60,6 +64,6 @@ class ImpersonationController extends Controller
         $request->session()->forget(['impersonator_id', 'impersonation_audit_id']);
         $request->session()->regenerate();
 
-        return redirect()->route($originalUser?->hasRole('super-admin') ? 'admin.platform-dashboard.index' : 'admin.dashboard');
+        return redirect()->to(PortalRedirector::destinationFor($originalUser));
     }
 }
