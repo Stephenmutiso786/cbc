@@ -8,6 +8,7 @@ use App\Http\Controllers\SchoolAssetController;
 use App\Http\Controllers\LegalConsentController;
 use App\Http\Controllers\CookieConsentController;
 use App\Http\Controllers\AccountPasswordController;
+use App\Http\Controllers\InvoiceDocumentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +57,8 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
 
     Route::get('/billing', \App\Livewire\Billing\SubscriptionStatus::class)->name('billing.index');
     Route::get('/billing/invoices', \App\Livewire\Billing\InvoiceList::class)->name('billing.invoices');
+    Route::get('/billing/invoices/{invoice}/preview', [InvoiceDocumentController::class, 'preview'])->name('billing.invoices.preview');
+    Route::get('/billing/invoices/{invoice}/download', [InvoiceDocumentController::class, 'download'])->name('billing.invoices.download');
     Route::post('/broadcasts/{broadcast}/dismiss', function (\App\Models\PlatformBroadcast $broadcast) {
         $dismissed = session('dismissed_broadcasts', []);
         $dismissed[] = $broadcast->id;
