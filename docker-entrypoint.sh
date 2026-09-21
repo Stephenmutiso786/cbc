@@ -61,7 +61,10 @@ fi
 if [ "${RUN_DB_SEEDER:-false}" = "true" ]; then
     timeout "${SEED_TIMEOUT}" php artisan db:seed --force
 else
-    if ! php artisan tinker --execute="exit((\\App\\Models\\User::query()->exists() && \\Spatie\\Permission\\Models\\Role::where('name', 'super-admin')->exists()) ? 0 : 1);" >/dev/null 2>&1; then
+    # `exit()` inside Tinker is reported as a PsySH exception, which always
+    # returns a failure status. Emit an explicit health marker instead so a
+    # successful seed is not rerun on every container restart.
+    if ! php artisan tinker --execute="echo (\\App\\Models\\User::query()->exists() && \\Spatie\\Permission\\Models\\Role::where('name', 'super-admin')->exists()) ? 'administrator-ready' : 'administrator-missing';" 2>/dev/null | grep -qx 'administrator-ready'; then
         echo "Administrator accounts are missing. Provisioning them..."
         timeout "${SEED_TIMEOUT}" php artisan db:seed --class=AdminUserSeeder --force
     fi
