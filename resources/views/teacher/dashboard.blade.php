@@ -2,6 +2,7 @@
 @section('header', auth()->user()->gradeBandLabel() ?? 'Teacher Dashboard')
 @section('content')
 @php($teacher = auth()->user()->staffMember)
+@php($subjectAllocations = $teacher?->subjectAllocations()->with(['schoolClass', 'learningArea'])->where('academic_year', config('school.academic_year'))->where('term', (int) config('school.current_term'))->where('is_active', true)->orderBy('class_id')->get() ?? collect())
 @php($publishedTimetable = $teacher?->timetableSlots()->with(['schoolClass', 'learningArea'])->where('academic_year', config('school.academic_year'))->where('term', (string) config('school.current_term'))->where('is_active', true)->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")->orderBy('start_time')->limit(5)->get() ?? collect())
 <div class="space-y-6">
 	<div class="card p-6">
@@ -9,8 +10,8 @@
 		<p class="text-sm text-gray-500 mb-6">Welcome, {{ $teacher?->full_name ?: auth()->user()->name }}.</p>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 			<div class="rounded-xl bg-blue-50 p-5">
-				<p class="text-sm text-gray-500">Assigned classes</p>
-				<p class="mt-2 text-2xl font-bold">{{ $teacher?->classes()->count() ?? 0 }}</p>
+				<p class="text-sm text-gray-500">Assigned subjects</p>
+				<p class="mt-2 text-2xl font-bold">{{ $subjectAllocations->count() }}</p>
 			</div>
 			<div class="rounded-xl bg-green-50 p-5">
 				<p class="text-sm text-gray-500">Published lessons</p>
@@ -20,6 +21,26 @@
 				<p class="text-sm text-gray-500">Assessments entered</p>
 				<p class="mt-2 text-2xl font-bold">{{ $teacher?->assessments()->count() ?? 0 }}</p>
 			</div>
+		</div>
+	</div>
+
+	<div class="card p-6">
+		<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<h3 class="text-lg font-bold text-gray-800">My subject allocations</h3>
+				<p class="text-sm text-gray-500">Subjects and classes assigned to you for Term {{ config('school.current_term') }}, {{ config('school.academic_year') }}.</p>
+			</div>
+			<span class="rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-800">{{ $subjectAllocations->count() }} subject{{ $subjectAllocations->count() === 1 ? '' : 's' }}</span>
+		</div>
+		<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+			@forelse($subjectAllocations as $allocation)
+				<div class="rounded-xl border border-green-100 bg-green-50 p-4">
+					<p class="font-semibold text-gray-800">{{ $allocation->learningArea?->name ?? 'Subject' }}</p>
+					<p class="mt-1 text-sm text-gray-600">{{ $allocation->schoolClass?->grade_level }}{{ $allocation->schoolClass?->name && $allocation->schoolClass->name !== $allocation->schoolClass->grade_level ? ' - '.$allocation->schoolClass->name : '' }}</p>
+				</div>
+			@empty
+				<div class="rounded-xl border border-dashed border-gray-300 p-5 text-sm text-gray-500 sm:col-span-2 lg:col-span-3">No subjects have been allocated to you for the current term. Ask the school administrator to assign them in Classes, Subjects and Teachers.</div>
+			@endforelse
 		</div>
 	</div>
 
