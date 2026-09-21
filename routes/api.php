@@ -1,9 +1,12 @@
+cat << 'EOF' > routes/api.php
 <?php
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MpesaController;
 use App\Http\Controllers\Api\KemisController;
 use App\Http\Controllers\Api\SubscriptionPaymentController;
+use App\Http\Controllers\TicketAiController;
 
 Route::get('/user', fn(Request $request) => $request->user())->middleware('auth:sanctum');
 
@@ -25,8 +28,6 @@ Route::prefix('subscription')->group(function () {
     });
 });
 
-// KEMIS API
-Route::prefix('kemis')->middleware('auth:sanctum')->group(function () {
-    Route::post('/sync',         [KemisController::class, 'sync']);
-    Route::get('/status',        [KemisController::class, 'status']);
-});
+// ITSM AI Ticket Diagnostics
+Route::get('/tickets/{code}', [TicketAiController::class, 'predict']);
+EOF
