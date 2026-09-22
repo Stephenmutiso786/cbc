@@ -12,7 +12,7 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles, BelongsToSchool;
 
-    protected $fillable = ['name', 'email', 'password', 'school_id', 'must_change_password'];
+    protected $fillable = ['name', 'email', 'password', 'school_id', 'status', 'must_change_password'];
     protected $hidden   = ['password', 'remember_token'];
     protected $casts    = [
         'email_verified_at' => 'datetime',
@@ -20,6 +20,8 @@ class User extends Authenticatable
         'legal_privacy_accepted_at' => 'datetime',
         'password' => 'hashed',
         'must_change_password' => 'boolean',
+        'last_login_at' => 'datetime',
+        'last_seen_at' => 'datetime',
     ];
 
     public function staffMember() { return $this->hasOne(StaffMember::class); }

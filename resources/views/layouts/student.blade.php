@@ -25,7 +25,7 @@
     </aside>
     <div class="min-h-screen md:ml-60">
         <header class="flex h-14 items-center gap-3 bg-white px-4 shadow-sm md:px-6"><button type="button" data-mobile-menu aria-expanded="false" class="relative z-50 rounded-lg p-2 text-gray-700 md:hidden" aria-label="Open menu">&#9776;</button><h1 class="truncate text-lg font-semibold text-gray-800">{{ $header ?? 'Student Portal' }}</h1><div class="ml-auto flex items-center gap-2">@include('layouts.partials.theme-toggle')<form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600">Log out</button></form></div></header>
-        <main class="min-w-0 overflow-x-hidden p-4 md:p-6">@yield('content')</main>
+        <main class="min-w-0 overflow-x-hidden p-4 md:p-6">@include('layouts.partials.breadcrumbs') @yield('content')</main>
         <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a></footer>
     </div>
 </div>
