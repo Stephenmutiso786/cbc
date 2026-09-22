@@ -91,5 +91,6 @@
 </script>
 @include('layouts.partials.loading')
 @include('layouts.partials.cookie-consent')
+@include('layouts.partials.jotform-chatbot')
 </body>
 </html>
