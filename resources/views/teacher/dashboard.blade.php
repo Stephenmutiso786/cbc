@@ -1,7 +1,7 @@
 @extends('layouts.teacher')
 @section('header', auth()->user()->gradeBandLabel() ?? 'Teacher Dashboard')
 @section('content')
-@php($teacher = auth()->user()->staffMember)
+@php($teacher = auth()->user()->resolvedStaffMember())
 @php($subjectAllocations = $teacher?->subjectAllocations()->with(['schoolClass', 'learningArea'])->where('academic_year', config('school.academic_year'))->where('term', (int) config('school.current_term'))->where('is_active', true)->orderBy('class_id')->get() ?? collect())
 @php($publishedTimetable = $teacher?->timetableSlots()->with(['schoolClass', 'learningArea'])->where('academic_year', config('school.academic_year'))->where('term', (string) config('school.current_term'))->where('is_active', true)->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")->orderBy('start_time')->limit(5)->get() ?? collect())
 <div class="space-y-6">

@@ -28,6 +28,40 @@ class User extends Authenticatable
     public function guardian()    { return $this->hasOne(Guardian::class); }
     public function learner()     { return $this->hasOne(Learner::class); }
 
+    /**
+     * Return the staff profile that owns this teacher account.
+     *
+     * Older schools can have a staff record and a separately-created teacher
+     * login with the same email address but no `staff_members.user_id` link.
+     * Subject allocations belong to the staff record, so leaving that link
+     * absent makes a legitimately allocated teacher appear to have zero
+     * subjects.  Only repair an unlinked profile in the same school with an
+     * exact, case-insensitive email match; never guess from a person's name.
+     */
+    public function resolvedStaffMember(): ?StaffMember
+    {
+        $staff = $this->relationLoaded('staffMember')
+            ? $this->getRelation('staffMember')
+            : $this->staffMember()->first();
+
+        if ($staff || ! $this->school_id || blank($this->email)) {
+            return $staff;
+        }
+
+        $staff = StaffMember::withoutSchoolScope()
+            ->where('school_id', $this->school_id)
+            ->whereNull('user_id')
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($this->email)])
+            ->first();
+
+        if ($staff) {
+            $staff->forceFill(['user_id' => $this->id])->saveQuietly();
+            $this->setRelation('staffMember', $staff);
+        }
+
+        return $staff;
+    }
+
     public function levelPortal(): ?array
     {
         foreach (config('school.level_teacher_roles', []) as $role => $portal) {
