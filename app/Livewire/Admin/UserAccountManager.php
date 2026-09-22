@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Learner;
+use App\Models\School;
 use App\Models\User;
 use App\Models\SystemLog;
 use App\Services\LoginCredentialService;
@@ -28,6 +29,16 @@ class UserAccountManager extends Component
     public ?int $resettingPasswordFor = null;
     public string $newPassword = '';
     public string $newPasswordConfirmation = '';
+    public string $schoolId = '';
+    public string $search = '';
+    public string $roleFilter = '';
+    public string $statusFilter = '';
+    public string $schoolFilter = '';
+    public string $createdFrom = '';
+    public string $createdTo = '';
+    public int $perPage = 25;
+    public array $selectedUserIds = [];
+    public string $bulkAction = '';
 
     public function mount(): void
     {
@@ -36,7 +47,7 @@ class UserAccountManager extends Component
 
     public function create(): void
     {
-        $this->reset(['editingId', 'name', 'email', 'password', 'notice', 'learnerId']);
+        $this->reset(['editingId', 'name', 'email', 'password', 'notice', 'learnerId', 'schoolId']);
         $this->role = 'teacher';
         $this->showForm = true;
     }
@@ -51,6 +62,7 @@ class UserAccountManager extends Component
         $this->email = $user->email;
         $this->role = $user->roles->first()?->name ?: 'teacher';
         $this->learnerId = (string) ($user->learner?->id ?? '');
+        $this->schoolId = (string) ($user->school_id ?? '');
         $this->password = '';
         $this->showForm = true;
     }
@@ -65,11 +77,28 @@ class UserAccountManager extends Component
             'password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
             'role' => ['required', Rule::in($this->assignableRoles())],
             'learnerId' => ['nullable', 'integer', 'exists:learners,id'],
+            'schoolId' => ['nullable', 'integer', 'exists:schools,id'],
         ]);
+
+        if (auth()->user()->hasRole('super-admin') && ! in_array($data['role'], ['super-admin', 'it-team'], true) && ! $data['schoolId']) {
+            $this->addError('schoolId', 'Select the school this account belongs to.');
+            return;
+        }
 
         if ($data['role'] === 'learner' && ! $data['learnerId']) {
             $this->addError('learnerId', 'Select the learner record for this student account.');
             return;
+        }
+
+        // A learner account is always part of the learner's institution.  Do
+        // not let a platform operator accidentally join a learner from one
+        // school to an account displayed under another school.
+        if ($data['role'] === 'learner' && $data['learnerId'] && auth()->user()->hasRole('super-admin')) {
+            $learnerSchoolId = Learner::withoutSchoolScope()->whereKey($data['learnerId'])->value('school_id');
+            if ((string) $learnerSchoolId !== (string) $data['schoolId']) {
+                $this->addError('schoolId', 'The selected learner belongs to a different school.');
+                return;
+            }
         }
 
         $linkedLearner = Learner::query()
@@ -94,6 +123,10 @@ class UserAccountManager extends Component
 
             $user->name = $data['name'];
             $user->email = $data['email'];
+            if (auth()->user()->hasRole('super-admin')) {
+                $user->school_id = in_array($data['role'], ['super-admin', 'it-team'], true) ? null : $data['schoolId'];
+            }
+            $user->status ??= 'active';
             $user->email_verified_at ??= now();
             $user->save();
             $user->syncRoles([$data['role']]);
@@ -136,6 +169,45 @@ class UserAccountManager extends Component
         }
 
         $this->showForm = false;
+    }
+
+    public function updated($property): void
+    {
+        if (in_array($property, ['search', 'roleFilter', 'statusFilter', 'schoolFilter', 'createdFrom', 'createdTo', 'perPage'], true)) {
+            $this->resetPage();
+            $this->selectedUserIds = [];
+        }
+    }
+
+    public function changeStatus(int $id, string $status): void
+    {
+        abort_unless(in_array($status, ['active', 'suspended', 'inactive'], true), 422);
+        $user = User::with('roles')->findOrFail($id);
+        $this->guardTarget($user);
+        $user->forceFill(['status' => $status])->save();
+        $this->auditLifecycleChange($user, $status);
+        $this->notice = "{$user->name} is now {$status}.";
+    }
+
+    public function applyBulkAction(): void
+    {
+        abort_unless(auth()->user()->can('manage users'), 403);
+        if (! in_array($this->bulkAction, ['active', 'suspended', 'inactive'], true)) {
+            $this->addError('bulkAction', 'Choose an account status action.');
+            return;
+        }
+        $users = User::with('roles')->whereIn('id', $this->selectedUserIds)->get();
+        $changed = 0;
+        foreach ($users as $user) {
+            if ($this->guardTarget($user, false)) {
+                $user->forceFill(['status' => $this->bulkAction])->save();
+                $this->auditLifecycleChange($user, $this->bulkAction);
+                $changed++;
+            }
+        }
+        $this->selectedUserIds = [];
+        $this->bulkAction = '';
+        $this->notice = $changed ? "Updated {$changed} account(s)." : 'No eligible accounts were selected.';
     }
 
     public function openPasswordReset(int $id): void
@@ -181,19 +253,42 @@ class UserAccountManager extends Component
     public function render()
     {
         return view('livewire.admin.user-account-manager', [
-            'users' => User::with(['roles', 'learner'])->orderBy('name')->paginate(25),
+            'users' => User::with(['roles', 'learner', 'school'])
+                ->when($this->search !== '', function ($query) {
+                    $term = '%' . trim($this->search) . '%';
+                    $query->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('email', 'like', $term));
+                })
+                ->when($this->roleFilter !== '', fn ($query) => $query->whereHas('roles', fn ($q) => $q->where('name', $this->roleFilter)))
+                ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
+                ->when(auth()->user()->hasRole('super-admin') && $this->schoolFilter !== '', fn ($query) => $this->schoolFilter === '0' ? $query->whereNull('school_id') : $query->where('school_id', $this->schoolFilter))
+                ->when($this->createdFrom !== '', fn ($query) => $query->whereDate('created_at', '>=', $this->createdFrom))
+                ->when($this->createdTo !== '', fn ($query) => $query->whereDate('created_at', '<=', $this->createdTo))
+                ->orderBy('name')->paginate(in_array($this->perPage, [10, 25, 50, 100], true) ? $this->perPage : 25),
             'roles' => Role::whereIn('name', $this->assignableRoles())->orderBy('name')->get(),
             'learners' => Learner::whereNull('user_id')
                 ->when($this->learnerId !== '', fn ($query) => $query->orWhere('id', $this->learnerId))
                 ->orderBy('last_name')
                 ->orderBy('first_name')
                 ->get(),
+            'schools' => auth()->user()->hasRole('super-admin') ? School::orderBy('name')->get() : collect(),
         ])->layout('layouts.admin');
     }
 
     private function guardTarget(User $user, bool $abortIfProtected = true): bool
     {
-        if ($user->hasRole('super-admin')) {
+        // Direct Livewire requests can carry an arbitrary ID.  The model's
+        // school scope handles normal tenant requests; this explicit check
+        // keeps the rule intact when the current tenant is resolved later in
+        // the request lifecycle.
+        if (! auth()->user()->hasRole('super-admin') && $user->exists && (string) $user->school_id !== (string) auth()->user()->school_id) {
+            if ($abortIfProtected) {
+                abort(403, 'You can only manage accounts in your own school.');
+            }
+
+            return false;
+        }
+
+        if ($user->hasRole('super-admin') || (! auth()->user()->hasRole('super-admin') && $user->hasRole('it-team'))) {
             if ($abortIfProtected) {
                 abort(403, 'Super Admin accounts are protected and cannot be controlled here.');
             }
@@ -226,5 +321,14 @@ class UserAccountManager extends Component
         }
 
         return $message;
+    }
+
+    private function auditLifecycleChange(User $user, string $status): void
+    {
+        SystemLog::create([
+            'user_id' => auth()->id(), 'method' => 'ACCOUNT_STATUS_CHANGED', 'path' => 'admin/user-accounts/' . $user->id,
+            'status' => 200, 'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
+            'context' => ['target_user_id' => $user->id, 'target_email' => $user->email, 'account_status' => $status],
+        ]);
     }
 }

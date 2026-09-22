@@ -14,7 +14,7 @@
             <nav class="flex items-center gap-4 text-sm"><a href="{{ route('legal.terms') }}" class="hover:underline">Terms</a><a href="{{ route('legal.privacy') }}" class="hover:underline">Privacy</a>@include('layouts.partials.theme-toggle')</nav>
         </div>
     </header>
-    <main class="mx-auto max-w-4xl px-4 py-8">@yield('content')</main>
+    <main class="mx-auto max-w-4xl px-4 py-8">@include('layouts.partials.breadcrumbs') @yield('content')</main>
     @include('layouts.partials.cookie-consent')
 </body>
 </html>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Learner;
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -41,6 +42,15 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
+        $account = User::withoutSchoolScope()->where('email', $email)->first();
+        if ($account && in_array($account->status, ['suspended', 'inactive'], true)) {
+            throw ValidationException::withMessages([
+                'login' => $account->status === 'suspended'
+                    ? 'This account has been suspended. Please contact your school administrator.'
+                    : 'This account is inactive. Please contact your school administrator.',
+            ]);
+        }
+
         if (!Auth::attempt(['email' => $email, 'password' => $credentials['password']], $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'login' => 'The provided credentials do not match our records.',
@@ -51,6 +61,7 @@ class AuthenticatedSessionController extends Controller
 
         // Redirect based on role
         $user = Auth::user();
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
 
         if ($user->hasRole('super-admin')) {
             return redirect()->route('admin.platform-dashboard.index');
