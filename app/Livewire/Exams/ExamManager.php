@@ -187,9 +187,9 @@ class ExamManager extends Component
         try {
             if ($this->editingExamId) {
                 $exam = Exam::findOrFail($this->editingExamId);
-                abort_unless($this->isFullAdmin(), 403);
-                abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
-                $exam->update($attributes + ['learning_area_id' => $selectedAreaIds->first()]);
+                abort_unless($this->canManageAllExams(), 403);
+                abort_if(Exam::whereIn('id', $exam->groupExamIds())->whereNotNull('results_locked_at')->exists(), 422, 'Locked exam results cannot be edited.');
+                $this->synchroniseExamGroup($exam, $attributes, $selectedAreaIds, $creatorId);
                 $message = 'Exam updated successfully.';
             } else {
                 DB::transaction(function () use ($attributes, $creatorId, $selectedAreaIds, &$message): void {
@@ -225,15 +225,15 @@ class ExamManager extends Component
 
     public function editExam(int $examId): void
     {
-        abort_unless($this->isFullAdmin(), 403);
+        abort_unless($this->canManageAllExams(), 403);
         $exam = Exam::findOrFail($examId);
-        abort_if($exam->isLocked(), 422, 'Locked exam results cannot be edited.');
+        abort_if(Exam::whereIn('id', $exam->groupExamIds())->whereNotNull('results_locked_at')->exists(), 422, 'Locked exam results cannot be edited.');
         $this->editingExamId = $exam->id;
         $this->examName = $exam->name;
         $this->examGrade = $exam->grade_level;
         $this->examClassId = (string) $exam->class_id;
         $this->examAreaId = $exam->learning_area_id;
-        $this->selectedExamAreaIds = [(string) $exam->learning_area_id];
+        $this->selectedExamAreaIds = Exam::whereIn('id', $exam->groupExamIds())->pluck('learning_area_id')->map(fn ($id) => (string) $id)->all();
         $scale = $exam->schoolClass?->gradingScale;
         $this->examScaleName = $scale?->name ?? 'No grading scale assigned';
         $this->examScaleBands = $scale?->bands ?? [];
@@ -247,9 +247,10 @@ class ExamManager extends Component
 
     public function deleteExam(int $examId): void
     {
-        abort_unless($this->isFullAdmin(), 403);
+        abort_unless($this->canManageAllExams(), 403);
         $exam = Exam::findOrFail($examId);
         $groupIds = $exam->groupExamIds();
+        abort_if(Exam::whereIn('id', $groupIds)->whereNotNull('results_locked_at')->exists(), 422, 'Published or locked exams cannot be deleted. Keep the record for audit purposes.');
         DB::transaction(fn () => Exam::whereIn('id', $groupIds)->delete());
         if ($this->selectedExam === $examId) {
             $this->selectedExam = null;
@@ -266,6 +267,41 @@ class ExamManager extends Component
         $this->reset(['examName','examGrade','examClassId','examAreaId','selectedExamAreaIds','examTerm','examDate','examScaleName','examScaleBands']);
         $this->examTerm = (string) config('school.current_term');
         $this->examDate = now()->format('Y-m-d');
+    }
+
+    /** Keep a combined exam's subject rows aligned with its edited form. */
+    private function synchroniseExamGroup(Exam $exam, array $attributes, $areaIds, int $creatorId): void
+    {
+        DB::transaction(function () use ($exam, $attributes, $areaIds, $creatorId): void {
+            $masterId = $exam->exam_group_id ?: $exam->id;
+            $rows = Exam::where('id', $masterId)->orWhere('exam_group_id', $masterId)->get()->keyBy('learning_area_id');
+            $wanted = collect($areaIds)->map(fn ($id) => (int) $id)->unique()->values();
+            $keptIds = [];
+
+            // The master must remain the group root even if its original
+            // subject was removed from the edited selection.
+            $master = Exam::findOrFail($masterId);
+            $master->update($attributes + ['learning_area_id' => $wanted->first(), 'exam_group_id' => null]);
+            $keptIds[] = $master->id;
+
+            foreach ($wanted->skip(1) as $areaId) {
+                $row = $rows->get($areaId);
+                if ($row && $row->id !== $master->id) {
+                    $row->update($attributes + ['exam_group_id' => $master->id]);
+                } else {
+                    $row = Exam::create($attributes + [
+                        'exam_group_id' => $master->id,
+                        'learning_area_id' => $areaId,
+                        'created_by' => $creatorId,
+                    ]);
+                }
+                $keptIds[] = $row->id;
+            }
+
+            // Marks for removed subjects are dependent exam records and are
+            // removed by the existing foreign-key cascade.
+            Exam::where('exam_group_id', $master->id)->whereNotIn('id', $keptIds)->delete();
+        });
     }
 
     public function openCreateForm(): void
