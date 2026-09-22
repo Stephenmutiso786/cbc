@@ -131,6 +131,14 @@ class UserAccountManager extends Component
             $user->save();
             $user->syncRoles([$data['role']]);
 
+            // Accounts created from User Accounts can represent an existing
+            // staff record. Keep the operational teacher profile linked so
+            // allocations, marks, timetable and results use the same person.
+            if ($data['role'] !== 'learner') {
+                $user->unsetRelation('staffMember');
+                $user->resolvedStaffMember();
+            }
+
             Learner::where('user_id', $user->id)->update(['user_id' => null]);
 
             if ($data['role'] === 'learner') {
