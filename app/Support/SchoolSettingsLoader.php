@@ -38,7 +38,7 @@ class SchoolSettingsLoader
                     }
                 }
             }
-            $secrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
+            $secrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials', 'ml_service_api_key'];
             foreach (DB::table('school_settings')->where('school_id', $schoolId)->pluck('value', 'key') as $key => $value) {
                 try {
                     $value = is_string($value) && str_starts_with($value, 'enc:') ? Crypt::decryptString(substr($value, 4)) : $value;
@@ -50,6 +50,7 @@ class SchoolSettingsLoader
                         str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
                         str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
                         str_starts_with($key, 'google_drive_') => 'services.google_drive.' . substr($key, 13),
+                        str_starts_with($key, 'ml_service_') => 'services.risk_prediction.' . substr($key, 11),
                         default => 'school.' . $key,
                     };
                     config()->set($configKey, $value);
@@ -66,7 +67,7 @@ class SchoolSettingsLoader
         self::$baseSchoolConfig ??= config('school', []);
         config()->set('school', self::$baseSchoolConfig);
 
-        $services = ['mpesa', 'africastalking', 'olympus_sms', 'firebase', 'kemis', 'google_drive'];
+        $services = ['mpesa', 'africastalking', 'olympus_sms', 'firebase', 'kemis', 'google_drive', 'risk_prediction'];
         if (self::$baseServiceConfig === null) {
             self::$baseServiceConfig = [];
             foreach ($services as $service) {
