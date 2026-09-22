@@ -45,6 +45,7 @@ use App\Livewire\SuperAdmin\InvoiceManager;
 use App\Livewire\Admin\IdCardGenerator;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\RiskPredictionController;
+use App\Http\Controllers\PastExamDocumentController;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -80,6 +81,10 @@ Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:vi
 Route::get('/notifications', SendNotification::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('notifications.index');
 Route::get('/sms', SmsBalance::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('sms.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams')->name('exams.index');
+Route::get('/exams/archive', [PastExamDocumentController::class, 'index'])->middleware('permission:view exams')->name('exams.archive');
+Route::post('/exams/archive', [PastExamDocumentController::class, 'store'])->middleware('permission:manage exams')->name('exams.archive.store');
+Route::get('/exams/archive/{document}', [PastExamDocumentController::class, 'show'])->middleware('permission:view exams')->name('exams.archive.show');
+Route::delete('/exams/archive/{document}', [PastExamDocumentController::class, 'destroy'])->middleware('permission:manage exams')->name('exams.archive.destroy');
 Route::get('/exams/{exam}/marks-template', [MarksImportTemplateController::class, 'download'])->middleware('permission:enter marks')->name('exams.marks-template');
 Route::get('/exams/{exam}/report-cards', [ExamReportsController::class, 'resultCards'])->middleware('permission:view report cards')->name('exams.report-cards');
 Route::get('/exams/report-cards/export/{export}', [ExamReportsController::class, 'downloadExport'])->middleware('permission:view report cards')->name('exams.report-cards.export');
