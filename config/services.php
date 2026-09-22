@@ -57,6 +57,12 @@ return [
         'url' => env('MIYAGI_LABS_URL', 'https://miyagilabs.ai'),
     ],
 
+    'risk_prediction' => [
+        'url' => env('ML_SERVICE_URL'),
+        'api_key' => env('ML_SERVICE_API_KEY'),
+        'timeout' => (int) env('ML_SERVICE_TIMEOUT', 20),
+    ],
+
     'kemis' => [
         'api_url'     => env('KEMIS_API_URL', 'https://kemis.education.go.ke/api'),
         'api_key'     => env('KEMIS_API_KEY'),

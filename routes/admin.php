@@ -44,6 +44,7 @@ use App\Livewire\SuperAdmin\PlatformSettings;
 use App\Livewire\SuperAdmin\InvoiceManager;
 use App\Livewire\Admin\IdCardGenerator;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\RiskPredictionController;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -63,6 +64,9 @@ Route::get('/plans', PackageManager::class)->middleware('role:super-admin')->nam
 Route::get('/invoices', InvoiceManager::class)->middleware('role:super-admin')->name('invoices.index');
 Route::get('/platform-finance', PlatformFinance::class)->middleware('role:super-admin')->name('platform-finance.index');
 Route::get('/platform-analytics', PlatformAnalytics::class)->middleware('role:super-admin')->name('platform-analytics.index');
+Route::get('/ai-risk-predictions', [RiskPredictionController::class, 'platform'])->middleware('role:super-admin')->name('risk.platform');
+Route::post('/ai-risk-predictions/retrain', [RiskPredictionController::class, 'train'])->middleware('role:super-admin')->name('risk.train');
+Route::post('/ai-risk-predictions/recompute', [RiskPredictionController::class, 'recompute'])->middleware('role:super-admin')->name('risk.recompute');
 Route::get('/broadcasts', BroadcastCenter::class)->middleware('role:super-admin')->name('broadcasts.index');
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/user-accounts', UserAccountManager::class)->middleware('permission:manage users')->name('user-accounts.index');
@@ -99,6 +103,8 @@ Route::get('/timetable/print', [TimetableController::class, 'printSchool'])->mid
 Route::post('/timetable/publish', [TimetableController::class, 'publish'])->middleware('permission:manage timetable')->name('timetable.publish');
 Route::post('/timetable/unpublish', [TimetableController::class, 'unpublish'])->middleware('permission:manage timetable')->name('timetable.unpublish');
 Route::get('/reports', [AnalyticsController::class, 'index'])->middleware('permission:view analytics')->name('reports.index');
+Route::get('/at-risk-learners', [RiskPredictionController::class, 'index'])->middleware(['permission:view analytics', 'feature:predictive_analytics'])->name('risk.index');
+Route::get('/at-risk-learners/{prediction}', [RiskPredictionController::class, 'show'])->middleware(['permission:view analytics', 'feature:predictive_analytics'])->name('risk.show');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->middleware('permission:view analytics')->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
 Route::get('/drive-store', [DriveStoreController::class, 'index'])->middleware('permission:view report cards')->name('drive-store.index');

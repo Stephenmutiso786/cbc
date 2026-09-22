@@ -142,6 +142,8 @@ class AdminSettingsController extends Controller
             'platform_mpesa_shortcode' => ['nullable', 'string', 'max:50'],
             'platform_mpesa_passkey' => ['nullable', 'string', 'max:500'],
             'platform_mpesa_callback_url' => ['nullable', 'url', 'max:500'],
+            'ml_service_url' => ['nullable', 'url', 'max:500'],
+            'ml_service_api_key' => ['nullable', 'string', 'max:500'],
         ]);
 
         if ($request->hasFile('google_drive_credentials_file')) {
@@ -204,7 +206,7 @@ class AdminSettingsController extends Controller
             }
         }
 
-        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials'];
+        $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials', 'ml_service_api_key'];
         $globalSecretKeys = ['at_api_key', 'olympus_sms_api_token', 'platform_mpesa_consumer_key', 'platform_mpesa_consumer_secret', 'platform_mpesa_passkey'];
         DB::transaction(function () use ($data, $secretKeys, $globalSecretKeys, $assetData, $globalMaintenance): void {
             foreach ($globalMaintenance as $key => $value) {
@@ -232,6 +234,7 @@ class AdminSettingsController extends Controller
                     str_starts_with($key, 'olympus_sms_') => 'services.olympus_sms.' . substr($key, 12),
                     str_starts_with($key, 'firebase_') => 'services.firebase.' . substr($key, 9),
                     str_starts_with($key, 'kemis_') => 'services.kemis.' . substr($key, 6),
+                    str_starts_with($key, 'ml_service_') => 'services.risk_prediction.' . substr($key, 11),
                     default => 'school.' . $key,
                 };
                 config()->set($configKey, $configValue);

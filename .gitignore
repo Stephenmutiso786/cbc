@@ -1,5 +1,6 @@
 vendor/
 node_modules/
+ml-service/__pycache__/
 public/build/
 .env
 storage/logs/

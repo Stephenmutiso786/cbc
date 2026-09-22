@@ -38,6 +38,7 @@ class Learner extends Model
     // ── Relationships ────────────────────────────────────────────
     public function schoolClass()   { return $this->belongsTo(SchoolClass::class, 'class_id'); }
     public function user()          { return $this->belongsTo(User::class); }
+    public function riskPrediction() { return $this->hasOne(LearnerRiskPrediction::class); }
     public function guardians()     { return $this->belongsToMany(Guardian::class, 'learner_guardian')->withPivot('is_primary'); }
     public function assessments()   { return $this->hasMany(Assessment::class); }
     public function attendance()    { return $this->hasMany(Attendance::class); }

@@ -27,6 +27,7 @@ class PackageManager extends Component
         'portfolio'     => 'Learner Portfolios',
         'timetable'     => 'Timetabling',
         'id_cards'      => 'ID Cards & Certificates',
+        'predictive_analytics' => 'AI Risk Prediction',
     ];
 
     public function mount(): void

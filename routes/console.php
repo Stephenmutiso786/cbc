@@ -23,3 +23,6 @@ if (filter_var(env('GOOGLE_DRIVE_DAILY_BACKUP', true), FILTER_VALIDATE_BOOLEAN))
         ->hourly()
         ->withoutOverlapping(30);
 }
+
+Schedule::command('risk:predict')->dailyAt('01:15')->withoutOverlapping(120);
+Schedule::command('risk:train-model')->weeklyOn(0, '02:15')->withoutOverlapping(240);
