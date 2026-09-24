@@ -10,6 +10,7 @@ use App\Http\Controllers\ExamReportsController;
 use App\Http\Controllers\MarksImportTemplateController;
 use App\Http\Controllers\TeacherClassListController;
 use App\Livewire\Support\SupportTicketCenter;
+use App\Http\Controllers\PortalContentController;
 
 Route::get('/dashboard', fn() => view('teacher.dashboard'))->name('dashboard');
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
@@ -26,5 +27,7 @@ Route::get('/notifications', SendNotification::class)->middleware('permission:se
 Route::get('/signature', SignatureSettings::class)->middleware('permission:enter marks')->name('signature.index');
 Route::get('/notes', fn() => view('teacher.notes.index'))->middleware('permission:view notes')->name('notes.index');
 Route::get('/timetable', fn() => view('teacher.timetable.index'))->middleware('permission:view timetable')->name('timetable.index');
+Route::get('/newsletters', [PortalContentController::class, 'newsletters'])->name('newsletters');
+Route::get('/exam-timetable', [PortalContentController::class, 'teacherExamTimetable'])->middleware('permission:view timetable')->name('exam-timetable');
 Route::get('/timetable/print', [\App\Http\Controllers\TimetableController::class, 'printTeacher'])->middleware('permission:view timetable')->name('timetable.print');
 Route::get('/attendance', fn() => view('teacher.attendance.index'))->middleware('permission:view attendance|mark attendance')->name('attendance.index');

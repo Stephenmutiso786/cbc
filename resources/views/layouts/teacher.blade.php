@@ -22,7 +22,7 @@
             @foreach([
                 ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Exams & Marks','view exams|enter marks'],['teacher.results.index','View Results','view results'],
                 ['teacher.assessment.index','Assessments','view assessments'],['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature','enter marks'],['teacher.attendance.index','Attendance','view attendance|mark attendance'],
-                ['teacher.timetable.index','Timetable','view timetable'],['teacher.support.index','Support Tickets','submit support tickets'],
+                ['teacher.timetable.index','Timetable','view timetable'],['teacher.exam-timetable','Exam Timetable','view timetable'],['teacher.newsletters','Newsletters',null],['teacher.support.index','Support Tickets','submit support tickets'],
             ] as [$route,$label,$permission])
             @if($permission === null || collect(explode('|', $permission))->contains(fn ($ability) => auth()->user()->can($ability)))
                 @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))

@@ -119,6 +119,8 @@ Route::middleware(['feature:newsletters', 'permission:manage newsletters', 'role
     Route::post('/newsletters', [NewsletterController::class, 'store'])->name('newsletters.store');
     Route::get('/newsletters/{newsletter}/edit', [NewsletterController::class, 'edit'])->name('newsletters.edit');
     Route::put('/newsletters/{newsletter}', [NewsletterController::class, 'update'])->name('newsletters.update');
+    Route::post('/newsletters/{newsletter}/publish', [NewsletterController::class, 'publish'])->name('newsletters.publish');
+    Route::post('/newsletters/{newsletter}/unpublish', [NewsletterController::class, 'unpublish'])->name('newsletters.unpublish');
     Route::delete('/newsletters/{newsletter}', [NewsletterController::class, 'destroy'])->name('newsletters.destroy');
     Route::get('/newsletters/{newsletter}/print', [NewsletterController::class, 'print'])->name('newsletters.print');
 });
