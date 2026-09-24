@@ -157,8 +157,12 @@ class AdminSettingsController extends Controller
         }
         unset($data['google_drive_credentials_file']);
 
+        // Logos are images and can be substantially larger than the normal
+        // settings value column. Store them with the other long-form assets
+        // so they survive every report-card / PDF rendering path.
+        $assetData = [];
         if ($request->hasFile('logo')) {
-            $data['logo_data'] = $transferPolicy->imageDataUrl($request->file('logo'));
+            $assetData['logo_data'] = $transferPolicy->imageDataUrl($request->file('logo'));
         }
         unset($data['logo']);
 
@@ -168,7 +172,6 @@ class AdminSettingsController extends Controller
             }
             unset($data[$upload]);
         }
-        $assetData = [];
         foreach (['official_signature_data', 'official_stamp_data'] as $key) {
             if (array_key_exists($key, $data)) {
                 $assetData[$key] = $data[$key];
