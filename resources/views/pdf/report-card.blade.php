@@ -31,7 +31,6 @@ tr:nth-child(even) td{background:#fafafa;}
 .legend{padding:8px 16px;background:#f9fafb;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid #e5e7eb;}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:9px;color:#374151;}
 .verification-footer{position:absolute;bottom:10mm;left:0;right:0;text-align:center;}
-.verification-qr{width:64px;height:64px;margin:0 auto;line-height:0;}.verification-qr svg{width:64px;height:64px;}
 .verification-copy{font-size:8px;color:#166534;}.verification-copy span{font-size:7px;color:#6b7280;}.verification-stamp{position:absolute;right:20mm;top:0;width:52px;height:52px;object-fit:contain;}
 .footer{text-align:center;padding:8px;font-size:8px;color:#9ca3af;border-top:1px solid #e5e7eb;}
 .attendance-grid{display:flex;gap:0;border:1px solid #e5e7eb;}

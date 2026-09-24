@@ -2,13 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\School;
 use App\Services\DataTransferPolicy;
+use App\Support\SchoolSettingsLoader;
 use Symfony\Component\HttpFoundation\Response;
 
 class SchoolAssetController extends Controller
 {
-    public function logo(DataTransferPolicy $transferPolicy): Response
+    public function logo(int $school, DataTransferPolicy $transferPolicy): Response
     {
+        // This endpoint is intentionally public because a browser/print engine
+        // requests the image separately from the authenticated report page.
+        // Resolve branding from the requested school, never from an absent
+        // request tenant (which previously made every print logo return 404).
+        School::query()->findOrFail($school);
+        SchoolSettingsLoader::for($school);
+
         $logo = (string) config('school.logo_data', '');
 
         abort_unless(str_starts_with($logo, 'data:image/'), 404);

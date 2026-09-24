@@ -35,8 +35,6 @@
         .bar-value { width: 38px; text-align: right; }
         .note { margin-top: 8px; color: #166534; }
         .verification-footer { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; padding-top: 6px; border-top: 1px solid #d1d5db; text-align: center; }
-        .verification-qr { width: 64px; height: 64px; line-height: 0; }
-        .verification-qr svg { width: 64px; height: 64px; }
         .verification-copy { color: #166534; font-size: 8px; }
         .verification-copy span { color: #6b7280; font-size: 7px; }
         .verification-stamp { width: 52px; height: 52px; object-fit: contain; }
@@ -44,8 +42,6 @@
         .signature { padding-top: 4px; border-top: 1px solid #374151; color: #5b6472; font-size: 8px; }
         @media print { .toolbar { display: none; } }
         .verification-footer { position: fixed; bottom: 8mm; left: 0; width: 100%; text-align: center; }
-        .verification-qr { width: 64px; height: 64px; margin: 0 auto; line-height: 0; }
-        .verification-qr svg { width: 64px; height: 64px; }
         .verification-stamp { position: absolute; right: 20mm; top: 0; width: 52px; height: 52px; object-fit: contain; }
     </style>
 </head>
