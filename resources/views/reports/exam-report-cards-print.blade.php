@@ -44,7 +44,14 @@
 </head>
 <body>
 @php($logoData = (string) config('school.logo_data', ''))
-@php($logoUrl = str_starts_with($logoData, 'data:image/') ? route('school.logo', ['school' => $exam->school_id, 'v' => substr(sha1($logoData), 0, 16)]) : null)
+{{--
+    Keep the official logo inside the printable document. The old public
+    asset URL created a second request from Chrome's print preview, which can
+    lose its tenant context or be rejected for a legacy image's size. An
+    uploaded school logo is already a validated data URI, and embedding it
+    makes the screen and printed/PDF copy use the exact same bytes.
+--}}
+@php($logoUrl = str_starts_with($logoData, 'data:image/') ? $logoData : null)
 <div class="toolbar"><button type="button" onclick="window.print()">Print all report cards</button></div>
 <script>window.addEventListener('load', function () { window.print(); });</script>
 @foreach($cards as $card)

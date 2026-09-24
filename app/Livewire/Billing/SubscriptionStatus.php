@@ -5,6 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\Package;
 use App\Models\SubscriptionPayment;
 use App\Models\SmsCreditOrder;
+use App\Models\Invoice;
 use App\Services\MpesaService;
 use Livewire\Component;
 
@@ -122,6 +123,12 @@ class SubscriptionStatus extends Component
             'payments' => SubscriptionPayment::latest()->limit(10)->get(),
             'smsOrders' => SmsCreditOrder::latest()->limit(10)->get(),
             'smsUnitPrice' => (float) config('services.platform_mpesa.sms_unit_price', 1),
+            // This is the school-scoped platform billing record. Confirmed
+            // subscription payments create a paid invoice, while invoices
+            // sent by the platform remain here until they are settled.
+            'subscriptionInvoices' => Invoice::with('items')->latest()->limit(15)->get(),
+            'dueInvoiceTotal' => (float) Invoice::whereIn('status', ['sent', 'accepted'])
+                ->sum('total_amount'),
         ])->layout('layouts.admin');
     }
 }
