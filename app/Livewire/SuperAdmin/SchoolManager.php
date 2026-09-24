@@ -46,14 +46,6 @@ class SchoolManager extends Component
     public string $grantExpiresAt = '';
     public string $grantNote = '';
 
-    // SMS units are paid for by the school, then issued only by a
-    // super-admin after the payment has been confirmed.
-    public bool $showSmsForm = false;
-    public ?int $smsSchoolId = null;
-    public string $smsUnits = '';
-    public string $smsAmountPaid = '';
-    public string $smsPaymentReference = '';
-    public string $smsNote = '';
 
     public function mount(): void
     {
@@ -256,40 +248,6 @@ class SchoolManager extends Component
 
         $this->showPlanForm = false;
         session()->flash('success', "Plan updated for \"{$school->name}\" and a paid invoice was recorded.");
-    }
-
-    public function openSmsForm(int $schoolId): void
-    {
-        $this->smsSchoolId = School::findOrFail($schoolId)->id;
-        $this->smsUnits = '';
-        $this->smsAmountPaid = '';
-        $this->smsPaymentReference = '';
-        $this->smsNote = '';
-        $this->resetValidation();
-        $this->showSmsForm = true;
-    }
-
-    public function allocateSmsCredits(): void
-    {
-        $this->validate([
-            'smsSchoolId' => ['required', 'exists:schools,id'],
-            'smsUnits' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'smsAmountPaid' => ['required', 'numeric', 'gt:0'],
-            'smsPaymentReference' => ['required', 'string', 'max:100'],
-            'smsNote' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $school = School::findOrFail($this->smsSchoolId);
-        $school->allocateSmsCredits(
-            (int) $this->smsUnits,
-            $this->smsAmountPaid === '' ? null : (float) $this->smsAmountPaid,
-            $this->smsPaymentReference ?: null,
-            auth()->id(),
-            $this->smsNote ?: 'SMS payment confirmed by super-admin',
-        );
-
-        $this->showSmsForm = false;
-        session()->flash('success', "{$this->smsUnits} SMS credits allocated to \"{$school->name}\" after payment confirmation.");
     }
 
     public function render()

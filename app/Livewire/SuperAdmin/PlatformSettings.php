@@ -113,23 +113,14 @@ class PlatformSettings extends Component
         abort_unless(auth()->user()?->hasRole('super-admin'), 403);
         try {
             $balance = $capacity->refreshProviderBalance();
-            session()->flash('success', "Olympus balance refreshed: {$balance} SMS units available at the provider.");
+            $fulfilled = $capacity->fulfilHeldOrders();
+            session()->flash('success', "Olympus balance refreshed: {$balance} SMS units available at the provider. {$fulfilled} held paid order(s) were automatically allocated.");
         } catch (\Throwable $exception) {
             report($exception);
             $this->addError('smsTestPhone', 'Could not refresh Olympus balance: ' . $exception->getMessage());
         }
     }
 
-    public function allocateHeldOrder(int $orderId, SmsCapacityService $capacity): void
-    {
-        abort_unless(auth()->user()?->hasRole('super-admin'), 403);
-        $order = SmsCreditOrder::withoutSchoolScope()->where('status', 'awaiting_allocation')->findOrFail($orderId);
-        if ($capacity->allocatePaidOrder($order)) {
-            session()->flash('success', "SMS order #{$order->id} was allocated to the school wallet.");
-        } else {
-            $this->addError('smsTestPhone', "SMS order #{$order->id} remains held: the provider does not have enough unallocated capacity.");
-        }
-    }
 
     /** Send one real delivery request using saved credentials or the token currently entered above. */
     public function testSms(OlympusSmsService $sms): void
