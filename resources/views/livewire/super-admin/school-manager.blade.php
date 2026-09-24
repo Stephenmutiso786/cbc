@@ -65,7 +65,6 @@
                         <td class="px-4 py-3 text-right">
                             <button wire:click="edit({{ $school->id }})" class="text-sm font-semibold text-green-700 hover:underline">Edit</button>
                             <button wire:click="openPlanForm({{ $school->id }})" class="ml-3 text-sm font-semibold text-blue-700 hover:underline">Plan</button>
-                            <button wire:click="openSmsForm({{ $school->id }})" class="ml-3 text-sm font-semibold text-amber-700 hover:underline">SMS credit</button>
                             <button wire:click="toggleLock({{ $school->id }})" wire:confirm="{{ $school->is_locked ? 'Unlock this school?' : 'Lock this school? Its school users will be unable to access the platform.' }}" class="ml-3 text-sm font-semibold {{ $school->is_locked ? 'text-green-700' : 'text-red-700' }} hover:underline">{{ $school->is_locked ? 'Unlock' : 'Lock' }}</button>
                             <button wire:click="toggleActive({{ $school->id }})" wire:confirm="Are you sure?" class="ml-3 text-sm font-semibold text-gray-500 hover:underline">
                                 {{ $school->is_active ? 'Deactivate' : 'Activate' }}
@@ -142,37 +141,6 @@
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" wire:click="$set('showForm', false)" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600">Cancel</button>
                         <button type="submit" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800">Save</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    @endif
-
-    @if ($showSmsForm)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="$set('showSmsForm', false)">
-            <div class="card w-full max-w-md space-y-4 p-6">
-                <h2 class="text-lg font-bold text-gray-800">Allocate paid SMS credits</h2>
-                <p class="text-sm text-gray-600">Confirm the school's payment first, then issue the SMS units. This creates a permanent allocation record; it does not use the school's parent-fee M-Pesa till.</p>
-
-                <form wire:submit="allocateSmsCredits" class="space-y-4">
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">SMS units to allocate</span>
-                        <input wire:model="smsUnits" type="number" min="1" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
-                        @error('smsUnits') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount paid (KSh)</span>
-                        <input wire:model="smsAmountPaid" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
-                        @error('smsAmountPaid') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Payment reference</span>
-                        <input wire:model="smsPaymentReference" placeholder="e.g. M-Pesa code or bank reference" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
-                        @error('smsPaymentReference') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Note</span>
-                        <input wire:model="smsNote" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
-                    </label>
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" wire:click="$set('showSmsForm', false)" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600">Cancel</button>
-                        <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Confirm &amp; allocate</button>
                     </div>
                 </form>
             </div>

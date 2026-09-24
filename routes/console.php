@@ -26,3 +26,20 @@ if (filter_var(env('GOOGLE_DRIVE_DAILY_BACKUP', true), FILTER_VALIDATE_BOOLEAN))
 
 Schedule::command('risk:predict')->dailyAt('01:15')->withoutOverlapping(120);
 Schedule::command('risk:train-model')->weeklyOn(0, '02:15')->withoutOverlapping(240);
+
+// A held school SMS order is fulfilled automatically once Olympus capacity is
+// available. This never credits an order whose M-Pesa callback has not first
+// confirmed payment.
+Artisan::command('sms:refresh-capacity', function (): void {
+    try {
+        $capacity = app(\App\Services\SmsCapacityService::class);
+        $balance = $capacity->refreshProviderBalance();
+        $fulfilled = $capacity->fulfilHeldOrders();
+        $this->info("Olympus balance {$balance}; automatically fulfilled {$fulfilled} held order(s).");
+    } catch (\Throwable $exception) {
+        report($exception);
+        $this->error('SMS capacity refresh failed: ' . $exception->getMessage());
+    }
+})->purpose('Refresh Olympus SMS capacity and fulfil eligible paid orders');
+
+Schedule::command('sms:refresh-capacity')->everyFifteenMinutes()->withoutOverlapping(10);
