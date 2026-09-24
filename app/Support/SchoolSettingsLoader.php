@@ -37,6 +37,15 @@ class SchoolSettingsLoader
                         config()->set('school.' . $key, $school->{$key});
                     }
                 }
+
+                // Schools created before settings assets were introduced keep
+                // their official branding on the schools record. Load it as a
+                // fallback first; a newer school_setting_assets value below
+                // deliberately overrides it. This keeps every existing school
+                // (including Kyandulu) visible in reports and PDFs.
+                if (is_string($school->logo_data) && str_starts_with($school->logo_data, 'data:image/')) {
+                    config()->set('school.logo_data', $school->logo_data);
+                }
             }
             $secrets = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'at_api_key', 'olympus_sms_api_token', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials', 'ml_service_api_key'];
             foreach (DB::table('school_settings')->where('school_id', $schoolId)->pluck('value', 'key') as $key => $value) {
