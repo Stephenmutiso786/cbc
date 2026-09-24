@@ -65,7 +65,7 @@
         <div class="summary"><div><span class="label">Subjects</span><span class="big">{{ $card['subject_count'] }}</span></div><div><span class="label">Total marks</span><span class="big">{{ rtrim(rtrim(number_format($card['total_obtained'], 2, '.', ''), '0'), '.') }} / {{ rtrim(rtrim(number_format($card['total_possible'], 2, '.', ''), '0'), '.') }}</span></div><div><span class="label">Mean</span><span class="big">{{ $card['overall_percentage'] }}%</span></div><div><span class="label">Overall grade</span><span class="big">{{ $card['overall_grade'] }}</span></div></div>
         <div class="remark"><span class="label">Official comment</span>Keep working consistently and use the teacher's feedback to strengthen the next competency.</div>
         <div class="signatures"><div class="signature">Class teacher signature and date</div><div class="signature">Headteacher signature and date</div></div>
-        @include('pdf.verification-footer')
+        @include('pdf.verification-footer', ['performanceGraph' => collect($card['subjects'])->map(fn ($subject) => ['label' => $subject['name'], 'value' => $subject['percentage']])->all()])
         <div class="footer">{{ config('school.name') }} | Official examination result | {{ now()->format('d M Y') }}</div>
     </section>
 @endforeach

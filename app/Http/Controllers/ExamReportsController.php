@@ -55,6 +55,7 @@ class ExamReportsController extends Controller
                         'name' => $subject['name'],
                         'rubric' => '-',
                         'points' => '-',
+                        'percentage' => 0,
                         'grade' => '-',
                         'remarks' => 'Did not sit',
                     ];
@@ -70,6 +71,7 @@ class ExamReportsController extends Controller
                     'name' => $subject['name'],
                     'rubric' => $rubric,
                     'points' => $this->rubricPoints($rubric),
+                    'percentage' => round($percentage, 1),
                     'grade' => $score['grade'] ?: $rubric,
                     'remarks' => $score['remarks'] ?: 'Keep working consistently.',
                 ];

@@ -250,7 +250,9 @@ class ExamManager extends Component
         abort_unless($this->canManageAllExams(), 403);
         $exam = Exam::findOrFail($examId);
         $groupIds = $exam->groupExamIds();
-        abort_if(Exam::whereIn('id', $groupIds)->whereNotNull('results_locked_at')->exists(), 422, 'Published or locked exams cannot be deleted. Keep the record for audit purposes.');
+        // A school administrator may correct an exam lifecycle mistake even
+        // after marks were entered, reviewed, or published. Exam results are
+        // dependent records and are removed by the database cascade.
         DB::transaction(fn () => Exam::whereIn('id', $groupIds)->delete());
         if ($this->selectedExam === $examId) {
             $this->selectedExam = null;

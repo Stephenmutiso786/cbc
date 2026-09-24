@@ -154,7 +154,7 @@ tr:nth-child(even) td{background:#fafafa;}
     @endforeach
 </div>
 
-@include('pdf.verification-footer')
+@include('pdf.verification-footer', ['performanceGraph' => collect($assessments)->map(fn ($data, $label) => ['label' => $label, 'value' => match (($data['overall'] instanceof \BackedEnum ? $data['overall']->value : $data['overall'])) { 'EE' => 100, 'ME' => 75, 'AE' => 50, default => 25 }])->values()->all()])
 
 <div class="footer">
     Generated on {{ now()->format('d M Y') }} &nbsp;|&nbsp; {{ config('school.name') }} School Management System
