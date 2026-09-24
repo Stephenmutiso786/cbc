@@ -15,8 +15,10 @@ use App\Models\SupportTicket;
 use App\Models\School;
 use App\Models\SmsCreditTransaction;
 use App\Models\SubscriptionPayment;
+use App\Models\SmsCreditOrder;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Services\SmsCapacityService;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Component;
 
@@ -51,12 +53,15 @@ class SuperAdminDashboard extends Component
         $urgentTickets = SupportTicket::whereIn('status', ['open', 'investigating'])->where('priority', 'urgent')->count();
         $noClassSchools = $schools->where('active_classes_count', 0)->where('is_active', true);
         $expiredSchools = $schools->filter(fn (School $school) => $school->package_id && $school->packageExpired());
+        $heldSmsOrders = SmsCreditOrder::withoutSchoolScope()->where('status', 'awaiting_allocation')->count();
+        $smsCapacity = app(SmsCapacityService::class)->summary();
 
         $alerts = collect();
         if ($urgentTickets) $alerts->push(['level' => 'danger', 'text' => "{$urgentTickets} urgent support ticket(s) need attention.", 'route' => 'admin.support.index']);
         if ($expiredSchools->isNotEmpty()) $alerts->push(['level' => 'warning', 'text' => $expiredSchools->count() . ' school(s) have an expired subscription.', 'route' => 'admin.schools.index']);
         if ($noClassSchools->isNotEmpty()) $alerts->push(['level' => 'warning', 'text' => $noClassSchools->count() . ' active school(s) have no active classes.', 'route' => 'admin.schools.index']);
         if ($schools->where('is_locked', true)->isNotEmpty()) $alerts->push(['level' => 'neutral', 'text' => $schools->where('is_locked', true)->count() . ' school(s) are manually locked.', 'route' => 'admin.schools.index']);
+        if ($heldSmsOrders) $alerts->push(['level' => 'danger', 'text' => "{$heldSmsOrders} paid SMS order(s) are held because provider capacity is insufficient.", 'route' => 'admin.platform-settings.index']);
 
         return view('livewire.super-admin.super-admin-dashboard', [
             'schools' => $schools->take(8),
@@ -68,6 +73,8 @@ class SuperAdminDashboard extends Component
             'pendingPayments' => SubscriptionPayment::whereIn('status', ['pending', 'initiated'])->count(),
             'verifiedSmsAllocations' => SmsCreditTransaction::where('type', 'topup')->whereNotNull('amount_paid')->whereNotNull('payment_reference')->count(),
             'smsUsedLast30Days' => $smsUsedLast30Days,
+            'heldSmsOrders' => $heldSmsOrders,
+            'smsCapacity' => $smsCapacity,
             'onlineSchools' => $schools->filter(fn (School $school) => $school->active_users_count > 0)->count(),
             'ingestedToday' => $ingestedToday,
             'auditLogs' => $auditLogs,

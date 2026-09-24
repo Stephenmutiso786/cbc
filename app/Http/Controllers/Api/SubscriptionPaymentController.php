@@ -9,6 +9,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\SmsCreditOrder;
 use App\Services\MpesaService;
 use App\Services\InvoiceService;
+use App\Services\SmsCapacityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -183,11 +184,11 @@ class SubscriptionPaymentController extends Controller
         if (! $order || $order->status !== 'pending') return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         if ((int) ($stkCallback['ResultCode'] ?? 1) !== 0) { $order->update(['status' => 'failed', 'failure_reason' => $stkCallback['ResultDesc'] ?? 'Payment was not completed.']); return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']); }
         $metadata = collect($stkCallback['CallbackMetadata']['Item'] ?? [])->pluck('Value', 'Name');
-        DB::transaction(function () use ($order, $metadata): void {
-            $order->update(['status' => 'confirmed', 'mpesa_receipt_number' => $metadata['MpesaReceiptNumber'] ?? null, 'confirmed_at' => now()]);
-            $school = School::findOrFail($order->school_id);
-            $school->allocateSmsCredits($order->units, (float) $order->amount, $order->mpesa_receipt_number, $order->initiated_by, 'SMS order paid through platform subscription M-Pesa');
-        });
+        $order->update([
+            'mpesa_receipt_number' => $metadata['MpesaReceiptNumber'] ?? null,
+            'confirmed_at' => now(),
+        ]);
+        app(SmsCapacityService::class)->allocatePaidOrder($order);
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 }

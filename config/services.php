@@ -39,6 +39,7 @@ return [
         'shortcode'       => env('PLATFORM_MPESA_SHORTCODE'),
         'passkey'         => env('PLATFORM_MPESA_PASSKEY'),
         'callback_url'    => env('PLATFORM_MPESA_CALLBACK_URL'),
+        'sms_unit_price'  => env('PLATFORM_SMS_UNIT_PRICE', 1),
     ],
 
     'olympus_sms' => [
