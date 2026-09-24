@@ -39,8 +39,17 @@ final class RolePermissionSynchronizer
             $effectivePermissions = is_array($override) ? $override : $permissions;
 
             DB::table('role_has_permissions')->where('role_id', $role->id)->delete();
+            // Overrides persist permission primary keys, while the canonical
+            // matrix uses permission names. `$permissionIds` is keyed by
+            // name, so reversing it for a numeric override returns the name
+            // and attempts to insert text into permission_id on PostgreSQL.
+            // Keep a numeric id as an id after confirming it is in the
+            // current catalog; resolve a name through the name-to-id map.
+            $knownPermissionIds = $permissionIds->flip();
             $rows = collect($effectivePermissions)
-                ->map(fn ($permission) => is_numeric($permission) ? $permissionIds->flip()->get((int) $permission) : $permissionIds->get($permission))
+                ->map(fn ($permission) => is_numeric($permission)
+                    ? ($knownPermissionIds->has((int) $permission) ? (int) $permission : null)
+                    : $permissionIds->get($permission))
                 ->filter()
                 ->map(fn ($permissionId) => [
                     'permission_id' => $permissionId,
