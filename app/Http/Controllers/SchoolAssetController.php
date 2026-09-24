@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\School;
-use App\Services\DataTransferPolicy;
 use App\Support\SchoolSettingsLoader;
 use Symfony\Component\HttpFoundation\Response;
 
 class SchoolAssetController extends Controller
 {
-    public function logo(int $school, DataTransferPolicy $transferPolicy): Response
+    public function logo(int $school): Response
     {
         // This endpoint is intentionally public because a browser/print engine
         // requests the image separately from the authenticated report page.
@@ -29,7 +28,10 @@ class SchoolAssetController extends Controller
 
         $contents = base64_decode($encoded, true);
         abort_unless(is_string($contents), 404);
-        $transferPolicy->assertFileSize(strlen($contents), 'School logo');
+        // The upload path validates and compresses new images. Do not reject a
+        // legacy school logo while serving it: schools created before that
+        // compression policy may legitimately have a larger stored image and
+        // an HTTP error here turns a valid report header into a broken image.
 
         return response($contents, 200, [
             'Content-Type' => $mimeType,

@@ -110,6 +110,9 @@ class AdminSettingsController extends Controller
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
             'official_signature' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
             'official_stamp' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
+            'remove_logo' => ['sometimes', 'boolean'],
+            'remove_official_signature' => ['sometimes', 'boolean'],
+            'remove_official_stamp' => ['sometimes', 'boolean'],
             'maintenance_mode' => ['sometimes', 'boolean'],
             'maintenance_message' => ['sometimes', 'nullable', 'string', 'max:500'],
             'mpesa_env' => ['required', 'in:sandbox,production'],
@@ -179,6 +182,18 @@ class AdminSettingsController extends Controller
             }
         }
 
+        $assetRemovals = [];
+        foreach ([
+            'remove_logo' => 'logo_data',
+            'remove_official_signature' => 'official_signature_data',
+            'remove_official_stamp' => 'official_stamp_data',
+        ] as $requestKey => $assetKey) {
+            if ($request->boolean($requestKey) && ! array_key_exists($assetKey, $assetData)) {
+                $assetRemovals[] = $assetKey;
+            }
+            unset($data[$requestKey]);
+        }
+
         // maintenance_mode / maintenance_message affect the whole platform
         // (including the shared, pre-login page), not one school — they're
         // stored separately and only super-admin may change them. A
@@ -211,7 +226,7 @@ class AdminSettingsController extends Controller
 
         $secretKeys = ['mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'firebase_server_key', 'kemis_api_key', 'google_drive_credentials', 'ml_service_api_key'];
         $globalSecretKeys = ['at_api_key', 'olympus_sms_api_token', 'platform_mpesa_consumer_key', 'platform_mpesa_consumer_secret', 'platform_mpesa_passkey'];
-        DB::transaction(function () use ($data, $secretKeys, $globalSecretKeys, $assetData, $globalMaintenance): void {
+        DB::transaction(function () use ($data, $secretKeys, $globalSecretKeys, $assetData, $assetRemovals, $globalMaintenance): void {
             foreach ($globalMaintenance as $key => $value) {
                 if (in_array($key, $globalSecretKeys, true) && is_string($value) && $value !== '') {
                     $value = 'enc:' . Crypt::encryptString($value);
@@ -246,6 +261,14 @@ class AdminSettingsController extends Controller
                 SchoolSettingAsset::updateOrCreate(['key' => $key], ['data' => $value]);
                 config()->set('school.' . $key, $value);
             }
+            foreach ($assetRemovals as $key) {
+                SchoolSettingAsset::where('key', $key)->delete();
+                // A few existing schools still have these assets in the old
+                // short settings table. Remove both representations so a
+                // deleted image can never reappear on a document.
+                SchoolSetting::where('key', $key)->delete();
+                config()->set('school.' . $key, null);
+            }
 
             // Keep Manage Schools, billing, platform reports and this
             // school's Settings page on the same identity. Previously a
@@ -266,6 +289,9 @@ class AdminSettingsController extends Controller
                 // authenticated settings request and for older school rows.
                 if (isset($assetData['logo_data'])) {
                     $schoolIdentity['logo_data'] = $assetData['logo_data'];
+                }
+                if (in_array('logo_data', $assetRemovals, true)) {
+                    $schoolIdentity['logo_data'] = null;
                 }
 
                 School::whereKey($schoolId)->update($schoolIdentity);
