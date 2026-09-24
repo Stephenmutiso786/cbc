@@ -102,4 +102,29 @@
             </tbody>
         </table>
     </div>
+
+    <div class="card overflow-x-auto p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div><h2 class="font-bold text-gray-800">Subscription invoices</h2><p class="mt-1 text-sm text-gray-500">Your paid subscription receipts and any platform invoices still due are kept with this subscription.</p></div>
+            <div class="rounded-lg {{ $dueInvoiceTotal > 0 ? 'bg-amber-50 text-amber-900' : 'bg-green-50 text-green-800' }} px-3 py-2 text-sm">Amount currently due: <strong>KSh {{ number_format($dueInvoiceTotal, 2) }}</strong></div>
+        </div>
+        <table class="mt-4 min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500"><tr><th class="py-2">Invoice</th><th class="py-2">Issued</th><th class="py-2">Amount</th><th class="py-2">Due date</th><th class="py-2">Status</th><th class="py-2 text-right">Document</th></tr></thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($subscriptionInvoices as $invoice)
+                    <tr>
+                        <td class="py-3"><p class="font-semibold text-gray-800">{{ $invoice->invoice_number }}</p><p class="text-xs text-gray-500">{{ $invoice->title }}</p></td>
+                        <td class="py-3">{{ $invoice->created_at->format('d M Y') }}</td>
+                        <td class="py-3">{{ $invoice->currency }} {{ number_format($invoice->total_amount, 2) }}</td>
+                        <td class="py-3 {{ $invoice->due_date?->isPast() && $invoice->status !== 'paid' ? 'font-semibold text-red-700' : '' }}">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</td>
+                        <td class="py-3"><span class="rounded-full px-2 py-1 text-xs font-semibold {{ $invoice->status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800' }}">{{ ucfirst($invoice->status) }}</span></td>
+                        <td class="py-3 text-right whitespace-nowrap"><a href="{{ route('billing.invoices.preview', $invoice) }}" target="_blank" class="font-semibold text-indigo-700 hover:underline">Preview</a><a href="{{ route('billing.invoices.download', $invoice) }}" class="ml-3 font-semibold text-gray-700 hover:underline">Download</a></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="py-6 text-center text-gray-500">No subscription invoices yet. A paid invoice is attached here immediately after M-Pesa confirms your subscription.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        <a href="{{ route('billing.invoices') }}" class="mt-4 inline-block text-sm font-semibold text-indigo-700 hover:underline">Open full invoice history →</a>
+    </div>
 </div>
