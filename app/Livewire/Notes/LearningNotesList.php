@@ -50,8 +50,17 @@ class LearningNotesList extends Component
 
     public function upload(): void
     {
-        abort_unless(Auth::user()->can('upload notes'), 403);
+        abort_unless(Auth::user()->can('upload notes') || Auth::user()->hasRole('school-admin'), 403);
         $this->validate();
+
+        if (in_array($this->resourceType, ['link', 'video'], true) && $this->externalUrl === '') {
+            $this->addError('externalUrl', 'Provide the resource URL.');
+            return;
+        }
+        if (! in_array($this->resourceType, ['link', 'video'], true) && ! $this->uploadedFile) {
+            $this->addError('uploadedFile', 'Choose a file to upload.');
+            return;
+        }
 
         $filePath = null;
         if ($this->uploadedFile) {
@@ -59,7 +68,7 @@ class LearningNotesList extends Component
         }
 
         LearningNote::create([
-            'teacher_id'       => Auth::user()->staffMember?->id,
+            'teacher_id'       => Auth::user()->resolvedStaffMember()?->id,
             'learning_area_id' => $this->learningAreaId,
             'grade_level'      => $this->grade,
             'title'            => $this->title,

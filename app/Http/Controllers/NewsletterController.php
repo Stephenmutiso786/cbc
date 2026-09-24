@@ -25,6 +25,8 @@ class NewsletterController extends Controller
     }
     public function destroy(Newsletter $newsletter): RedirectResponse { $newsletter->delete(); return redirect()->route('admin.newsletters.index')->with('success', 'Newsletter deleted.'); }
     public function print(Newsletter $newsletter): View { return view('admin.newsletters.print', compact('newsletter')); }
+    public function publish(Newsletter $newsletter): RedirectResponse { $newsletter->update(['is_published' => true, 'published_at' => now(), 'published_by' => auth()->id()]); return back()->with('success', 'Newsletter published to teachers, parents and learners.'); }
+    public function unpublish(Newsletter $newsletter): RedirectResponse { $newsletter->update(['is_published' => false]); return back()->with('success', 'Newsletter removed from portal audiences.'); }
 
     private function payload(Request $request): array
     {
