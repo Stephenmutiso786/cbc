@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Package;
 use App\Models\School;
 use App\Models\SubscriptionPayment;
+use App\Models\SmsCreditOrder;
 use App\Services\MpesaService;
 use App\Services\InvoiceService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,31 @@ use Illuminate\Support\Facades\Log;
 
 class SubscriptionPaymentController extends Controller
 {
+    public function smsStkPush(Request $request): JsonResponse
+    {
+        $data = $request->validate(['phone' => ['required','string'], 'units' => ['required','integer','min:10','max:100000']]);
+        $school = $request->user()->school;
+        abort_unless($school, 403);
+        $unitPrice = (float) config('services.platform_mpesa.sms_unit_price', 1);
+        abort_unless($unitPrice > 0, 422, 'SMS pricing is not configured by the platform administrator.');
+        $mpesa = MpesaService::platform();
+        if (! $mpesa->isConfigured()) return response()->json(['success' => false, 'message' => 'Subscription M-Pesa is not configured.'], 503);
+        $order = SmsCreditOrder::create(['school_id'=>$school->id, 'units'=>(int)$data['units'], 'amount'=>round($unitPrice * $data['units'], 2), 'phone'=>$data['phone'], 'status'=>'pending', 'initiated_by'=>$request->user()->id]);
+        try {
+            $result = $mpesa->stkPush($data['phone'], (float)$order->amount, 'SMS'.$school->id.'-'.$order->id, "SMS credits — {$school->name}");
+            $order->update(['checkout_request_id'=>$result['CheckoutRequestID'] ?? null, 'merchant_request_id'=>$result['MerchantRequestID'] ?? null]);
+            if (! $order->checkout_request_id) { $order->update(['status'=>'failed','failure_reason'=>$result['errorMessage'] ?? 'No checkout ID returned']); return response()->json(['success'=>false,'message'=>$order->failure_reason], 500); }
+            return response()->json(['success'=>true,'order_id'=>$order->id,'amount'=>(float)$order->amount,'message'=>'STK Push sent through ElimuHub subscription M-Pesa.']);
+        } catch (\Throwable $exception) { $order->update(['status'=>'failed','failure_reason'=>$exception->getMessage()]); return response()->json(['success'=>false,'message'=>'Payment initiation failed.'],500); }
+    }
+
+    public function smsStatus(Request $request, int $orderId): JsonResponse
+    {
+        $order = SmsCreditOrder::withoutSchoolScope()->findOrFail($orderId);
+        abort_unless($request->user()->school_id === $order->school_id, 403);
+        return response()->json(['status'=>$order->status,'failure_reason'=>$order->failure_reason]);
+    }
+
     /** School admin initiates payment for their chosen plan. */
     public function stkPush(Request $request): JsonResponse
     {
@@ -100,10 +126,7 @@ class SubscriptionPaymentController extends Controller
         $checkoutRequestId = $stkCallback['CheckoutRequestID'] ?? null;
         $payment = SubscriptionPayment::withoutSchoolScope()->where('checkout_request_id', $checkoutRequestId)->first();
 
-        if (! $payment) {
-            Log::warning('Subscription callback matched no pending payment', ['checkout_request_id' => $checkoutRequestId]);
-            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
-        }
+        if (! $payment) return $this->processSmsOrderCallback($checkoutRequestId, $stkCallback);
 
         if ($payment->status !== 'pending') {
             // Already processed (Safaricom can retry callbacks).
@@ -150,6 +173,21 @@ class SubscriptionPaymentController extends Controller
             }
         });
 
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+    }
+
+    /** SMS orders use the same platform subscription M-Pesa till, never the tenant fee till. */
+    private function processSmsOrderCallback(?string $checkoutRequestId, array $stkCallback): JsonResponse
+    {
+        $order = SmsCreditOrder::withoutSchoolScope()->where('checkout_request_id', $checkoutRequestId)->first();
+        if (! $order || $order->status !== 'pending') return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+        if ((int) ($stkCallback['ResultCode'] ?? 1) !== 0) { $order->update(['status' => 'failed', 'failure_reason' => $stkCallback['ResultDesc'] ?? 'Payment was not completed.']); return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']); }
+        $metadata = collect($stkCallback['CallbackMetadata']['Item'] ?? [])->pluck('Value', 'Name');
+        DB::transaction(function () use ($order, $metadata): void {
+            $order->update(['status' => 'confirmed', 'mpesa_receipt_number' => $metadata['MpesaReceiptNumber'] ?? null, 'confirmed_at' => now()]);
+            $school = School::findOrFail($order->school_id);
+            $school->allocateSmsCredits($order->units, (float) $order->amount, $order->mpesa_receipt_number, $order->initiated_by, 'SMS order paid through platform subscription M-Pesa');
+        });
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 }

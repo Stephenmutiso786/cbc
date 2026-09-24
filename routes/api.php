@@ -27,6 +27,8 @@ Route::prefix('subscription')->group(function () {
     Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/stk-push', [SubscriptionPaymentController::class, 'stkPush']);
         Route::get('/status/{paymentId}', [SubscriptionPaymentController::class, 'status']);
+        Route::post('/sms-stk-push', [SubscriptionPaymentController::class, 'smsStkPush']);
+        Route::get('/sms-status/{orderId}', [SubscriptionPaymentController::class, 'smsStatus']);
     });
 });
 
