@@ -128,6 +128,15 @@ class UserAccountManager extends Component
             }
             $user->status ??= 'active';
             $user->email_verified_at ??= now();
+            // The users table requires a password at insert time. Previously
+            // this was assigned only after the first save, so platform-only
+            // IT-team accounts failed with a database 500 before roles could
+            // be attached.
+            if (! $this->editingId) {
+                $plainPassword = (string) $data['password'];
+                $user->password = Hash::make($plainPassword);
+                $user->must_change_password = true;
+            }
             $user->save();
             $user->syncRoles([$data['role']]);
 

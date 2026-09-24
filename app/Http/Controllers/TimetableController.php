@@ -102,7 +102,10 @@ class TimetableController extends Controller
         $user = $request->user();
         abort_unless($user?->can('view timetable'), 403);
 
-        $staff = $user->staffMember;
+        // A historical teacher login may have been created independently of
+        // its staff profile. Resolve that same-school link before looking up
+        // generated slots, otherwise a valid timetable looks empty.
+        $staff = $user->resolvedStaffMember();
         abort_unless($staff, 403, 'This account does not have a linked staff record.');
 
         $slots = TimetableSlot::with(['schoolClass', 'learningArea'])
