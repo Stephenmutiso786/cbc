@@ -18,7 +18,12 @@ use App\Http\Controllers\InvoiceDocumentController;
 Route::get('/', fn() => redirect()->route('login'));
 Route::get('/learning/miyagi', fn() => redirect()->away(config('services.miyagi_labs.url')))->name('learning.miyagi');
 Route::get('/maintenance/login', [AuthenticatedSessionController::class, 'maintenanceLogin'])->name('maintenance.login');
-Route::get('/school-logo', [SchoolAssetController::class, 'logo'])->name('school.logo');
+// A report card is rendered in the browser as a separate request.  That image
+// request must name its school explicitly: it does not have the Livewire/page
+// request's tenant context available to the settings middleware.
+Route::get('/school-logo/{school}', [SchoolAssetController::class, 'logo'])
+    ->whereNumber('school')
+    ->name('school.logo');
 Route::view('/verify', 'verify')->name('verify');
 Route::view('/terms', 'legal.terms')->name('legal.terms');
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');

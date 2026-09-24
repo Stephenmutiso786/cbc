@@ -27,7 +27,7 @@ class RequireLegalAcceptance
     private function isExempt(Request $request): bool
     {
         return $request->is('up')
-            || $request->is('school-logo')
+            || $request->is('school-logo', 'school-logo/*')
             || $request->is('files/*')
             || $request->routeIs('login', 'logout', 'legal.*', 'password.*', 'forgot-password', 'maintenance.login', 'impersonate.stop.global');
     }

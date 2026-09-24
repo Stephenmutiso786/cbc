@@ -33,21 +33,18 @@
         .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 45px; margin-top: 35px; }
         .signature { padding-top: 5px; border-top: 1px solid #374151; color: #5b6472; font-size: 9px; }
         .verification-footer { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; padding-top: 6px; border-top: 1px solid #d1d5db; text-align: center; }
-        .verification-qr { width: 64px; height: 64px; line-height: 0; }
-        .verification-qr svg { width: 64px; height: 64px; }
         .verification-copy { color: #166534; font-size: 8px; }
         .verification-copy span { color: #6b7280; font-size: 7px; }
         .verification-stamp { width: 52px; height: 52px; object-fit: contain; }
         .footer { position: absolute; bottom: 0; width: 100%; padding-top: 6px; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 8px; text-align: center; }
         @media print { .toolbar { display: none; } }
         .verification-footer { position: absolute; bottom: 10mm; left: 0; right: 0; text-align: center; }
-        .verification-qr { width: 64px; height: 64px; margin: 0 auto; line-height: 0; }
-        .verification-qr svg { width: 64px; height: 64px; }
         .verification-stamp { position: absolute; right: 20mm; top: 0; width: 52px; height: 52px; object-fit: contain; }
     </style>
 </head>
 <body>
-@php($logoUrl = is_string(config('school.logo_data')) && str_starts_with(config('school.logo_data'), 'data:image/') ? route('school.logo') : null)
+@php($logoData = (string) config('school.logo_data', ''))
+@php($logoUrl = str_starts_with($logoData, 'data:image/') ? route('school.logo', ['school' => $exam->school_id, 'v' => substr(sha1($logoData), 0, 16)]) : null)
 <div class="toolbar"><button type="button" onclick="window.print()">Print all report cards</button></div>
 <script>window.addEventListener('load', function () { window.print(); });</script>
 @foreach($cards as $card)
