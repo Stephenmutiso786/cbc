@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
             if (! \Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
                 return;
             }
-            foreach (['env', 'consumer_key', 'consumer_secret', 'shortcode', 'passkey', 'callback_url'] as $field) {
+            foreach (['env', 'consumer_key', 'consumer_secret', 'shortcode', 'passkey', 'callback_url', 'sms_unit_price'] as $field) {
                 if ($value = SystemSetting::get('platform_mpesa_' . $field)) {
                     config()->set('services.platform_mpesa.' . $field, $value);
                 }
