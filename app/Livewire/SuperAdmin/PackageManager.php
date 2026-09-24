@@ -28,6 +28,7 @@ class PackageManager extends Component
         'timetable'     => 'Timetabling',
         'id_cards'      => 'ID Cards & Certificates',
         'predictive_analytics' => 'AI Risk Prediction',
+        'newsletters' => 'School Newsletters',
     ];
 
     public function mount(): void

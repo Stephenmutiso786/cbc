@@ -6,7 +6,7 @@ final class RolePermissions
 {
     public static function all(): array
     {
-        return ['view students','create students','edit students','delete students','view assessments','create assessments','edit assessments','delete assessments','view report cards','generate report cards','view fees','manage fees','record payments','view finance reports','export finance','view inventory','manage inventory','issue items','receive items','view staff','manage staff','manage payroll','view timetable','manage timetable','view notes','upload notes','manage curriculum','publish notes','view exams','manage exams','enter marks','view results','review marks','publish results','view attendance','mark attendance','send notifications','view notifications','sync kemis','export kemis','view analytics','export reports','manage system settings','manage users','manage roles','manage promotions','submit support tickets','manage support tickets','run diagnostics','manage legal policies'];
+        return ['view students','create students','edit students','delete students','view assessments','create assessments','edit assessments','delete assessments','view report cards','generate report cards','view fees','manage fees','record payments','view finance reports','export finance','view inventory','manage inventory','issue items','receive items','view staff','manage staff','manage payroll','view timetable','manage timetable','view notes','upload notes','manage curriculum','publish notes','view exams','manage exams','enter marks','view results','review marks','publish results','view attendance','mark attendance','send notifications','view notifications','sync kemis','export kemis','view analytics','export reports','manage newsletters','manage system settings','manage users','manage roles','manage promotions','submit support tickets','manage support tickets','run diagnostics','manage legal policies'];
     }
 
     public static function byRole(): array
@@ -23,8 +23,8 @@ final class RolePermissions
             // operations remain exclusive to the super-admin.
             'principal' => array_diff($all, $superAdminOnly),
             'headteacher' => array_diff($all, $superAdminOnly),
-            'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','submit support tickets'],
-            'deputy' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','submit support tickets'],
+            'deputy-headteacher' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','manage newsletters','submit support tickets'],
+            'deputy' => ['view students','view assessments','view timetable','manage timetable','view notes','view exams','review marks','manage promotions','view analytics','view attendance','mark attendance','manage newsletters','submit support tickets'],
             'hod' => ['view students','view assessments','create assessments','edit assessments','view notes','upload notes','publish notes','manage curriculum','view timetable','view exams','manage exams','enter marks','view results','review marks','view report cards','submit support tickets'],
             'class-teacher' => ['view students','view assessments','create assessments','edit assessments','view notes','upload notes','view timetable','enter marks','view attendance','mark attendance','view results','view report cards','submit support tickets'],
             'teacher' => self::teacherPermissions(),

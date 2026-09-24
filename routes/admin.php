@@ -46,6 +46,7 @@ use App\Livewire\Admin\IdCardGenerator;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\RiskPredictionController;
 use App\Http\Controllers\PastExamDocumentController;
+use App\Http\Controllers\NewsletterController;
 
 // The enclosing admin route group already restricts this landing page to
 // leadership roles. Do not make login/consent completion depend on an
@@ -112,6 +113,15 @@ Route::get('/at-risk-learners', [RiskPredictionController::class, 'index'])->mid
 Route::get('/at-risk-learners/{prediction}', [RiskPredictionController::class, 'show'])->middleware(['permission:view analytics', 'feature:predictive_analytics'])->name('risk.show');
 Route::get('/reports/student/{learner}', [AnalyticsController::class, 'student'])->middleware('permission:view analytics')->name('reports.student');
 Route::get('/reports/export', [AnalyticsController::class, 'export'])->middleware('permission:export reports')->name('reports.export');
+Route::middleware(['feature:newsletters', 'permission:manage newsletters', 'role:school-admin|headteacher|principal|deputy-headteacher|deputy'])->group(function () {
+    Route::get('/newsletters', [NewsletterController::class, 'index'])->name('newsletters.index');
+    Route::get('/newsletters/create', [NewsletterController::class, 'create'])->name('newsletters.create');
+    Route::post('/newsletters', [NewsletterController::class, 'store'])->name('newsletters.store');
+    Route::get('/newsletters/{newsletter}/edit', [NewsletterController::class, 'edit'])->name('newsletters.edit');
+    Route::put('/newsletters/{newsletter}', [NewsletterController::class, 'update'])->name('newsletters.update');
+    Route::delete('/newsletters/{newsletter}', [NewsletterController::class, 'destroy'])->name('newsletters.destroy');
+    Route::get('/newsletters/{newsletter}/print', [NewsletterController::class, 'print'])->name('newsletters.print');
+});
 Route::get('/drive-store', [DriveStoreController::class, 'index'])->middleware('permission:view report cards')->name('drive-store.index');
 Route::post('/drive-store/sync', [DriveStoreController::class, 'syncRecords'])->middleware('permission:manage system settings')->name('drive-store.sync');
 Route::post('/drive-store/import-records', [DriveStoreController::class, 'importRecords'])->middleware('permission:create students')->name('drive-store.import-records');
