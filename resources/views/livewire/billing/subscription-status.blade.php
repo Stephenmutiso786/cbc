@@ -4,6 +4,13 @@
         <p class="text-sm text-gray-500">{{ $school->name }}</p>
     </div>
 
+    <div class="card p-5 space-y-4">
+        <div><h2 class="font-bold text-gray-800">Buy SMS credits</h2><p class="mt-1 text-sm text-gray-500">Payments use ElimuHub’s subscription M-Pesa account, never your school’s parent-fee paybill. Credits activate only after M-Pesa confirms payment.</p></div>
+        <div class="flex flex-wrap items-end gap-4"><label><span class="text-xs font-semibold uppercase text-gray-500">SMS units</span><input wire:model="smsUnits" type="number" min="10" class="mt-1 block w-40 rounded border px-3 py-2"></label><div class="text-sm text-gray-700">Price: <strong>KSh {{ number_format($smsUnitPrice, 2) }}</strong> per SMS · Total: <strong>KSh {{ number_format($smsUnitPrice * $smsUnits, 2) }}</strong></div><button wire:click="buySmsCredits" class="rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white">Pay for SMS credits</button></div>
+        @if($pendingSmsStatus === 'pending')<div class="rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">SMS order is awaiting M-Pesa confirmation. <button wire:click="checkSmsStatus" class="ml-2 font-semibold underline">Check status</button></div>@elseif($pendingSmsStatus === 'confirmed')<div class="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">SMS payment confirmed and credits added to this school wallet.</div>@elseif($pendingSmsStatus === 'failed')<div class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">SMS payment did not complete.</div>@endif
+        <div class="text-sm">Current SMS wallet: <strong>{{ number_format($school->sms_credits) }} credits</strong></div>
+    </div>
+
     <div class="card p-5 {{ $school->isOnActiveSubscription() ? 'border-green-200 bg-green-50' : 'border-red-300 bg-red-50' }}">
         <p class="font-semibold {{ $school->isOnActiveSubscription() ? 'text-green-800' : 'text-red-800' }}">
             {{ $school->subscriptionStatusLabel() }}
