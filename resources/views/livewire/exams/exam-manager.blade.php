@@ -5,8 +5,16 @@
     .sticky.right-0.flex > a:hover,
     .sticky.right-0.flex > button:hover { background:#f3f4f6; }
     .sticky.right-0.flex > button:disabled { cursor:not-allowed; opacity:.5; }
+    /* The exam register is the landing screen only. Keep each workflow
+       screen focused after a teacher chooses a subject or a reviewer opens
+       their queue. Attribute selectors avoid coupling this behaviour to
+       Tailwind's escaped utility-class names. */
+    .exam-screens:not(.show-exam-register) > [class~="mb-6"][class~="justify-between"],
+    .exam-screens:not(.show-exam-register) > [class~="mb-4"][class~="border-green-200"],
+    .exam-screens:not(.show-exam-register) > [class~="mb-4"][class~="border-amber-200"],
+    .exam-screens:not(.show-exam-register) > [class~="overflow-x-auto"][class~="shadow-sm"] { display: none; }
 </style>
-<div>
+<div @class(['exam-screens', 'show-exam-register' => $tab === 'exams'])>
     <div id="marks-grading-bands" data-bands='@json($examScaleBands)'></div>
     @if($tab === 'subject-select' && $selectedExam)<div class="mt-5 rounded-xl bg-white p-5 shadow-sm"><div class="mb-4 flex justify-between"><div><h3 class="font-bold">Select subject for marks entry</h3><p class="text-sm text-gray-500">Choose one subject from this combined exam.</p></div><button wire:click="$set('tab', 'exams')" class="text-sm text-green-700">Back to exams</button></div><div class="grid gap-3 sm:grid-cols-2">@foreach($markSubjectOptions as $subject)<button wire:click="chooseMarkSubject({{ $subject['id'] }})" @disabled(in_array($subject['status'], ['submitted', 'approved'], true)) class="flex items-center justify-between rounded-lg border p-4 text-left hover:border-green-600 disabled:cursor-not-allowed disabled:opacity-50"><span class="font-semibold">{{ $subject['name'] }}</span><span class="text-xs text-gray-500">{{ ucfirst($subject['status']) }}{{ in_array($subject['status'], ['submitted', 'approved'], true) ? ' - locked' : ' - enter marks' }}</span></button>@endforeach</div></div>@endif
     @if(session('success')) <div class="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div> @endif
