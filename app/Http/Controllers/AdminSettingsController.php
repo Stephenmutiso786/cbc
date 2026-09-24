@@ -252,14 +252,23 @@ class AdminSettingsController extends Controller
             // school-admin could change Settings while the central schools
             // record still displayed the old/default name.
             if (($schoolId = auth()->user()?->school_id) !== null) {
-                School::whereKey($schoolId)->update([
+                $schoolIdentity = [
                     'name' => $data['name'],
                     'type' => $data['type'],
                     'motto' => $data['motto'],
                     'address' => $data['address'],
                     'phone' => $data['phone'],
                     'email' => $data['email'],
-                ]);
+                ];
+
+                // Keep the canonical school record in sync as well. It is a
+                // durable fallback for reports generated outside an
+                // authenticated settings request and for older school rows.
+                if (isset($assetData['logo_data'])) {
+                    $schoolIdentity['logo_data'] = $assetData['logo_data'];
+                }
+
+                School::whereKey($schoolId)->update($schoolIdentity);
             }
         });
 
