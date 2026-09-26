@@ -14,10 +14,11 @@ final class RolePermissions
         $all = self::all();
         $superAdminOnly = ['manage roles', 'run diagnostics', 'manage legal policies', 'manage support tickets'];
         return [
-            'super-admin' => $all,
+            // A Super Admin manages the support queue; it is never a ticket requester.
+            'super-admin' => array_values(array_diff($all, ['submit support tickets'])),
             // This role is platform-only. The User Accounts screen only lets
             // a super-admin create it, and it has no school administration.
-            'it-team' => ['manage support tickets', 'submit support tickets', 'run diagnostics'],
+            'it-team' => ['manage support tickets', 'run diagnostics'],
             'school-admin' => array_diff($all, $superAdminOnly),
             // School leadership controls every school-level module. Platform
             // operations remain exclusive to the super-admin.

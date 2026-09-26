@@ -26,6 +26,10 @@ class SupportTicketCenter extends Component
 
     public function submit(): void
     {
+        // The platform support queue is for schools and portal users. A
+        // handler can diagnose tickets but must not create a ticket for
+        // themselves in the same queue.
+        abort_if($this->isHandler(), 403, 'Super Admin and IT Team accounts cannot submit support tickets.');
         abort_unless(auth()->user()->can('submit support tickets'), 403);
         $this->validate([
             'subject' => ['required', 'string', 'max:180'],

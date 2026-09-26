@@ -11,5 +11,16 @@ use Illuminate\Queue\SerializesModels;
 class TrainRiskModel implements ShouldQueue {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     public int $tries = 1; public int $timeout = 900;
-    public function handle(RiskPredictionService $risk): void { $samples = []; foreach (School::with('package')->get() as $school) if ($school->hasFeature('predictive_analytics')) { SchoolSettingsLoader::for($school->id); $samples = [...$samples, ...$risk->trainSamples($school)]; } $risk->train($samples); }
+    public function handle(RiskPredictionService $risk): void
+    {
+        // The shared model learns from anonymised historical measurements from
+        // every active school. Feature access controls who can view predictions;
+        // it must not silently discard a school's legitimate historical data.
+        $samples = [];
+        foreach (School::where('is_active', true)->get() as $school) {
+            SchoolSettingsLoader::for($school->id);
+            $samples = [...$samples, ...$risk->trainSamples($school)];
+        }
+        $risk->train($samples);
+    }
 }

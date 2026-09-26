@@ -219,6 +219,32 @@ class UserAccountManager extends Component
         $this->notice = "{$user->name} is now {$status}.";
     }
 
+    /** Permanently delete a non-protected account after the operator archives it. */
+    public function delete(int $id): void
+    {
+        abort_unless(auth()->user()->can('manage users'), 403);
+        $user = User::with(['roles', 'learner', 'staffMember', 'guardian'])->findOrFail($id);
+        $this->guardTarget($user);
+
+        if ((int) $user->id === (int) auth()->id()) {
+            $this->addError('bulkAction', 'You cannot delete the account you are currently using.');
+            return;
+        }
+        if (($user->status ?? 'active') !== 'inactive') {
+            $this->addError('bulkAction', 'Archive this account first. Deletion is allowed only for inactive accounts.');
+            return;
+        }
+
+        DB::transaction(function () use ($user): void {
+            Learner::withoutSchoolScope()->where('user_id', $user->id)->update(['user_id' => null]);
+            \App\Models\StaffMember::withoutSchoolScope()->where('user_id', $user->id)->update(['user_id' => null]);
+            \App\Models\Guardian::withoutSchoolScope()->where('user_id', $user->id)->update(['user_id' => null]);
+            $user->syncRoles([]);
+            $user->delete();
+        });
+        $this->notice = "{$user->name}'s inactive account was permanently deleted.";
+    }
+
     public function applyBulkAction(): void
     {
         abort_unless(auth()->user()->can('manage users'), 403);

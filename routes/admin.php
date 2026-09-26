@@ -60,7 +60,7 @@ Route::get('/platform-settings', PlatformSettings::class)->middleware('role:supe
 Route::get('/sms-control', SmsControlCenter::class)->middleware('role:super-admin')->name('sms-control.index');
 // School administrators can submit and track their own tickets. Only the
 // super-admin receives the management permission and can see every ticket.
-Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
+Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets|manage support tickets')->name('support.index');
 Route::get('/diagnostics', DiagnosticCenter::class)->middleware('role:super-admin')->name('diagnostics.index');
 Route::get('/legal-policies', LegalPolicyManager::class)->middleware('role:super-admin')->name('legal-policies.index');
 Route::get('/schools', SchoolManager::class)->middleware('role:super-admin')->name('schools.index');

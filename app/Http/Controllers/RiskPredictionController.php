@@ -12,7 +12,21 @@ use Illuminate\Support\Facades\Mail;
 
 class RiskPredictionController extends Controller {
     public function index(Request $request) { $query = LearnerRiskPrediction::with(['learner.schoolClass'])->orderByDesc('risk_score'); if ($request->filled('class')) $query->whereHas('learner', fn($q) => $q->where('class_id', $request->class)); return view('admin.risk.index', ['predictions' => $query->paginate(25), 'classes' => auth()->user()->school?->classes()->orderBy('name')->get() ?? collect()]); }
-    public function platform(RiskPredictionService $risk) { $schools = School::with('package')->withCount(['learners', 'learners as high_risk_count' => fn($q) => $q->whereHas('riskPrediction', fn($r) => $r->where('risk_level', 'high'))])->get(); return view('admin.risk.platform', compact('schools', 'risk')); }
+    public function platform(RiskPredictionService $risk) {
+        $schools = School::with('package')->withCount(['learners', 'learners as high_risk_count' => fn($q) => $q->whereHas('riskPrediction', fn($r) => $r->where('risk_level', 'high'))])->get();
+        $trainingReadiness = $schools->map(function (School $school) use ($risk): array {
+            $samples = $school->is_active ? $risk->trainSamples($school) : [];
+            return [
+                'school' => $school,
+                'eligible' => $school->hasFeature('predictive_analytics'),
+                'samples' => count($samples),
+                'risk_examples' => collect($samples)->where('label', 1)->count(),
+                'stable_examples' => collect($samples)->where('label', 0)->count(),
+                'predictions' => LearnerRiskPrediction::withoutSchoolScope()->where('school_id', $school->id)->count(),
+            ];
+        });
+        return view('admin.risk.platform', compact('schools', 'risk', 'trainingReadiness'));
+    }
     public function recompute(RiskPredictionService $risk) {
         try {
             (new RecomputeRiskPredictions)->handle($risk);
