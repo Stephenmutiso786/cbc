@@ -36,7 +36,7 @@
                 'admin.kemis.index' => 'kemis',
                 'admin.notes.index' => 'lesson_plans',
                 'admin.timetable.index' => 'timetable', 'admin.exam-timetable.index' => 'timetable',
-                'admin.newsletters.index' => 'newsletters',
+                'admin.newsletters.index' => 'newsletters', 'admin.id-cards.index' => 'id_cards', 'admin.risk.index' => 'predictive_analytics',
             ])
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard', null]],

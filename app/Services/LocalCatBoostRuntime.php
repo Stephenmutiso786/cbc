@@ -30,5 +30,17 @@ class LocalCatBoostRuntime
         return $data;
     }
 
-    private function python(): string { return (string) config('services.risk_prediction.python_binary', 'python3'); }
+    private function python(): string
+    {
+        $configured = (string) config('services.risk_prediction.python_binary', 'python3');
+        if ($configured !== 'python3') {
+            return $configured;
+        }
+
+        // Local development uses the project-owned venv; production Docker
+        // installs the same requirements for python3. This keeps CatBoost
+        // entirely inside the application without requiring an HTTP service.
+        $bundled = base_path('.venv-catboost/bin/python');
+        return is_executable($bundled) ? $bundled : $configured;
+    }
 }

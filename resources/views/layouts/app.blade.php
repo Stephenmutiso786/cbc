@@ -48,7 +48,7 @@
                 'admin.inventory.index' => 'inventory', 'admin.sms.index' => 'notifications', 'admin.notifications.index' => 'notifications',
                 'admin.kemis.index' => 'kemis', 'admin.notes.index' => 'lesson_plans',
                 'admin.timetable.index' => 'timetable', 'admin.exam-timetable.index' => 'timetable', 'admin.id-cards.index' => 'id_cards',
-                'admin.newsletters.index' => 'newsletters',
+                'admin.newsletters.index' => 'newsletters', 'admin.risk.index' => 'predictive_analytics',
             ])
             @foreach([
                 'Overview' => [['admin.dashboard', 'Dashboard', null]],

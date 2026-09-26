@@ -19,14 +19,17 @@
             <button type="button" data-sidebar-close class="ml-auto rounded p-2 text-blue-100 hover:bg-blue-800 md:hidden" aria-label="Close menu">&times;</button>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1">
+            @php($featureMap = ['teacher.notes.index' => 'lesson_plans', 'teacher.timetable.index' => 'timetable', 'teacher.exam-timetable' => 'timetable', 'teacher.newsletters' => 'newsletters'])
             @foreach([
                 ['teacher.dashboard','Dashboard', null],['teacher.learners.index','My Learners','view students'],['teacher.exams.index','Exams & Marks','view exams|enter marks'],['teacher.results.index','View Results','view results'],
                 ['teacher.assessment.index','Assessments','view assessments'],['teacher.notes.index','Learning Notes','view notes'],['teacher.notifications.index','Message Parents','send notifications'],['teacher.signature.index','Report-card Signature','enter marks'],['teacher.attendance.index','Attendance','view attendance|mark attendance'],
                 ['teacher.timetable.index','Timetable','view timetable'],['teacher.exam-timetable','Exam Timetable','view timetable'],['teacher.newsletters','Newsletters',null],['teacher.support.index','Support Tickets','submit support tickets'],
             ] as [$route,$label,$permission])
             @if($permission === null || collect(explode('|', $permission))->contains(fn ($ability) => auth()->user()->can($ability)))
+                @php($lockedFeature = $featureMap[$route] ?? null)
+                @php($featureLocked = $lockedFeature && !(auth()->user()->school?->hasFeature($lockedFeature) ?? true))
                 @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
-                <a href="{{ route($route) }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
+                <a href="{{ $featureLocked ? route('feature.upgrade', ['feature' => $lockedFeature]) : route($route) }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-800 transition-colors {{ $featureLocked ? 'bg-blue-950/50' : '' }}" @if($featureLocked) title="Upgrade required to use {{ $label }}" @endif><span>{{ $label }}</span><span>@if($featureLocked)<span aria-label="Upgrade required">&#128274;</span>@elseif($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</span></a>
             @endif
             @endforeach
             <div class="mt-3 border-t border-blue-800 pt-3">

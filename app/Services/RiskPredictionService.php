@@ -41,15 +41,51 @@ class RiskPredictionService
 
     public function trainSamples(School $school): array
     {
-        $cutoff = now()->subDays(90)->startOfDay();
-        return Learner::withoutSchoolScope()->where('school_id', $school->id)->whereDate('admission_date', '<=', $cutoff->copy()->subDays(90))->get()->map(function (Learner $learner) use ($cutoff) {
-            $features = $this->features($learner, $cutoff);
-            $futureScores = ExamResult::withoutSchoolScope()->where('learner_id', $learner->id)->whereHas('exam', fn ($q) => $q->whereDate('exam_date', '>', $cutoff))->selectRaw('AVG(CASE WHEN total_marks > 0 THEN marks_obtained * 100.0 / total_marks END) as score')->value('score');
-            $futureAttendance = Attendance::withoutSchoolScope()->where('learner_id', $learner->id)->whereDate('date', '>', $cutoff)->selectRaw("AVG(CASE WHEN status IN ('present','late') THEN 1.0 ELSE 0 END) as rate")->value('rate');
-            $overdue = FeeInvoice::withoutSchoolScope()->where('learner_id', $learner->id)->whereDate('due_date', '<=', now()->subDays(30))->whereColumn('amount_paid', '<', 'total_amount')->exists();
-            $label = (($futureScores !== null && $futureScores < 45) || ($futureAttendance !== null && $futureAttendance < .70) || $overdue || ! $learner->is_active) ? 1 : 0;
-            return ['reference_id' => hash('sha256', 'train:' . $school->id . ':' . $learner->id), 'features' => $features, 'label' => (int) $label];
-        })->all();
+        /*
+         * Each run rebuilds the training set from several matured snapshots,
+         * rather than treating one old day as the entire school's history.
+         * The most recent 30 days remain prediction-only: their outcome is
+         * not known yet, so using them as labels would falsely train on the
+         * future. On later runs those records mature and are added here.
+         */
+        $samples = [];
+        foreach (collect(range(2, 8))->map(fn (int $months) => now()->subMonths($months)->startOfDay()) as $asOf) {
+            $outcomeEnd = $asOf->copy()->addDays(30)->endOfDay();
+            Learner::withoutSchoolScope()
+                ->where('school_id', $school->id)
+                ->whereDate('admission_date', '<=', $asOf)
+                ->get()
+                ->each(function (Learner $learner) use (&$samples, $school, $asOf, $outcomeEnd): void {
+                    $futureScores = ExamResult::withoutSchoolScope()
+                        ->where('learner_id', $learner->id)
+                        ->whereHas('exam', fn ($q) => $q->whereBetween('exam_date', [$asOf, $outcomeEnd]))
+                        ->selectRaw('AVG(CASE WHEN total_marks > 0 THEN marks_obtained * 100.0 / total_marks END) as score')
+                        ->value('score');
+                    $futureAttendance = Attendance::withoutSchoolScope()
+                        ->where('learner_id', $learner->id)->whereBetween('date', [$asOf, $outcomeEnd])
+                        ->selectRaw("AVG(CASE WHEN status IN ('present','late') THEN 1.0 ELSE 0 END) as rate")
+                        ->value('rate');
+                    $overdue = FeeInvoice::withoutSchoolScope()
+                        ->where('learner_id', $learner->id)->whereDate('due_date', '<=', $outcomeEnd)
+                        ->whereColumn('amount_paid', '<', 'total_amount')->exists();
+
+                    // No observed outcome means this snapshot cannot teach the model.
+                    if ($futureScores === null && $futureAttendance === null && ! $overdue) {
+                        return;
+                    }
+
+                    $label = (($futureScores !== null && $futureScores < 45)
+                        || ($futureAttendance !== null && $futureAttendance < .70)
+                        || $overdue || ! $learner->is_active) ? 1 : 0;
+                    $samples[] = [
+                        'reference_id' => hash('sha256', 'train:' . $school->id . ':' . $learner->id . ':' . $asOf->toDateString()),
+                        'features' => $this->features($learner, $asOf),
+                        'label' => (int) $label,
+                    ];
+                });
+        }
+
+        return $samples;
     }
 
     public function train(array $samples): array

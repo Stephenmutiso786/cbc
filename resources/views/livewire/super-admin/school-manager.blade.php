@@ -164,6 +164,21 @@
                         @error('grantPackageId') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                     </label>
 
+                    @php($selectedPlan = $packages->firstWhere('id', (int) $grantPackageId))
+                    @if($selectedPlan)
+                        <section class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
+                            <p class="font-semibold">Module access for {{ $selectedPlan->name }}</p>
+                            <p class="mt-1 text-xs">These are the services this school will receive immediately after this plan is saved. All other plan-controlled modules remain locked and lead users to the upgrade screen.</p>
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                @forelse($selectedPlan->features ?? [] as $feature)
+                                    <span class="rounded-full bg-white px-2 py-0.5 text-xs text-blue-800">{{ \App\Livewire\SuperAdmin\PackageManager::AVAILABLE_FEATURES[$feature] ?? $feature }}</span>
+                                @empty
+                                    <span class="text-xs text-amber-800">No paid modules are enabled on this plan.</span>
+                                @endforelse
+                            </div>
+                        </section>
+                    @endif
+
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Access expires on</span>
                         <input wire:model="grantExpiresAt" type="date" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm">
                         @error('grantExpiresAt') <span class="text-xs text-red-600">{{ $message }}</span> @enderror

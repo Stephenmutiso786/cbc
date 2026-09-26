@@ -3,9 +3,11 @@ namespace App\Http\Controllers;
 use App\Jobs\RecomputeRiskPredictions;
 use App\Jobs\TrainRiskModel;
 use App\Mail\SchoolRiskPredictionReport;
+use App\Mail\LearnerRiskReview;
 use App\Models\LearnerRiskPrediction;
 use App\Models\PlatformBroadcast;
 use App\Models\School;
+use App\Models\User;
 use App\Services\RiskPredictionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -53,14 +55,33 @@ class RiskPredictionController extends Controller {
             if (! $school->hasFeature('predictive_analytics') || ! $school->email) {
                 continue;
             }
-            $predictions = LearnerRiskPrediction::withoutSchoolScope()->where('school_id', $school->id);
+            $predictions = LearnerRiskPrediction::withoutSchoolScope()->with(['learner.schoolClass'])->where('school_id', $school->id);
             $analysed = (clone $predictions)->count();
             if ($analysed === 0) {
                 continue;
             }
             try {
-                Mail::to($school->email)->send(new SchoolRiskPredictionReport($school, $analysed, (clone $predictions)->where('risk_level', 'high')->count()));
-                $sent++;
+                $recipients = User::withoutSchoolScope()->where('school_id', $school->id)->where('status', 'active')->get()
+                    ->filter(fn (User $user) => $user->hasAnyRole(['school-admin', 'headteacher', 'principal', 'deputy-headteacher', 'deputy']))
+                    ->pluck('email')->filter()->unique()->values();
+                if ($recipients->isEmpty() && $school->email) {
+                    $recipients = collect([$school->email]);
+                }
+                if ($recipients->isEmpty()) {
+                    continue;
+                }
+
+                // Generate one actionable review email per learner requiring attention.
+                (clone $predictions)->whereIn('risk_level', ['high', 'medium'])->orderByDesc('risk_score')->each(function (LearnerRiskPrediction $prediction) use ($school, $recipients, &$sent): void {
+                    Mail::to($recipients->all())->send(new LearnerRiskReview($school, $prediction));
+                    $sent++;
+                });
+
+                // A summary remains useful when a school has no elevated learners.
+                if ((clone $predictions)->whereIn('risk_level', ['high', 'medium'])->doesntExist()) {
+                    Mail::to($recipients->all())->send(new SchoolRiskPredictionReport($school, $analysed, 0));
+                    $sent++;
+                }
             } catch (\Throwable $exception) {
                 report($exception);
                 $failed++;
@@ -76,7 +97,7 @@ class RiskPredictionController extends Controller {
             ]);
         }
 
-        return back()->with('success', "School risk-summary emails sent: {$sent}. Failed: {$failed}. Schools are also notified in their portal without exposing learner details by email.");
+        return back()->with('success', "Generated learner-support emails sent: {$sent}. Failed schools: {$failed}. Each message is delivered only to that school's active administrators.");
     }
     public function show(LearnerRiskPrediction $prediction) { abort_unless(auth()->user()->hasRole('super-admin') || $prediction->school_id === auth()->user()->school_id, 403); return view('admin.risk.show', compact('prediction')); }
 }

@@ -15,8 +15,11 @@
     <aside data-sidebar class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-emerald-900 transition-transform duration-300 md:translate-x-0">
         <div class="flex h-16 items-center justify-between bg-emerald-950 px-5"><span class="truncate font-bold text-white">Student Portal</span><button type="button" data-sidebar-close class="rounded p-2 text-emerald-100 md:hidden" aria-label="Close menu">&times;</button></div>
         <nav class="flex-1 space-y-1 px-3 py-4">
+            @php($featureMap = ['student.notes' => 'lesson_plans', 'student.timetable' => 'timetable', 'student.exam-timetable' => 'timetable', 'student.newsletters' => 'newsletters'])
             @foreach([['student.dashboard','Dashboard'],['student.results','My Results'],['student.report-card','Download Report Card'],['student.notes','Learning Notes'],['student.timetable','My Timetable'],['student.exam-timetable','Exam Timetable'],['student.newsletters','Newsletters'],['student.notifications','Notifications'],['student.support','Support Tickets']] as [$route,$label])
-                <a href="{{ route($route) }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800">{{ $label }}</a>
+                @php($lockedFeature = $featureMap[$route] ?? null)
+                @php($featureLocked = $lockedFeature && !(auth()->user()->school?->hasFeature($lockedFeature) ?? true))
+                <a href="{{ $featureLocked ? route('feature.upgrade', ['feature' => $lockedFeature]) : route($route) }}" class="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800 {{ $featureLocked ? 'bg-emerald-950/50' : '' }}" @if($featureLocked) title="Upgrade required to use {{ $label }}" @endif><span>{{ $label }}</span>@if($featureLocked)<span aria-label="Upgrade required">&#128274;</span>@endif</a>
             @endforeach
             <a href="{{ route('legal.terms') }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800">Terms and Conditions</a>
             <a href="{{ route('legal.privacy') }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-emerald-100 hover:bg-emerald-800">Privacy Policy</a>
