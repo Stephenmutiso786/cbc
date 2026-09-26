@@ -6,7 +6,10 @@ use App\Models\LearningArea;
 use App\Models\SchoolClass;
 use App\Models\TeacherSubjectAllocation;
 use App\Models\TimetableSlot;
+use App\Models\TimetableVersion;
 use App\Services\TimetableTemplateService;
+use App\Services\TimetableValidationService;
+use App\Services\VersionedTimetableGenerator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +23,8 @@ class TimetableManager extends Component
     public string $classId = '';
     public string $notice = '';
     public array $readiness = [];
+    public ?int $selectedVersionId = null;
+    public array $conflicts = [];
 
     private const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     public function mount(): void
@@ -36,6 +41,19 @@ class TimetableManager extends Component
             'term' => ['required', 'integer', 'between:1,3'],
             'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
         ]);
+
+        if ($this->classId !== '') {
+            throw ValidationException::withMessages(['classId' => 'Generation creates one complete school timetable version. Clear the class filter, then generate all classes together.']);
+        }
+        $result = app(VersionedTimetableGenerator::class)->generate($this->academicYear, $this->term, (int) auth()->id());
+        if (! $result['success']) {
+            $this->conflicts = $result['conflicts'] ?? [];
+            throw ValidationException::withMessages(['academicYear' => $result['message']]);
+        }
+        $this->selectedVersionId = $result['version']->id;
+        $this->conflicts = [];
+        $this->notice = $result['message'];
+        return;
 
         $classes = $this->selectedClasses();
         $missing = $this->missingAllocations($classes);
@@ -113,10 +131,27 @@ class TimetableManager extends Component
     public function publish(): void
     {
         abort_unless($this->canManage(), 403);
-        $count = TimetableSlot::where('academic_year', $this->academicYear)->where('term', (string) $this->term)
-            ->when($this->classId, fn ($query) => $query->where('class_id', (int) $this->classId))
-            ->update(['is_active' => true]);
-        $this->notice = $count ? "{$count} lessons published to teachers." : 'Generate the timetable before publishing.';
+        $version = $this->selectedVersion();
+        if (! $version || $version->state !== 'verified') { $this->addError('academicYear', 'Verify a complete draft timetable before publishing it.'); return; }
+        DB::transaction(function () use ($version): void {
+            TimetableVersion::where('academic_year', $version->academic_year)->where('term', $version->term)->where('state', 'published')->update(['state' => 'archived', 'archived_by' => auth()->id(), 'archived_at' => now()]);
+            TimetableSlot::where('academic_year', $version->academic_year)->where('term', $version->term)->where('is_active', true)->update(['is_active' => false]);
+            $version->slots()->update(['is_active' => true]);
+            $version->update(['state' => 'published', 'published_by' => auth()->id(), 'published_at' => now()]);
+        });
+        $this->notice = "Version {$version->version_number} published to class, teacher, parent, and learner portals.";
+    }
+
+    public function verify(): void
+    {
+        abort_unless($this->canManage(), 403);
+        $version = $this->selectedVersion();
+        if (! $version || $version->state !== 'draft') { $this->addError('academicYear', 'Select a draft timetable version to verify.'); return; }
+        $report = app(TimetableValidationService::class)->validate($version);
+        $this->conflicts = $report['errors'];
+        if (! $report['valid']) { $version->update(['conflict_report' => $report['errors']]); $this->addError('academicYear', 'Verification found conflicts. Resolve the report before publishing.'); return; }
+        $version->update(['state' => 'verified', 'verified_by' => auth()->id(), 'verified_at' => now(), 'conflict_report' => []]);
+        $this->notice = "Version {$version->version_number} passed all conflict checks and is ready to publish.";
     }
 
     public function unpublish(): void
@@ -127,6 +162,8 @@ class TimetableManager extends Component
             ->update(['is_active' => false]);
         $this->notice = 'Timetable unpublished for editing.';
     }
+
+    public function selectVersion(int $id): void { $this->selectedVersionId = $id; $this->conflicts = []; }
 
     public function render()
     {
@@ -151,6 +188,7 @@ class TimetableManager extends Component
             'gridBlocks' => $selectedClass ? app(TimetableTemplateService::class)->blocksForClass($selectedClass) : [],
             'classes' => SchoolClass::where('is_active', true)->with('learningAreas')->orderBy('grade_level')->orderBy('name')->get(),
             'readiness' => $this->readiness,
+            'versions' => TimetableVersion::where('academic_year', $this->academicYear)->where('term', (string) $this->term)->latest('version_number')->get(),
         ])->layout('layouts.admin');
     }
 
@@ -400,4 +438,5 @@ class TimetableManager extends Component
     }
 
     private function canManage(): bool { return auth()->user()->can('manage timetable'); }
+    private function selectedVersion(): ?TimetableVersion { return $this->selectedVersionId ? TimetableVersion::find($this->selectedVersionId) : TimetableVersion::where('academic_year', $this->academicYear)->where('term', (string) $this->term)->whereIn('state', ['draft', 'verified'])->latest('version_number')->first(); }
 }

@@ -81,9 +81,9 @@
     <div>{{ $schools->links() }}</div>
 
     @if ($showForm)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="$set('showForm', false)">
-            <div class="card w-full max-w-lg space-y-4 p-6">
-                <h2 class="text-lg font-bold text-gray-800">{{ $editingId ? 'Edit school' : 'New school' }}</h2>
+        <div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" wire:click.self="$set('showForm', false)" role="dialog" aria-modal="true" aria-labelledby="school-form-title">
+            <div class="modal-panel my-6 w-full max-w-lg space-y-4 p-6">
+                <h2 id="school-form-title" class="text-lg font-bold text-gray-800">{{ $editingId ? 'Edit school' : 'New school' }}</h2>
 
                 <form wire:submit="save" class="space-y-4">
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">School name</span>
@@ -148,9 +148,9 @@
     @endif
 
     @if ($showPlanForm)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="$set('showPlanForm', false)">
-            <div class="card w-full max-w-md space-y-4 p-6">
-                <h2 class="text-lg font-bold text-gray-800">Grant / extend plan</h2>
+        <div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" wire:click.self="$set('showPlanForm', false)" role="dialog" aria-modal="true" aria-labelledby="school-plan-title">
+            <div class="modal-panel my-6 w-full max-w-md space-y-4 p-6">
+                <h2 id="school-plan-title" class="text-lg font-bold text-gray-800">Grant / extend plan</h2>
                 <p class="text-sm text-gray-500">Use this for payments received outside M-Pesa (cash, bank transfer). The school can also pay for renewals themselves from their own Billing page.</p>
 
                 <form wire:submit="grantPlan" class="space-y-4">

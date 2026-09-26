@@ -9,6 +9,7 @@ use App\Http\Controllers\LegalConsentController;
 use App\Http\Controllers\CookieConsentController;
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\InvoiceDocumentController;
+use App\Http\Controllers\FeatureAccessController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,7 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
     Route::get('/presence/ping', fn () => response()->noContent())->name('presence.ping');
 
     Route::get('/billing', \App\Livewire\Billing\SubscriptionStatus::class)->name('billing.index');
+    Route::get('/upgrade/{feature}', [FeatureAccessController::class, 'upgrade'])->name('feature.upgrade');
     Route::get('/billing/invoices', \App\Livewire\Billing\InvoiceList::class)->name('billing.invoices');
     Route::get('/billing/invoices/{invoice}/preview', [InvoiceDocumentController::class, 'preview'])->name('billing.invoices.preview');
     Route::get('/billing/invoices/{invoice}/download', [InvoiceDocumentController::class, 'download'])->name('billing.invoices.download');

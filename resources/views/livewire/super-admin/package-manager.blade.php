@@ -43,9 +43,9 @@
     </div>
 
     @if ($showForm)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="$set('showForm', false)">
-            <div class="w-full max-w-lg space-y-4 rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-                <h2 class="text-lg font-bold text-gray-800">{{ $editingId ? 'Edit plan' : 'New plan' }}</h2>
+        <div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" wire:click.self="$set('showForm', false)" role="dialog" aria-modal="true" aria-labelledby="package-form-title">
+            <div class="modal-panel my-6 max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto p-6">
+                <h2 id="package-form-title" class="text-lg font-bold text-gray-800">{{ $editingId ? 'Edit plan' : 'New plan' }}</h2>
 
                 <form wire:submit="save" class="space-y-4">
                     <label class="block"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Plan name</span>

@@ -106,6 +106,9 @@ Route::get('/parents', ParentManager::class)->middleware('permission:view studen
 Route::get('/timetable', TimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('timetable.index');
 Route::get('/exam-timetable', ExamTimetableManager::class)->middleware(['permission:view timetable', 'feature:timetable'])->name('exam-timetable.index');
 Route::get('/timetable/print', [TimetableController::class, 'printSchool'])->middleware('permission:view timetable')->name('timetable.print');
+Route::get('/timetable/{version}/pdf', [TimetableController::class, 'pdf'])->middleware('permission:view timetable')->name('timetable.pdf');
+Route::get('/timetable/{version}/teacher/{teacher}/pdf', [TimetableController::class, 'teacherPdf'])->middleware('permission:view timetable')->name('timetable.teacher.pdf');
+Route::get('/timetable/{version}/classes/pdf', [TimetableController::class, 'allClassesPdf'])->middleware('permission:manage timetable')->name('timetable.classes.pdf');
 Route::post('/timetable/publish', [TimetableController::class, 'publish'])->middleware('permission:manage timetable')->name('timetable.publish');
 Route::post('/timetable/unpublish', [TimetableController::class, 'unpublish'])->middleware('permission:manage timetable')->name('timetable.unpublish');
 Route::get('/reports', [AnalyticsController::class, 'index'])->middleware('permission:view analytics')->name('reports.index');

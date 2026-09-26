@@ -50,9 +50,11 @@
                 <div>
                     <p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>
                     @foreach($links as [$route, $label, $permission])
-                        @if(($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission))) && (!isset($featureMap[$route]) || (auth()->user()->school?->hasFeature($featureMap[$route]) ?? true)))
+                        @if($permission === '__super_admin__' ? auth()->user()->hasRole('super-admin') : ($permission === null || auth()->user()->can($permission)))
+                            @php($lockedFeature = $featureMap[$route] ?? null)
+                            @php($featureLocked = $lockedFeature && !(auth()->user()->school?->hasFeature($lockedFeature) ?? true))
                             @php($badgeModule = app(\App\Services\ModuleNotificationService::class)->moduleForRoute($route))
-                            <a href="{{ route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700"><span>{{ $label }}</span>@if($badgeModule === 'support')<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</a>
+                            <a href="{{ $featureLocked ? route('feature.upgrade', ['feature' => $lockedFeature]) : route($route) }}" class="flex items-center justify-between rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700 {{ $featureLocked ? 'bg-green-900/40' : '' }}" @if($featureLocked) title="Upgrade required to use {{ $label }}" @endif><span>{{ $label }}</span><span class="flex items-center gap-2">@if($featureLocked)<span aria-label="Upgrade required" class="text-xs text-green-200">&#128274;</span>@endif @if($badgeModule === 'support' && ! $featureLocked)<livewire:notifications.module-notification-badge :module="$badgeModule" />@endif</span></a>
                         @endif
                     @endforeach
                 </div>

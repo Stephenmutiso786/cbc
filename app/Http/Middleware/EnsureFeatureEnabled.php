@@ -15,9 +15,17 @@ class EnsureFeatureEnabled
             return $next($request);
         }
 
-        abort_unless($user->school?->hasFeature($feature), 403, 'Your school\'s plan does not include this feature. Ask your administrator to upgrade the plan.');
+        if (! $user->school?->hasFeature($feature)) {
+            // A direct link should explain the plan requirement rather than
+            // exposing Laravel's generic forbidden error page. Livewire and
+            // JSON calls retain their 403 so they cannot silently continue.
+            if ($request->expectsJson() || $request->header('X-Livewire')) {
+                abort(403, 'Your school plan does not include this feature.');
+            }
+
+            return redirect()->route('feature.upgrade', ['feature' => $feature]);
+        }
 
         return $next($request);
     }
 }
-

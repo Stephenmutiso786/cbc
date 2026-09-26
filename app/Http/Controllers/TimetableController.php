@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\SchoolClass;
 use App\Models\StaffMember;
 use App\Models\TimetableSlot;
+use App\Models\TimetableVersion;
+use App\Services\TimetableValidationService;
+use Illuminate\Support\Facades\DB;
 use App\Services\TimetableTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TimetableController extends Controller
 {
@@ -18,40 +22,28 @@ class TimetableController extends Controller
     {
         abort_unless($request->user()?->can('manage timetable'), 403);
 
-        $data = $request->validate([
-            'academicYear' => ['required', 'string', 'max:9'],
-            'term' => ['required', 'integer', 'between:1,3'],
-            'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
-        ]);
-
-        $count = TimetableSlot::where('academic_year', $data['academicYear'])
-            ->where('term', (string) $data['term'])
-            ->when($data['classId'] ?? null, fn ($query) => $query->where('class_id', (int) $data['classId']))
-            ->update(['is_active' => true]);
-
-        return back()->with('success', $count
-            ? "{$count} lessons published to teacher portals."
-            : 'Generate the timetable before publishing it.');
+        $data = $request->validate(['version_id' => ['required', 'integer', 'exists:timetable_versions,id']]);
+        $version = TimetableVersion::findOrFail($data['version_id']);
+        if ($version->state !== 'verified') return back()->withErrors(['version_id' => 'Only a verified timetable version can be published.']);
+        $report = app(TimetableValidationService::class)->validate($version);
+        if (! $report['valid']) { $version->update(['conflict_report' => $report['errors']]); return back()->withErrors(['version_id' => 'The selected timetable no longer passes validation.']); }
+        DB::transaction(function () use ($version): void {
+            TimetableVersion::where('academic_year', $version->academic_year)->where('term', $version->term)->where('state', 'published')->update(['state' => 'archived', 'archived_by' => auth()->id(), 'archived_at' => now()]);
+            TimetableSlot::where('academic_year', $version->academic_year)->where('term', $version->term)->where('is_active', true)->update(['is_active' => false]);
+            $version->slots()->update(['is_active' => true]);
+            $version->update(['state' => 'published', 'published_by' => auth()->id(), 'published_at' => now()]);
+        });
+        return back()->with('success', "Timetable version {$version->version_number} published.");
     }
 
     public function unpublish(Request $request): RedirectResponse
     {
         abort_unless($request->user()?->can('manage timetable'), 403);
 
-        $data = $request->validate([
-            'academicYear' => ['required', 'string', 'max:9'],
-            'term' => ['required', 'integer', 'between:1,3'],
-            'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
-        ]);
-
-        $count = TimetableSlot::where('academic_year', $data['academicYear'])
-            ->where('term', (string) $data['term'])
-            ->when($data['classId'] ?? null, fn ($query) => $query->where('class_id', (int) $data['classId']))
-            ->update(['is_active' => false]);
-
-        return back()->with('success', $count
-            ? 'Timetable unpublished for editing.'
-            : 'No published timetable was found for the selected filters.');
+        $version = TimetableVersion::where('state', 'published')->latest('published_at')->first();
+        if (! $version) return back()->with('success', 'No published timetable was found.');
+        DB::transaction(function () use ($version): void { $version->slots()->update(['is_active' => false]); $version->update(['state' => 'verified']); });
+        return back()->with('success', 'Timetable unpublished and returned to verified status.');
     }
 
     public function printSchool(Request $request): View
@@ -73,6 +65,7 @@ class TimetableController extends Controller
             ->where('academic_year', $academicYear)
             ->where('term', $term)
             ->when($classId, fn ($query) => $query->where('class_id', (int) $classId))
+            ->where('is_active', true)
             ->orderByRaw("CASE day_of_week WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 ELSE 5 END")
             ->orderBy('start_time')
             ->get();
@@ -127,5 +120,40 @@ class TimetableController extends Controller
             'days' => self::DAYS,
             'times' => $times,
         ]);
+    }
+
+    public function pdf(TimetableVersion $version, Request $request)
+    {
+        abort_unless($request->user()?->can('view timetable'), 403);
+        $this->ensureReadableVersion($version, $request);
+        return Pdf::loadView('pdf.timetable-version', $this->pdfData($version, $request->integer('class_id') ?: null))->setPaper('a4', 'landscape')->download("timetable-v{$version->version_number}.pdf");
+    }
+
+    public function teacherPdf(TimetableVersion $version, StaffMember $teacher, Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user?->can('view timetable'), 403);
+        $staff = $user->resolvedStaffMember();
+        abort_unless($user->can('manage timetable') || ($staff && $staff->id === $teacher->id), 403);
+        $this->ensureReadableVersion($version, $request);
+        return Pdf::loadView('pdf.timetable-version', $this->pdfData($version, null, $teacher->id))->setPaper('a4', 'landscape')->download("teacher-timetable-{$teacher->id}-v{$version->version_number}.pdf");
+    }
+
+    public function allClassesPdf(TimetableVersion $version, Request $request)
+    {
+        abort_unless($request->user()?->can('manage timetable'), 403);
+        $this->ensureReadableVersion($version, $request);
+        return Pdf::loadView('pdf.timetable-version', $this->pdfData($version))->setPaper('a4', 'landscape')->download("all-class-timetables-v{$version->version_number}.pdf");
+    }
+
+    private function ensureReadableVersion(TimetableVersion $version, Request $request): void
+    {
+        abort_unless($version->state === 'published' || $request->user()?->can('manage timetable'), 403);
+    }
+
+    private function pdfData(TimetableVersion $version, ?int $classId = null, ?int $teacherId = null): array
+    {
+        $slots = $version->slots()->with(['schoolClass', 'learningArea', 'teacher'])->when($classId, fn ($q) => $q->where('class_id', $classId))->when($teacherId, fn ($q) => $q->where('teacher_id', $teacherId))->orderBy('day_of_week')->orderBy('start_time')->get();
+        return ['version' => $version, 'slots' => $slots, 'school' => $version->school, 'generatedAt' => $version->generated_at ?: $version->created_at, 'teacher' => $teacherId ? StaffMember::find($teacherId) : null];
     }
 }

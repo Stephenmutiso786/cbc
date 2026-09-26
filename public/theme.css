@@ -15,3 +15,21 @@
 .theme-toggle-icon { display: inline-grid; width: 1.1rem; place-items: center; font-size: 1rem; line-height: 1; }
 .theme-toggle:hover { background: rgb(22 101 52 / 8%); }
 [data-theme="dark"] .theme-toggle { color: #e2e8f0; border-color: #475569; }
+
+/* Modal panels must not depend on the compiled Tailwind component bundle.
+   Several Livewire screens are served with the Tailwind CDN instead, which
+   previously left .card-based dialogs visually transparent. */
+.modal-backdrop {
+    background: rgb(2 6 23 / 72%) !important;
+    backdrop-filter: blur(3px);
+}
+.modal-panel {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0;
+    border-radius: .75rem;
+    box-shadow: 0 25px 60px rgb(2 6 23 / 45%);
+}
+[data-theme="dark"] .modal-panel {
+    background: #111827 !important;
+    border-color: #475569;
+}
