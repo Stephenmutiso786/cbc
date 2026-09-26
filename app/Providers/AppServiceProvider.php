@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         // it's genuinely global and safe to load here on every boot.
         $this->loadPlatformSmsSettings();
         $this->loadPlatformMpesaSettings();
+        $this->loadPlatformPaymentSettings();
         $this->loadPlatformBranding();
 
         if (app()->environment('production')) {
@@ -52,6 +53,19 @@ class AppServiceProvider extends ServiceProvider
             }
         } catch (\Throwable) {
             // Table unavailable during a first install or migration.
+        }
+    }
+
+    private function loadPlatformPaymentSettings(): void
+    {
+        try {
+            if (! \Illuminate\Support\Facades\Schema::hasTable('system_settings')) return;
+            if ($provider = SystemSetting::get('platform_payment_provider')) config()->set('services.platform_payments.default', $provider);
+            foreach (['base_url', 'username', 'password', 'channel_id', 'callback_url'] as $field) {
+                if (($value = SystemSetting::get('payhero_' . $field)) !== null && $value !== '') config()->set('services.payhero.' . $field, $value);
+            }
+        } catch (\Throwable) {
+            // Settings table may not exist during installation.
         }
     }
 

@@ -31,6 +31,12 @@ class PlatformSettings extends Component
     public string $mpesaPasskey = '';
     public string $mpesaCallbackUrl = '';
     public string $smsUnitPrice = '1';
+    public string $paymentProvider = 'mpesa';
+    public string $payheroBaseUrl = 'https://backend.payhero.co.ke';
+    public string $payheroUsername = '';
+    public string $payheroPassword = '';
+    public string $payheroChannelId = '';
+    public string $payheroCallbackUrl = '';
     public $loginLogo;
 
     public function mount(): void
@@ -48,6 +54,10 @@ class PlatformSettings extends Component
         $this->mpesaShortcode = (string) SystemSetting::get('platform_mpesa_shortcode', config('services.platform_mpesa.shortcode'));
         $this->mpesaCallbackUrl = (string) SystemSetting::get('platform_mpesa_callback_url', config('services.platform_mpesa.callback_url'));
         $this->smsUnitPrice = (string) SystemSetting::get('platform_mpesa_sms_unit_price', config('services.platform_mpesa.sms_unit_price', 1));
+        $this->paymentProvider = (string) SystemSetting::get('platform_payment_provider', config('services.platform_payments.default', 'mpesa'));
+        $this->payheroBaseUrl = (string) SystemSetting::get('payhero_base_url', config('services.payhero.base_url'));
+        $this->payheroChannelId = (string) SystemSetting::get('payhero_channel_id', config('services.payhero.channel_id'));
+        $this->payheroCallbackUrl = (string) SystemSetting::get('payhero_callback_url', config('services.payhero.callback_url', url('/api/subscription/payhero/callback')));
     }
 
     public function save(): void
@@ -69,6 +79,12 @@ class PlatformSettings extends Component
             'mpesaPasskey' => ['nullable', 'string', 'max:500'],
             'mpesaCallbackUrl' => ['nullable', 'url', 'max:500'],
             'smsUnitPrice' => ['required', 'numeric', 'gt:0', 'max:100000'],
+            'paymentProvider' => ['required', 'in:mpesa,payhero'],
+            'payheroBaseUrl' => ['required_if:paymentProvider,payhero', 'nullable', 'url', 'max:500'],
+            'payheroUsername' => ['nullable', 'string', 'max:500'],
+            'payheroPassword' => ['nullable', 'string', 'max:500'],
+            'payheroChannelId' => ['nullable', 'integer', 'min:1'],
+            'payheroCallbackUrl' => ['nullable', 'url', 'max:500'],
             'loginLogo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
@@ -84,6 +100,10 @@ class PlatformSettings extends Component
             'platform_mpesa_shortcode' => $this->mpesaShortcode,
             'platform_mpesa_callback_url' => $this->mpesaCallbackUrl,
             'platform_mpesa_sms_unit_price' => $this->smsUnitPrice,
+            'platform_payment_provider' => $this->paymentProvider,
+            'payhero_base_url' => $this->payheroBaseUrl,
+            'payhero_channel_id' => $this->payheroChannelId,
+            'payhero_callback_url' => $this->payheroCallbackUrl,
         ] as $key => $value) {
             SystemSetting::put($key, $value);
         }
@@ -97,13 +117,15 @@ class PlatformSettings extends Component
             'platform_mpesa_consumer_key' => $this->mpesaConsumerKey,
             'platform_mpesa_consumer_secret' => $this->mpesaConsumerSecret,
             'platform_mpesa_passkey' => $this->mpesaPasskey,
+            'payhero_username' => $this->payheroUsername,
+            'payhero_password' => $this->payheroPassword,
         ] as $key => $value) {
             if ($value !== '') {
                 SystemSetting::put($key, 'enc:' . Crypt::encryptString($value));
             }
         }
 
-        $this->smsApiToken = $this->mpesaConsumerKey = $this->mpesaConsumerSecret = $this->mpesaPasskey = '';
+        $this->smsApiToken = $this->mpesaConsumerKey = $this->mpesaConsumerSecret = $this->mpesaPasskey = $this->payheroUsername = $this->payheroPassword = '';
         $this->loginLogo = null;
         session()->flash('success', 'Global platform settings saved. Secret fields remain hidden after saving.');
     }

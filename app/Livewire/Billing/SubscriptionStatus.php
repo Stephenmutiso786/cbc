@@ -5,7 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\Package;
 use App\Models\SubscriptionPayment;
 use App\Models\Invoice;
-use App\Services\MpesaService;
+use App\Services\PlatformPaymentGateway;
 use Livewire\Component;
 
 class SubscriptionStatus extends Component
@@ -42,8 +42,8 @@ class SubscriptionStatus extends Component
         $students = max($school->activeStudentCount(), 1);
         $amount = round($package->price * $students, 2);
 
-        $mpesa = MpesaService::platform();
-        if (! $mpesa->isConfigured()) {
+        $gateway = app(PlatformPaymentGateway::class);
+        if (! $gateway->configured()) {
             $this->error = 'Subscription payments are not yet configured. Contact the platform administrator.';
             return;
         }
@@ -54,24 +54,20 @@ class SubscriptionStatus extends Component
             'student_count' => $students,
             'amount'        => $amount,
             'phone'         => $this->phone,
+            'payment_provider' => $gateway->provider(),
             'status'        => 'pending',
             'initiated_by'  => auth()->id(),
         ]);
 
         try {
-            $result = $mpesa->stkPush(
-                $this->phone,
-                $amount,
-                'SCH' . $school->id . '-' . $payment->id,
-                "{$package->name} subscription — {$school->name}"
-            );
+            $result = $gateway->initiate($this->phone, $amount, 'SCH' . $school->id . '-' . $payment->id, "{$package->name} subscription — {$school->name}", auth()->user()->name);
 
             $payment->update([
-                'checkout_request_id' => $result['CheckoutRequestID'] ?? null,
-                'merchant_request_id' => $result['MerchantRequestID'] ?? null,
+                'checkout_request_id' => $result['checkout_request_id'] ?? null,
+                'merchant_request_id' => $result['merchant_request_id'] ?? null,
             ]);
 
-            if (empty($result['CheckoutRequestID'])) {
+            if (empty($result['checkout_request_id'])) {
                 $payment->update(['status' => 'failed', 'failure_reason' => $result['errorMessage'] ?? 'No checkout ID returned']);
                 $this->error = $result['errorMessage'] ?? 'Payment initiation failed.';
                 return;

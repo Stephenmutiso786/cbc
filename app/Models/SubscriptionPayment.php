@@ -10,7 +10,7 @@ class SubscriptionPayment extends Model
     use BelongsToSchool;
 
     protected $fillable = [
-        'school_id', 'package_id', 'student_count', 'amount', 'phone',
+        'school_id', 'package_id', 'student_count', 'amount', 'phone', 'payment_provider',
         'checkout_request_id', 'merchant_request_id', 'mpesa_receipt_number',
         'status', 'failure_reason', 'period_start', 'period_end', 'initiated_by',
     ];
@@ -31,4 +31,3 @@ class SubscriptionPayment extends Model
         return $this->belongsTo(User::class, 'initiated_by');
     }
 }
-

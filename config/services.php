@@ -42,6 +42,18 @@ return [
         'sms_unit_price'  => env('PLATFORM_SMS_UNIT_PRICE', 1),
     ],
 
+    'platform_payments' => [
+        'default' => env('PLATFORM_PAYMENT_PROVIDER', 'mpesa'),
+    ],
+
+    'payhero' => [
+        'base_url' => env('PAYHERO_BASE_URL', 'https://backend.payhero.co.ke'),
+        'username' => env('PAYHERO_USERNAME'),
+        'password' => env('PAYHERO_PASSWORD'),
+        'channel_id' => env('PAYHERO_CHANNEL_ID'),
+        'callback_url' => env('PAYHERO_CALLBACK_URL'),
+    ],
+
     'olympus_sms' => [
         'api_url' => env('OLYMPUS_SMS_API_URL', 'https://sms.ots.co.ke'),
         'portal_url' => env('OLYMPUS_SMS_PORTAL_URL', 'https://sms.ots.co.ke/login'),

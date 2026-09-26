@@ -6,7 +6,7 @@ use App\Models\School;
 use App\Models\SchoolNotification;
 use App\Models\SmsCreditOrder;
 use App\Models\SmsCreditTransaction;
-use App\Services\MpesaService;
+use App\Services\PlatformPaymentGateway;
 use Livewire\Component;
 
 /** A tenant-safe SMS wallet page; no provider credentials or cross-school data. */
@@ -34,16 +34,16 @@ class SchoolSmsDashboard extends Component
         $this->validate(['phone' => ['required', 'string', 'min:9'], 'smsUnits' => ['required', 'integer', 'min:10', 'max:100000']]);
         $school = auth()->user()->school;
         $unitPrice = (float) config('services.platform_mpesa.sms_unit_price', 1);
-        $mpesa = MpesaService::platform();
-        if ($unitPrice <= 0 || ! $mpesa->isConfigured()) {
+        $gateway = app(PlatformPaymentGateway::class);
+        if ($unitPrice <= 0 || ! $gateway->configured()) {
             $this->error = 'SMS payment is not configured by the platform administrator.';
             return;
         }
 
-        $order = SmsCreditOrder::create(['school_id' => $school->id, 'units' => $this->smsUnits, 'amount' => round($this->smsUnits * $unitPrice, 2), 'phone' => $this->phone, 'status' => 'pending', 'initiated_by' => auth()->id()]);
+        $order = SmsCreditOrder::create(['school_id' => $school->id, 'units' => $this->smsUnits, 'amount' => round($this->smsUnits * $unitPrice, 2), 'phone' => $this->phone, 'payment_provider' => $gateway->provider(), 'status' => 'pending', 'initiated_by' => auth()->id()]);
         try {
-            $result = $mpesa->stkPush($this->phone, (float) $order->amount, 'SMS'.$school->id.'-'.$order->id, "SMS credits — {$school->name}");
-            $order->update(['checkout_request_id' => $result['CheckoutRequestID'] ?? null, 'merchant_request_id' => $result['MerchantRequestID'] ?? null]);
+            $result = $gateway->initiate($this->phone, (float) $order->amount, 'SMS'.$school->id.'-'.$order->id, "SMS credits — {$school->name}", auth()->user()->name);
+            $order->update(['checkout_request_id' => $result['checkout_request_id'] ?? null, 'merchant_request_id' => $result['merchant_request_id'] ?? null]);
             if (! $order->checkout_request_id) {
                 $order->update(['status' => 'failed', 'failure_reason' => $result['errorMessage'] ?? 'No checkout ID returned']);
                 $this->error = $order->failure_reason;

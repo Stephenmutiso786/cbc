@@ -24,6 +24,7 @@ Route::prefix('mpesa')->group(function () {
 // deliberately separate from each school's parent-fee account.
 Route::prefix('subscription')->group(function () {
     Route::post('/callback', [SubscriptionPaymentController::class, 'callback']);
+    Route::post('/payhero/callback', [SubscriptionPaymentController::class, 'payheroCallback']);
     Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/stk-push', [SubscriptionPaymentController::class, 'stkPush']);
         Route::get('/status/{paymentId}', [SubscriptionPaymentController::class, 'status']);

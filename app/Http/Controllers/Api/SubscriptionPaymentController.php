@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\SubscriptionPayment;
 use App\Models\SmsCreditOrder;
 use App\Services\MpesaService;
+use App\Services\PlatformPaymentGateway;
 use App\Services\InvoiceService;
 use App\Services\SmsCapacityService;
 use Illuminate\Http\JsonResponse;
@@ -24,12 +25,12 @@ class SubscriptionPaymentController extends Controller
         abort_unless($school, 403);
         $unitPrice = (float) config('services.platform_mpesa.sms_unit_price', 1);
         abort_unless($unitPrice > 0, 422, 'SMS pricing is not configured by the platform administrator.');
-        $mpesa = MpesaService::platform();
-        if (! $mpesa->isConfigured()) return response()->json(['success' => false, 'message' => 'Subscription M-Pesa is not configured.'], 503);
-        $order = SmsCreditOrder::create(['school_id'=>$school->id, 'units'=>(int)$data['units'], 'amount'=>round($unitPrice * $data['units'], 2), 'phone'=>$data['phone'], 'status'=>'pending', 'initiated_by'=>$request->user()->id]);
+        $gateway = app(PlatformPaymentGateway::class);
+        if (! $gateway->configured()) return response()->json(['success' => false, 'message' => 'The platform payment provider is not configured.'], 503);
+        $order = SmsCreditOrder::create(['school_id'=>$school->id, 'units'=>(int)$data['units'], 'amount'=>round($unitPrice * $data['units'], 2), 'phone'=>$data['phone'], 'payment_provider'=>$gateway->provider(), 'status'=>'pending', 'initiated_by'=>$request->user()->id]);
         try {
-            $result = $mpesa->stkPush($data['phone'], (float)$order->amount, 'SMS'.$school->id.'-'.$order->id, "SMS credits — {$school->name}");
-            $order->update(['checkout_request_id'=>$result['CheckoutRequestID'] ?? null, 'merchant_request_id'=>$result['MerchantRequestID'] ?? null]);
+            $result = $gateway->initiate($data['phone'], (float)$order->amount, 'SMS'.$school->id.'-'.$order->id, "SMS credits — {$school->name}", $request->user()->name);
+            $order->update(['checkout_request_id'=>$result['checkout_request_id'], 'merchant_request_id'=>$result['merchant_request_id']]);
             if (! $order->checkout_request_id) { $order->update(['status'=>'failed','failure_reason'=>$result['errorMessage'] ?? 'No checkout ID returned']); return response()->json(['success'=>false,'message'=>$order->failure_reason], 500); }
             return response()->json(['success'=>true,'order_id'=>$order->id,'amount'=>(float)$order->amount,'message'=>'STK Push sent through ElimuHub subscription M-Pesa.']);
         } catch (\Throwable $exception) { $order->update(['status'=>'failed','failure_reason'=>$exception->getMessage()]); return response()->json(['success'=>false,'message'=>'Payment initiation failed.'],500); }
@@ -57,8 +58,8 @@ class SubscriptionPaymentController extends Controller
         $students = max($school->activeStudentCount(), 1);
         $amount = round($package->price * $students, 2);
 
-        $mpesa = MpesaService::platform();
-        if (! $mpesa->isConfigured()) {
+        $gateway = app(PlatformPaymentGateway::class);
+        if (! $gateway->configured()) {
             return response()->json(['success' => false, 'message' => 'Subscription payments are not yet configured. Contact the platform administrator.'], 503);
         }
 
@@ -68,24 +69,20 @@ class SubscriptionPaymentController extends Controller
             'student_count' => $students,
             'amount'        => $amount,
             'phone'         => $data['phone'],
+            'payment_provider' => $gateway->provider(),
             'status'        => 'pending',
             'initiated_by'  => $request->user()->id,
         ]);
 
         try {
-            $result = $mpesa->stkPush(
-                $data['phone'],
-                $amount,
-                'SCH' . $school->id . '-' . $payment->id,
-                "{$package->name} subscription — {$school->name}"
-            );
+            $result = $gateway->initiate($data['phone'], $amount, 'SCH' . $school->id . '-' . $payment->id, "{$package->name} subscription — {$school->name}", $request->user()->name);
 
             $payment->update([
-                'checkout_request_id' => $result['CheckoutRequestID'] ?? null,
-                'merchant_request_id' => $result['MerchantRequestID'] ?? null,
+                'checkout_request_id' => $result['checkout_request_id'] ?? null,
+                'merchant_request_id' => $result['merchant_request_id'] ?? null,
             ]);
 
-            if (empty($result['CheckoutRequestID'])) {
+            if (empty($result['checkout_request_id'])) {
                 $payment->update(['status' => 'failed', 'failure_reason' => $result['errorMessage'] ?? 'No checkout ID returned']);
                 return response()->json(['success' => false, 'message' => $result['errorMessage'] ?? 'Payment initiation failed.'], 500);
             }
@@ -146,7 +143,46 @@ class SubscriptionPaymentController extends Controller
 
         $metadata = collect($stkCallback['CallbackMetadata']['Item'] ?? [])->pluck('Value', 'Name');
 
-        DB::transaction(function () use ($payment, $metadata) {
+        $payment->update(['mpesa_receipt_number' => $metadata['MpesaReceiptNumber'] ?? null]);
+        $this->confirmSubscriptionPayment($payment);
+
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+    }
+
+    /** PayHero callback uses the documented external reference to locate the order. */
+    public function payheroCallback(Request $request): JsonResponse
+    {
+        $response = (array) $request->input('response', []);
+        $reference = $response['ExternalReference'] ?? '';
+        if (! preg_match('/^(SCH|SMS)(\d+)-(\d+)$/', (string) $reference, $parts)) return response()->json(['accepted' => true]);
+        $model = $parts[1] === 'SCH' ? SubscriptionPayment::class : SmsCreditOrder::class;
+        $payment = $model::withoutSchoolScope()->find($parts[3]);
+        if (! $payment || $payment->payment_provider !== 'payhero' || $payment->status !== 'pending') return response()->json(['accepted' => true]);
+        $success = ($response['Status'] ?? '') === 'Success' && (int) ($response['ResultCode'] ?? 1) === 0;
+        try {
+            $verified = app(PlatformPaymentGateway::class)->verifyPayhero((string) $payment->checkout_request_id);
+            $success = $success && ! empty($verified['success']) && strtoupper((string) ($verified['status'] ?? '')) === 'SUCCESS';
+        } catch (\Throwable $exception) {
+            report($exception);
+            return response()->json(['accepted' => true], 202);
+        }
+        if (! $success || (float) ($response['Amount'] ?? 0) + .001 < (float) $payment->amount) {
+            $payment->update(['status' => 'failed', 'failure_reason' => ! $success ? ($response['ResultDesc'] ?? 'PayHero payment was not completed.') : 'PayHero callback amount does not match the order.']);
+            return response()->json(['accepted' => true]);
+        }
+        $payment->update(['mpesa_receipt_number' => $response['MpesaReceiptNumber'] ?? null]);
+        if ($payment instanceof SmsCreditOrder) {
+            $payment->update(['confirmed_at' => now()]);
+            app(SmsCapacityService::class)->allocatePaidOrder($payment->fresh());
+        } else {
+            $this->confirmSubscriptionPayment($payment);
+        }
+        return response()->json(['accepted' => true]);
+    }
+
+    private function confirmSubscriptionPayment(SubscriptionPayment $payment): void
+    {
+        DB::transaction(function () use ($payment) {
             $school = School::findOrFail($payment->school_id);
             $package = $payment->package;
 
@@ -155,7 +191,6 @@ class SubscriptionPaymentController extends Controller
 
             $payment->update([
                 'status'                => 'confirmed',
-                'mpesa_receipt_number'  => $metadata['MpesaReceiptNumber'] ?? null,
                 'period_start'          => now()->toDateString(),
                 'period_end'            => $periodEnd->toDateString(),
             ]);
@@ -164,7 +199,7 @@ class SubscriptionPaymentController extends Controller
                 $package,
                 $periodEnd->toDateString(),
                 $payment->initiated_by,
-                "Paid via M-Pesa — receipt {$payment->mpesa_receipt_number}"
+                "Paid via {$payment->payment_provider} — receipt {$payment->mpesa_receipt_number}"
             );
 
             // The payment is real only once its receipt invoice exists too.
@@ -173,8 +208,6 @@ class SubscriptionPaymentController extends Controller
                 app(InvoiceService::class)->forConfirmedPayment($school, $package, $payment->fresh(), $payment->initiated_by);
             }
         });
-
-        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 
     /** SMS orders use the same platform subscription M-Pesa till, never the tenant fee till. */
