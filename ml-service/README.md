@@ -1,22 +1,26 @@
-# CBE CatBoost Risk Service
+# CBE local CatBoost runtime
 
-Deploy this directory as its own Docker service and attach a persistent disk at
-`/data`. Set a long random `ML_SERVICE_API_KEY`; Laravel must use the exact
-same key. The service accepts only an opaque reference ID and nine numbers.
+CatBoost runs inside the CBE application deployment. Laravel invokes
+`cli.py` through a local process; it does not use an HTTP endpoint, service
+URL, shared API key, or any external AI API.
 
-Health check: `GET /health`. Laravel calls authenticated `POST /train` and
-`POST /predict`. Do not expose the service publicly without a network rule and
-the API key. Train once from Laravel after at least 30 learners have 90 days of
-history: `php artisan risk:train-model`.
-
-## Local verification
-
-Create a virtual environment, install `requirements.txt`, then run:
+Install the local dependency once on each application server:
 
 ```sh
-ML_SERVICE_API_KEY=test-key MODEL_PATH=/tmp/cbe-risk-model.cbm python test_service.py
+python3 -m venv /opt/cbe-catboost
+/opt/cbe-catboost/bin/pip install catboost>=1.2,<1.3
 ```
 
-The test verifies health, rejection without an API key, CatBoost training, and
-that a deliberately struggling vector scores high while a strong vector scores
-low. For production, use the Dockerfile and a persistent `/data` disk.
+Set `CATBOOST_PYTHON_BINARY=/opt/cbe-catboost/bin/python` in the application
+environment. The trained model is stored at
+`storage/app/ml/cbe-risk-model.cbm`, so it remains with the application
+storage. Train it after at least 30 learners have 90+ days of history:
+
+```sh
+php artisan risk:train-model
+php artisan risk:predict
+```
+
+The local runtime receives only opaque references and the nine numeric learner
+features. Learner names, contacts, and school identifiers are never sent to a
+network service.

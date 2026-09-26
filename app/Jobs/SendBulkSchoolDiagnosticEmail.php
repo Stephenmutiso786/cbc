@@ -3,12 +3,12 @@
 namespace App\Jobs;
 
 use App\Mail\SchoolDiagnosticReport;
+use App\Services\SchoolDiagnosticService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 class SendBulkSchoolDiagnosticEmail implements ShouldQueue
@@ -24,20 +24,9 @@ class SendBulkSchoolDiagnosticEmail implements ShouldQueue
         $this->ticketPayload = $ticketPayload;
     }
 
-    public function handle()
+    public function handle(SchoolDiagnosticService $diagnostics)
     {
-        $catboostUrl = config('services.catboost.url', 'http://127.0.0.1:8000/api/ml/predict-ticket');
-
-        try {
-            $response = Http::post($catboostUrl, $this->ticketPayload);
-            $diagnosticData = $response->json();
-        } catch (\Exception $e) {
-            $diagnosticData = [
-                'prediction' => 'Service Unavailable',
-                'confidence' => 0,
-                'recommended_action' => 'Manual review required.'
-            ];
-        }
+        $diagnosticData = $diagnostics->assess($this->ticketPayload);
 
         if (!empty($this->school->email)) {
             Mail::to($this->school->email)->send(new SchoolDiagnosticReport($this->school, $diagnosticData));

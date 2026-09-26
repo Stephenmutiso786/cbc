@@ -9,14 +9,13 @@ use App\Models\Learner;
 use App\Models\LearnerRiskPrediction;
 use App\Models\School;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class RiskPredictionService
 {
     public const FEATURE_KEYS = ['attendance_30d', 'attendance_term', 'recent_score', 'term_score', 'score_trend', 'fee_balance_ratio', 'days_overdue', 'terms_enrolled', 'missed_assessment_ratio'];
 
-    public function configured(): bool { return filled(config('services.risk_prediction.url')) && filled(config('services.risk_prediction.api_key')); }
+    public function configured(): bool { return app(LocalCatBoostRuntime::class)->available(); }
 
     /** Numeric-only vector. $asOf makes historical training labels non-circular. */
     public function features(Learner $learner, Carbon $asOf): array
@@ -74,6 +73,6 @@ class RiskPredictionService
         }
         return count($response['predictions'] ?? []);
     }
-    public function health(): array { try { return $this->configured() ? Http::timeout(config('services.risk_prediction.timeout'))->get(rtrim(config('services.risk_prediction.url'), '/') . '/health')->throw()->json() : ['status' => 'not configured']; } catch (\Throwable) { return ['status' => 'unavailable']; } }
-    private function request(string $path, array $payload): array { return Http::timeout(config('services.risk_prediction.timeout'))->withHeaders(['X-API-Key' => config('services.risk_prediction.api_key')])->post(rtrim(config('services.risk_prediction.url'), '/') . '/' . $path, $payload)->throw()->json(); }
+    public function health(): array { return ['status' => $this->configured() ? 'local runtime ready' : 'local CatBoost is not installed', 'model_ready' => file_exists(storage_path('app/ml/cbe-risk-model.cbm'))]; }
+    private function request(string $path, array $payload): array { return app(LocalCatBoostRuntime::class)->run($path, $payload['samples'] ?? []); }
 }

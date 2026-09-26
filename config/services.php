@@ -59,9 +59,8 @@ return [
     ],
 
     'risk_prediction' => [
-        'url' => env('ML_SERVICE_URL'),
-        'api_key' => env('ML_SERVICE_API_KEY'),
-        'timeout' => (int) env('ML_SERVICE_TIMEOUT', 20),
+        'python_binary' => env('CATBOOST_PYTHON_BINARY', 'python3'),
+        'timeout' => (int) env('CATBOOST_LOCAL_TIMEOUT', 120),
     ],
 
     'kemis' => [
