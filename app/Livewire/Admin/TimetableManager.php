@@ -42,10 +42,14 @@ class TimetableManager extends Component
             'classId' => ['nullable', 'integer', 'exists:school_classes,id'],
         ]);
 
-        if ($this->classId !== '') {
-            throw ValidationException::withMessages(['classId' => 'Generation creates one complete school timetable version. Clear the class filter, then generate all classes together.']);
+        // The class picker is a preview filter. It must not block generation
+        // of the complete school version requested by this command centre.
+        try {
+            $result = app(VersionedTimetableGenerator::class)->generate($this->academicYear, $this->term, (int) auth()->id());
+        } catch (\Throwable $exception) {
+            report($exception);
+            throw ValidationException::withMessages(['academicYear' => 'The timetable draft could not be saved. Please retry; if it continues, contact support with the time of this attempt.']);
         }
-        $result = app(VersionedTimetableGenerator::class)->generate($this->academicYear, $this->term, (int) auth()->id());
         if (! $result['success']) {
             $this->conflicts = $result['conflicts'] ?? [];
             throw ValidationException::withMessages(['academicYear' => $result['message']]);

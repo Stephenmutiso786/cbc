@@ -71,6 +71,7 @@ Route::get('/platform-analytics', PlatformAnalytics::class)->middleware('role:su
 Route::get('/ai-risk-predictions', [RiskPredictionController::class, 'platform'])->middleware('role:super-admin')->name('risk.platform');
 Route::post('/ai-risk-predictions/retrain', [RiskPredictionController::class, 'train'])->middleware('role:super-admin')->name('risk.train');
 Route::post('/ai-risk-predictions/recompute', [RiskPredictionController::class, 'recompute'])->middleware('role:super-admin')->name('risk.recompute');
+Route::post('/ai-risk-predictions/email-schools', [RiskPredictionController::class, 'emailSchools'])->middleware('role:super-admin')->name('risk.email-schools');
 Route::get('/broadcasts', BroadcastCenter::class)->middleware('role:super-admin')->name('broadcasts.index');
 Route::get('/backups', BackupCenter::class)->middleware('permission:manage system settings')->name('backups.index');
 Route::get('/user-accounts', UserAccountManager::class)->middleware('permission:manage users')->name('user-accounts.index');

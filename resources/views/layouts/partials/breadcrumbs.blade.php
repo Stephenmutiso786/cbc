@@ -11,7 +11,8 @@
         'system-logs' => 'Audit Logs', 'support' => 'Support Tickets', 'impersonate' => 'Support Access',
         'platform-dashboard' => 'Command Centre', 'dashboard' => 'Dashboard', 'index' => null,
     ];
-    $section = $labels[$parts[1] ?? ''] ?? ($parts[1] ? ucwords(str_replace(['-', '_'], ' ', $parts[1])) : null);
+    $sectionKey = $parts[1] ?? '';
+    $section = $labels[$sectionKey] ?? ($sectionKey !== '' ? ucwords(str_replace(['-', '_'], ' ', $sectionKey)) : null);
     $page = $labels[$parts[2] ?? ''] ?? (($parts[2] ?? '') === 'index' ? null : ucwords(str_replace(['-', '_'], ' ', $parts[2] ?? '')));
 @endphp
 @if($routeName && $section)

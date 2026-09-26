@@ -29,9 +29,9 @@
     </nav>
     @include('layouts.partials.breadcrumbs')
     @yield('content')
-    @isset($slot)
+    @if(isset($slot) && $slot instanceof \Illuminate\View\ComponentSlot)
         {{ $slot }}
-    @endisset
+    @endif
     <footer class="mt-8 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms and Conditions</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy Policy</a></footer>
 </div>
 @livewireScripts

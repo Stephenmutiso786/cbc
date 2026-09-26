@@ -52,9 +52,9 @@
             @include('layouts.partials.breadcrumbs')
             @include('layouts.partials.platform-broadcast')
             @yield('content')
-            @isset($slot)
+            @if(isset($slot) && $slot instanceof \Illuminate\View\ComponentSlot)
                 {{ $slot }}
-            @endisset
+            @endif
         </main>
         <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy</a></footer>
     </div>

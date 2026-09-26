@@ -23,7 +23,7 @@
             @if(auth()->user()?->hasRole('super-admin'))
                 @foreach([
                     'Platform overview' => [['admin.platform-dashboard.index', 'Command Centre'], ['admin.schools.index', 'Registered Schools'], ['admin.platform-analytics.index', 'Platform Analytics'], ['admin.platform-finance.index', 'Platform Finance']],
-                    'Commercial' => [['admin.plans.index', 'Plans & Feature Access'], ['admin.roles.index', 'Access & Permissions'], ['admin.invoices.index', 'Platform Invoices'], ['admin.sms-control.index', 'SMS Control Center'], ['admin.broadcasts.index', 'Broadcast Centre']],
+                    'Commercial' => [['admin.plans.index', 'Plans & Feature Access'], ['admin.roles.index', 'Access & Permissions'], ['admin.invoices.index', 'Platform Invoices'], ['admin.sms-control.index', 'SMS Control Center'], ['admin.risk.platform', 'CatBoost Learner Support'], ['admin.broadcasts.index', 'Broadcast Centre']],
                     'Security & Support' => [['admin.platform-settings.index', 'Global Settings & APIs'], ['admin.user-accounts.index', 'User Accounts & Passwords'], ['admin.support.index', 'School Support Tickets'], ['admin.impersonate.index', 'School Support Access'], ['admin.system-logs.index', 'Audit Logs'], ['admin.diagnostics.index', 'System Diagnostics'], ['admin.platform-maintenance.index', 'Maintenance Mode'], ['admin.legal-policies.index', 'Legal Policies']],
                 ] as $section => $links)
                     <div><p class="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-green-300">{{ $section }}</p>@foreach($links as [$route, $label])<a href="{{ route($route) }}" class="flex items-center rounded-lg px-4 py-2.5 text-green-100 hover:bg-green-700">{{ $label }}</a>@endforeach</div>
@@ -91,7 +91,7 @@
                 </div>
             @endif
             @yield('content')
-            @isset($slot){{ $slot }}@endisset
+            @if(isset($slot) && $slot instanceof \Illuminate\View\ComponentSlot){{ $slot }}@endif
         </main>
         <footer class="px-4 pb-6 text-center text-xs text-gray-500"><a href="{{ route('legal.terms') }}" class="underline">Terms and Conditions</a> · <a href="{{ route('legal.privacy') }}" class="underline">Privacy Policy</a></footer>
     </div>
