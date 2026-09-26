@@ -31,6 +31,7 @@
         <a href="{{ route('learning.miyagi') }}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg text-sm font-medium bg-green-700 text-white hover:bg-green-800">Miyagi AI Learning</a>
     </nav>
     @include('layouts.partials.breadcrumbs')
+    @include('layouts.partials.platform-broadcast')
     @yield('content')
     @if(isset($slot) && $slot instanceof \Illuminate\View\ComponentSlot)
         {{ $slot }}

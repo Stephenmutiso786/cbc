@@ -14,6 +14,7 @@ class BroadcastCenter extends Component
     public string $title = '';
     public string $message = '';
     public bool $sendSms = false;
+    public bool $pinBanner = true;
 
     public function mount(): void
     {
@@ -33,6 +34,7 @@ class BroadcastCenter extends Component
             'title' => $this->title,
             'message' => $this->message,
             'send_sms' => $this->sendSms,
+            'is_pinned' => $this->pinBanner,
             'status' => 'sending',
             'created_by' => auth()->id(),
             'total_schools' => $schools->count(),
@@ -62,7 +64,7 @@ class BroadcastCenter extends Component
 
         $broadcast->update(['status' => 'sent', 'sent_at' => now(), 'schools_notified' => $notified]);
 
-        $this->reset(['title', 'message', 'sendSms']);
+        $this->reset(['title', 'message', 'sendSms', 'pinBanner']);
         session()->flash('success', "Broadcast sent to {$notified} school(s).");
     }
 
@@ -73,4 +75,3 @@ class BroadcastCenter extends Component
         ])->layout('layouts.admin');
     }
 }
-

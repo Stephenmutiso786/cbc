@@ -108,7 +108,8 @@ class School extends Model
             return 'Expired ' . $this->package_expires_at->diffForHumans();
         }
 
-        return 'Active — renews ' . $this->package_expires_at->diffForHumans();
+        $days = max(0, now()->startOfDay()->diffInDays($this->package_expires_at->copy()->startOfDay(), false));
+        return "Active — {$days} day" . ($days === 1 ? '' : 's') . ' remaining';
     }
 
     public function packageExpired(): bool

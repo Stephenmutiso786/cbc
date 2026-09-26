@@ -21,6 +21,7 @@
             <input type="checkbox" wire:model="sendSms" class="mt-1">
             <span class="text-sm text-gray-700">Also send via SMS to every school's guardians <span class="block text-xs text-yellow-700">Uses each school's own SMS credit balance — only enable if schools have been informed.</span></span>
         </label>
+        <label class="flex items-start gap-2"><input type="checkbox" wire:model="pinBanner" class="mt-1"><span class="text-sm text-gray-700">Pin as the current all-user banner <span class="block text-xs text-gray-500">It remains visible in every portal until the Super Admin publishes a newer pinned banner.</span></span></label>
         <button wire:click="send" wire:confirm="Send this to every active school now?" class="rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-800">
             Send broadcast
         </button>
@@ -30,22 +31,21 @@
         <h2 class="p-4 font-bold text-gray-800">History</h2>
         <table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Title</th><th class="px-4 py-3">SMS?</th><th class="px-4 py-3">Schools notified</th><th class="px-4 py-3">Status</th></tr>
+                <tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Title</th><th class="px-4 py-3">Banner</th><th class="px-4 py-3">SMS?</th><th class="px-4 py-3">Schools notified</th><th class="px-4 py-3">Status</th></tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse ($broadcasts as $broadcast)
                     <tr>
                         <td class="px-4 py-3">{{ $broadcast->created_at->format('d M Y H:i') }}</td>
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $broadcast->title }}</td>
-                        <td class="px-4 py-3">{{ $broadcast->send_sms ? 'Yes' : 'No' }}</td>
+                        <td class="px-4 py-3">{{ $broadcast->is_pinned ? 'Pinned' : 'Temporary' }}</td><td class="px-4 py-3">{{ $broadcast->send_sms ? 'Yes' : 'No' }}</td>
                         <td class="px-4 py-3">{{ $broadcast->schools_notified }} / {{ $broadcast->total_schools }}</td>
                         <td class="px-4 py-3 capitalize">{{ $broadcast->status }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No broadcasts sent yet.</td></tr>
+                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No broadcasts sent yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
-
