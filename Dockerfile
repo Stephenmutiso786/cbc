@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         libexif-dev \
         libpq-dev \
+        python3 \
+        python3-pip \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
     && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
@@ -50,6 +52,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         libexif-dev \
         libpq-dev \
+        python3 \
+        python3-pip \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
     && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
@@ -63,6 +67,11 @@ RUN printf 'upload_max_filesize=25M\npost_max_size=30M\nmemory_limit=256M\n' > /
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
+
+# The risk engine is a local Python process invoked by Laravel, not a remote
+# API. Install its pinned dependencies in the application image so the model
+# is available immediately after deployment.
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r ml-service/requirements.txt
 
 RUN mkdir -p bootstrap/cache storage/app/public storage/framework/{cache,sessions,views} storage/logs public/storage \
     && chmod -R a+rwX bootstrap/cache storage public/storage

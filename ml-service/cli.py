@@ -30,7 +30,7 @@ def main():
             labels = [item.get("label") for item in samples]
             if any(label not in (0, 1) for label in labels) or len(set(labels)) < 2:
                 fail("Training requires labelled examples from both risk outcomes.")
-            model = CatBoostClassifier(iterations=250, depth=6, learning_rate=.05, loss_function="Logloss", verbose=False, random_seed=42)
+            model = CatBoostClassifier(iterations=250, depth=6, learning_rate=.05, loss_function="Logloss", verbose=False, random_seed=42, allow_writing_files=False)
             model.fit([item["features"] for item in samples], labels)
             model_path.parent.mkdir(parents=True, exist_ok=True)
             model.save_model(str(model_path))

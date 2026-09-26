@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\TrackOnlineUsers::cl
     Route::get('/presence/ping', fn () => response()->noContent())->name('presence.ping');
 
     Route::get('/billing', \App\Livewire\Billing\SubscriptionStatus::class)->name('billing.index');
+    // Backward-compatible target used by the SMS wallet quick action.
+    Route::get('/subscription', \App\Livewire\Billing\SubscriptionStatus::class)->name('admin.subscription.index');
     Route::get('/upgrade/{feature}', [FeatureAccessController::class, 'upgrade'])->name('feature.upgrade');
     Route::get('/billing/invoices', \App\Livewire\Billing\InvoiceList::class)->name('billing.invoices');
     Route::get('/billing/invoices/{invoice}/preview', [InvoiceDocumentController::class, 'preview'])->name('billing.invoices.preview');

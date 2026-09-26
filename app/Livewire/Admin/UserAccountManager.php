@@ -190,6 +190,19 @@ class UserAccountManager extends Component
 
     public function updated($property): void
     {
+        if ($property === 'role') {
+            // Platform operators are not tenants.  Clear a previously chosen
+            // school when the form is switched to either platform role so an
+            // IT-team account can never be created against a school.
+            if (in_array($this->role, ['super-admin', 'it-team'], true)) {
+                $this->schoolId = '';
+            }
+
+            if ($this->role !== 'learner') {
+                $this->learnerId = '';
+            }
+        }
+
         if (in_array($property, ['search', 'roleFilter', 'statusFilter', 'schoolFilter', 'createdFrom', 'createdTo', 'perPage'], true)) {
             $this->resetPage();
             $this->selectedUserIds = [];
@@ -257,6 +270,8 @@ class UserAccountManager extends Component
             'must_change_password' => true,
         ])->save();
 
+        $delivery = app(LoginCredentialService::class)->sendLoginDetails($user, $data['newPassword']);
+
         SystemLog::create([
             'user_id' => auth()->id(), 'method' => 'PASSWORD_RESET', 'path' => 'admin/user-accounts/' . $user->id,
             'status' => 200, 'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
@@ -264,7 +279,12 @@ class UserAccountManager extends Component
         ]);
 
         $this->reset(['resettingPasswordFor', 'newPassword', 'newPasswordConfirmation']);
-        $this->notice = "Password reset for {$user->name}. They must create a personal password at their next sign-in.";
+        $this->notice = $this->formatCredentialNotice(
+            $user,
+            $data['newPassword'],
+            $delivery,
+            "Password reset for {$user->name}. They must create a personal password at their next sign-in."
+        );
     }
 
     public function render()
@@ -327,7 +347,9 @@ class UserAccountManager extends Component
     private function formatCredentialNotice(User $user, string $password, array $delivery, string $lead): string
     {
         $login = app(LoginCredentialService::class)->loginIdentifier($user);
-        $message = $lead . ' Login: ' . $login . '. Password: ' . $password . '.';
+        // The operator either supplied the password or it was delivered by
+        // SMS. Never render a reusable credential back into a Livewire page.
+        $message = $lead . ' Login: ' . $login . '.';
 
         if (($delivery['status'] ?? null) === 'sent') {
             $message .= ' SMS sent to ' . $delivery['recipient'] . '.';

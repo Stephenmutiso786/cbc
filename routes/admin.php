@@ -3,7 +3,7 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Students\StudentList;
 use App\Livewire\Assessment\BulkAssessmentEntry;
 use App\Livewire\Notifications\SendNotification;
-use App\Livewire\Notifications\SmsBalance;
+use App\Livewire\Notifications\SchoolSmsDashboard;
 use App\Livewire\Exams\ExamManager;
 use App\Livewire\Inventory\InventoryList;
 use App\Livewire\Notes\LearningNotesList;
@@ -41,6 +41,7 @@ use App\Livewire\SuperAdmin\BroadcastCenter;
 use App\Livewire\SuperAdmin\SuperAdminDashboard;
 use App\Livewire\SuperAdmin\PlatformMaintenance;
 use App\Livewire\SuperAdmin\PlatformSettings;
+use App\Livewire\SuperAdmin\SmsControlCenter;
 use App\Livewire\SuperAdmin\InvoiceManager;
 use App\Livewire\Admin\IdCardGenerator;
 use App\Http\Controllers\TimetableController;
@@ -56,6 +57,7 @@ Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 Route::get('/platform-dashboard', SuperAdminDashboard::class)->middleware('role:super-admin')->name('platform-dashboard.index');
 Route::get('/platform-maintenance', PlatformMaintenance::class)->middleware('role:super-admin')->name('platform-maintenance.index');
 Route::get('/platform-settings', PlatformSettings::class)->middleware('role:super-admin')->name('platform-settings.index');
+Route::get('/sms-control', SmsControlCenter::class)->middleware('role:super-admin')->name('sms-control.index');
 // School administrators can submit and track their own tickets. Only the
 // super-admin receives the management permission and can see every ticket.
 Route::get('/support', SupportTicketCenter::class)->middleware('permission:submit support tickets')->name('support.index');
@@ -80,7 +82,7 @@ Route::get('/students/import', StudentList::class)->middleware('permission:creat
 Route::get('/students/{learner}/report-card', [ReportCardController::class, 'download'])->middleware('permission:view report cards')->name('students.report-card');
 Route::get('/assessment', BulkAssessmentEntry::class)->middleware('permission:view assessments')->name('assessment.index');
 Route::get('/notifications', SendNotification::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('notifications.index');
-Route::get('/sms', SmsBalance::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('sms.index');
+Route::get('/sms', SchoolSmsDashboard::class)->middleware(['permission:view notifications', 'feature:notifications'])->name('sms.index');
 Route::get('/exams', ExamManager::class)->middleware('permission:view exams')->name('exams.index');
 Route::get('/exams/archive', [PastExamDocumentController::class, 'index'])->middleware('permission:view exams')->name('exams.archive');
 Route::post('/exams/archive', [PastExamDocumentController::class, 'store'])->middleware('permission:manage exams')->name('exams.archive.store');
